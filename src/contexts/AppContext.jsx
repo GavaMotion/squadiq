@@ -200,32 +200,26 @@ export function AppProvider({ userId, children }) {
       validIdsRef.current = vids
 
       // ── Game Day plans ───────────────────────────────────────
-      console.log('=== LOADING GAME PLANS ===')
-      console.log('fetching for teamId:', teamData.id)
       let gdAllPlans = []
       try {
         const { data: saved, error: err } = await supabase
           .from('saved_game_plans').select('*')
           .eq('team_id', teamData.id).order('created_at', { ascending: true })
-        console.log('result:', saved, 'error:', err)
         if (!err) {
           gdAllPlans = saved || []
           if (gdAllPlans.length > 0) cacheData(`cache_gameplans_${teamData.id}`, gdAllPlans)
         } else {
           gdAllPlans = getCachedData(`cache_gameplans_${teamData.id}`) || []
         }
-      } catch (e) {
-        console.log('fetch threw:', e)
+      } catch {
         gdAllPlans = getCachedData(`cache_gameplans_${teamData.id}`) || []
       }
 
       if (gdAllPlans.length === 0) {
-        console.log('=== CREATING DEFAULT PLAN ===')
-        console.log('existing plans count:', gdAllPlans.length)
         const baseForm = getDefaultFormation(teamData.division)
         const blankState = buildBlankPlanState(baseForm)
         try {
-          const { data: newPlan, error: insertErr } = await supabase
+          const { data: newPlan } = await supabase
             .from('saved_game_plans')
             .insert({
               team_id: teamData.id, name: 'Game Plan 1',
@@ -234,9 +228,8 @@ export function AppProvider({ userId, children }) {
               absent_players: [],
             })
             .select().single()
-          console.log('default plan insert result:', newPlan, 'error:', insertErr)
           if (newPlan) gdAllPlans = [newPlan]
-        } catch (e) { console.log('default plan insert threw:', e) }
+        } catch { /* use local fallback below */ }
       }
       if (gdAllPlans.length === 0) {
         const baseForm = getDefaultFormation(teamData.division)
@@ -535,15 +528,10 @@ export function AppProvider({ userId, children }) {
       const q = supabase.from(table)
       if (operation === 'update')      ({ data: result, error } = await q.update(data).eq(matchField, matchValue).select())
       else if (operation === 'insert') ({ data: result, error } = await q.insert(data).select())
-      else if (operation === 'upsert') ({ data: result, error } = await q.upsert(data).select())
-      console.log(`[saveWithOfflineSupport] ${table} ${operation} — rows affected:`, result?.length ?? 0, '| error:', error)
+      else if (operation === 'upsert') ({ data: result, error } = await q.upsert(data, { onConflict: 'id' }).select())
       if (error) throw error
-      if (operation === 'update' && (!result || result.length === 0)) {
-        console.warn('[saveWithOfflineSupport] UPDATE matched 0 rows — planId may not exist in DB:', matchValue)
-      }
       return { ok: true, queued: false }
-    } catch (e) {
-      console.log('[saveWithOfflineSupport] threw:', e)
+    } catch {
       return { ok: false, queued: false }
     }
   }

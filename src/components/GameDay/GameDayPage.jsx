@@ -72,6 +72,13 @@ export default function GameDayPage() {
   // read null and return early, meaning the plan is never written to Supabase.
   useEffect(() => { if (activePlanId) activePlanRef.current = activePlanId }, [activePlanId])
 
+  // Auto-save whenever planStates changes (debounced via scheduleSave)
+  useEffect(() => {
+    if (activePlanId && !String(activePlanId).startsWith('local-')) {
+      scheduleSave(activePlanId)
+    }
+  }, [planStates]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     return () => {
       const planId = activePlanRef.current
@@ -208,34 +215,28 @@ export default function GameDayPage() {
 
   // ─── Persist plan to Supabase ─────────────────────────────────
   const doSavePlan = useCallback(async (planId) => {
-    console.log('=== SAVING GAME PLAN ===')
-    console.log('planId:', planId, '| activePlanRef.current:', activePlanRef.current)
-    if (!planId || String(planId).startsWith('local-')) {
-      console.log('save skipped — no planId or local- prefix')
-      return
-    }
+    if (!planId || String(planId).startsWith('local-')) return
     const state = planStatesRef.current[planId]
-    if (!state) { console.log('save skipped — no state for planId'); return }
+    if (!state) return
     const planData = {
+      id:             planId,
+      team_id:        teamIdRef.current,
       quarter_data:   planStateToQuarterData(state),
       absent_players: [...(state.outAllIds || new Set())],
       updated_at:     new Date().toISOString(),
     }
-    console.log('data being saved:', planData)
     setSaving(true)
     try {
-      const { ok, queued } = await saveWithOfflineSupport('saved_game_plans', 'update', planData, 'id', planId)
-      console.log('save result — ok:', ok, 'queued:', queued)
+      const { ok, queued } = await saveWithOfflineSupport('saved_game_plans', 'upsert', planData, 'id', planId)
       if (queued)     addToast('Offline — game plan queued', 'warning', 2000)
       else if (ok)    addToast('Game plan saved', 'success', 2000)
       else            throw new Error('save failed')
-    } catch (e) {
-      console.log('save threw:', e)
+    } catch {
       addToast('Could not save game plan — changes may be lost', 'error')
     } finally {
       setSaving(false)
     }
-  }, [addToast, saveWithOfflineSupport])
+  }, [addToast, saveWithOfflineSupport, teamIdRef])
 
   // ─── Switch plan ──────────────────────────────────────────────
   function switchPlan(planId) {
