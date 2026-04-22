@@ -397,19 +397,25 @@ export default function PracticePage() {
       sort_order: currentPlanDrills.length,
       is_custom: drag.drill.isCustom || drag.drill.is_custom || false,
     }
-    console.log('Adding drill:', newDrill.drill_name)
     setAllPlanDrills(prev => ({
       ...prev,
       [activePlanId]: [...(prev[activePlanId] || []), newDrill],
     }))
-    // Save to Supabase (skip temp/local plan IDs)
     if (activePlanId && !String(activePlanId).startsWith('local-') && !String(activePlanId).startsWith('temp-')) {
+      const localId = newDrill.id
       supabase.from('practice_plan_drills').insert({
         plan_id: newDrill.plan_id, drill_name: newDrill.drill_name,
         drill_description: newDrill.drill_description,
         skill_category: newDrill.skill_category, duration_minutes: newDrill.duration_minutes,
         sort_order: newDrill.sort_order, is_custom: newDrill.is_custom,
-      }).then(({ error }) => { if (error) console.error('Supabase save error:', error) })
+      }).select().single()
+        .then(({ data, error }) => {
+          if (error) { addToast('Could not save drill', 'error'); return }
+          if (data) setAllPlanDrills(prev => ({
+            ...prev,
+            [activePlanId]: (prev[activePlanId] || []).map(d => d.id === localId ? data : d),
+          }))
+        })
     }
     isOverPlanRef.current = false
   }
@@ -438,7 +444,6 @@ export default function PracticePage() {
       if (data) setAllPlanDrills(prev => ({
         ...prev, [planId]: (prev[planId] || []).map(d => d.id === tempId ? data : d),
       }))
-      addToast('Drill added to plan', 'success', 1500)
     } catch {
       addToast('Could not add drill', 'error')
     } finally { setSaving(false) }
@@ -580,7 +585,6 @@ export default function PracticePage() {
     try {
       await supabase.from('practice_plan_drills').delete().eq('plan_id', planId)
       await supabase.from('practice_plan_drills').insert(drillsToSave.map(({ id: _id, ...rest }) => rest))
-      addToast('Practice plan saved', 'success')
     } catch {
       addToast('Could not save practice plan', 'error')
     } finally { setSaving(false) }
