@@ -18,6 +18,17 @@ import BrandingFields from './components/Team/BrandingFields'
 function SplashScreen({ onDone }) {
   const [fadeOut, setFadeOut] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [isLandscape, setIsLandscape] = useState(
+    () => window.innerWidth > window.innerHeight
+  )
+
+  useEffect(() => {
+    function handleOrientationChange() {
+      setIsLandscape(window.innerWidth > window.innerHeight)
+    }
+    window.addEventListener('resize', handleOrientationChange)
+    return () => window.removeEventListener('resize', handleOrientationChange)
+  }, [])
 
   useEffect(() => {
     if (!imageLoaded) return
@@ -25,6 +36,12 @@ function SplashScreen({ onDone }) {
     const doneTimer = setTimeout(() => onDone(), 2500)
     return () => { clearTimeout(fadeTimer); clearTimeout(doneTimer) }
   }, [imageLoaded])
+
+  useEffect(() => {
+    setImageLoaded(false)
+  }, [isLandscape])
+
+  const coverSrc = isLandscape ? '/cover_H.png' : '/cover_V.png'
 
   return (
     <div
@@ -37,11 +54,18 @@ function SplashScreen({ onDone }) {
       }}
     >
       <img
-        src="/coachpad_cover.png"
+        key={coverSrc}
+        src={coverSrc}
         alt="SquadIQ"
         onLoad={() => setImageLoaded(true)}
         onError={() => onDone()}
-        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center',
+          display: 'block',
+        }}
       />
     </div>
   )
