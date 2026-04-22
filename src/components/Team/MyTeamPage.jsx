@@ -7,6 +7,7 @@ import AddPlayerModal from './AddPlayerModal'
 import BrandingFields from './BrandingFields'
 import PrivacyPolicy from '../Legal/PrivacyPolicy'
 import TermsOfService from '../Legal/TermsOfService'
+import { MyTeamSkeleton } from '../UI/Skeleton'
 
 const DIVISIONS = ['8U', '10U', '12U', '14U', '16U', '19U']
 
@@ -103,14 +104,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam }) {
 
   const noTeam = dataLoaded && !team
 
-  if (!dataLoaded) {
-    return (
-      <div className="flex items-center justify-center flex-1 bg-gray-950">
-        <div className="w-8 h-8 border-4 rounded-full animate-spin"
-          style={{ borderColor: 'var(--team-primary, #1a5c2e)', borderTopColor: 'transparent' }} />
-      </div>
-    )
-  }
+  if (!dataLoaded) return <MyTeamSkeleton />
 
   if (dataLoaded && !team) {
     return (

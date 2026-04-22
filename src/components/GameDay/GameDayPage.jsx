@@ -14,6 +14,7 @@ import SavePlanModal from './SavePlanModal'
 import PlayerTagGrid from './PlayerTagGrid'
 import OutPanel from './OutPanel'
 import PlanTabs from './PlanTabs'
+import { LineupSkeleton } from '../UI/Skeleton'
 
 // ─── Pure local helpers ────────────────────────────────────────────
 function blankQuarterData(formation) {
@@ -651,14 +652,7 @@ export default function GameDayPage() {
   }
 
   // ─── Render guards ────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center flex-1" style={{ background: '#0d1117' }}>
-        <div className="w-8 h-8 border-4 rounded-full animate-spin"
-          style={{ borderColor: 'var(--team-primary, #1a5c2e)', borderTopColor: 'transparent' }} />
-      </div>
-    )
-  }
+  if (loading) return <LineupSkeleton />
   if (error) {
     return (
       <div className="flex items-center justify-center flex-1 px-6" style={{ background: '#0d1117' }}>

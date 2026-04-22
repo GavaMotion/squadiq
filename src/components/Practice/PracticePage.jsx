@@ -9,6 +9,7 @@ import {
 import PlanTabs from '../GameDay/PlanTabs'
 import DrillDetailPanel from './DrillDetailPanel'
 import CustomDrillForm from './CustomDrillForm'
+import { PracticeSkeleton } from '../UI/Skeleton'
 
 // ── Tag border colors (per design spec) ──────────────────────────
 const TAG_COLORS = {
@@ -690,14 +691,7 @@ export default function PracticePage() {
   }
 
   // ── Render guards ──
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center flex-1" style={{ background: '#0d1117' }}>
-        <div className="w-8 h-8 border-4 rounded-full animate-spin"
-          style={{ borderColor: 'var(--team-primary, #1a5c2e)', borderTopColor: 'transparent' }} />
-      </div>
-    )
-  }
+  if (loading) return <PracticeSkeleton />
   if (!team) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 px-6 text-center" style={{ background: '#0d1117' }}>
