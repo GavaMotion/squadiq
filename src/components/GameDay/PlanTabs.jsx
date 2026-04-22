@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import theme from '../../theme'
 
 // ── Single tab ────────────────────────────────────────────────────
-function PlanTab({ plan, isActive, isSaving, compact, onSelect, onDuplicate, onRename, onRequestDelete, tabRef }) {
+function PlanTab({ plan, isActive, isSaving, compact, onSelect, onDuplicate, onRename, onDelete, tabRef }) {
   const [menuOpen, setMenuOpen]   = useState(false)
   const [editing, setEditing]     = useState(false)
   const [editName, setEditName]   = useState(plan.name)
@@ -109,7 +109,7 @@ function PlanTab({ plan, isActive, isSaving, compact, onSelect, onDuplicate, onR
 
       {/* ── ✕ delete button — always visible ── */}
       <button
-        onClick={e => { e.stopPropagation(); onRequestDelete(plan.id) }}
+        onClick={e => { e.stopPropagation(); onDelete(plan.id, plan.name) }}
         aria-label={`Delete plan "${plan.name}"`}
         style={{
           width:      18,
@@ -201,28 +201,12 @@ export default function PlanTabs({
   plans, activePlanId, saving, compact,
   onSelect, onCreate, onDuplicate, onDelete, onRename,
 }) {
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const tabRefs = useRef({})
-
-  // Clear confirm if the plan no longer exists (already deleted)
-  useEffect(() => {
-    if (confirmDeleteId && !plans.find(p => p.id === confirmDeleteId)) {
-      setConfirmDeleteId(null)
-    }
-  }, [plans, confirmDeleteId])
 
   // Scroll active tab into view on switch
   useEffect(() => {
     tabRefs.current[activePlanId]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
   }, [activePlanId])
-
-  const confirmPlan = plans.find(p => p.id === confirmDeleteId)
-
-  function handleConfirmDelete() {
-    if (!confirmDeleteId) return
-    onDelete(confirmDeleteId)
-    setConfirmDeleteId(null)
-  }
 
   return (
     <div style={{ flexShrink: 0 }}>
@@ -233,7 +217,7 @@ export default function PlanTabs({
           alignItems: 'stretch',
           height:     compact ? 32 : 38,
           background: 'var(--bg-primary)',
-          borderBottom: confirmDeleteId ? 'none' : '1px solid #1f2937',
+          borderBottom: '1px solid #1f2937',
           overflowX:  'auto',
           overflowY:  'hidden',
           scrollbarWidth: 'none',
@@ -250,7 +234,7 @@ export default function PlanTabs({
             onSelect={onSelect}
             onDuplicate={onDuplicate}
             onRename={onRename}
-            onRequestDelete={id => setConfirmDeleteId(prev => prev === id ? null : id)}
+            onDelete={onDelete}
             tabRef={el => { tabRefs.current[plan.id] = el }}
           />
         ))}
@@ -279,61 +263,6 @@ export default function PlanTabs({
           +
         </button>
       </div>
-
-      {/* ── Inline delete confirmation bar ── */}
-      {confirmDeleteId && confirmPlan && (
-        <div
-          style={{
-            display:      'flex',
-            alignItems:   'center',
-            gap:          10,
-            padding:      '6px 12px',
-            background:   '#1a0a0a',
-            borderBottom: '1px solid #3b1515',
-            flexShrink:   0,
-          }}
-        >
-          <span style={{ fontSize: 12, color: '#f87171', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            Delete "<strong>{confirmPlan.name}</strong>"?
-          </span>
-          <button
-            onClick={handleConfirmDelete}
-            style={{
-              flexShrink:   0,
-              fontSize:     11,
-              fontWeight:   700,
-              padding:      '3px 10px',
-              borderRadius: 6,
-              background:   '#7f1d1d',
-              color:        '#fca5a5',
-              cursor:       'pointer',
-              border:       '1px solid #991b1b',
-              transition:   'background 0.1s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#991b1b')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#7f1d1d')}
-          >
-            Yes, delete
-          </button>
-          <button
-            onClick={() => setConfirmDeleteId(null)}
-            style={{
-              flexShrink:   0,
-              fontSize:     11,
-              padding:      '3px 10px',
-              borderRadius: 6,
-              background:   'none',
-              color:        '#9ca3af',
-              cursor:       'pointer',
-              border:       '1px solid #374151',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#e5e7eb')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#9ca3af')}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
     </div>
   )
 }

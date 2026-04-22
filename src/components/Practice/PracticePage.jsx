@@ -277,6 +277,7 @@ export default function PracticePage() {
   const [detailState, setDetailState]     = useState(null) // { drill, source, index, list }
   const [formDrill, setFormDrill]         = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [deleteConfirm,   setDeleteConfirm]   = useState(null)
   const [showShareSheet, setShowShareSheet] = useState(false)
   const [isExporting,    setIsExporting]    = useState(false)
 
@@ -725,7 +726,9 @@ export default function PracticePage() {
       <PlanTabs
         plans={plans} activePlanId={activePlanId} saving={saving}
         onSelect={switchPlan} onCreate={() => setShowNewPlanModal(true)}
-        onDuplicate={handleDuplicatePlan} onDelete={handleDeletePlan} onRename={handleRenamePlan}
+        onDuplicate={handleDuplicatePlan}
+        onDelete={(planId, planName) => setDeleteConfirm({ planId, planName, type: 'practice' })}
+        onRename={handleRenamePlan}
       />
 
       {/* Split content */}
@@ -1067,6 +1070,82 @@ export default function PracticePage() {
           </div>
         )
       })()}
+
+      {/* Delete plan confirmation dialog */}
+      {deleteConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.75)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 24,
+        }}>
+          <div style={{
+            background: '#1a1a2e',
+            border: '1px solid rgba(220,50,50,0.25)',
+            borderRadius: 16,
+            padding: 24,
+            width: '100%',
+            maxWidth: 340,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}>
+            <div style={{
+              width: 48, height: 48,
+              borderRadius: '50%',
+              background: 'rgba(220,50,50,0.1)',
+              border: '1px solid rgba(220,50,50,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 22,
+            }}>
+              🗑
+            </div>
+            <div style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>
+              Delete plan?
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, lineHeight: 1.6 }}>
+              <span style={{ color: '#fff', fontWeight: 600 }}>
+                "{deleteConfirm.planName}"
+              </span>
+              {' '}will be permanently deleted including all drills and practice notes. This cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                style={{
+                  flex: 1,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 10,
+                  padding: '12px',
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Keep it
+              </button>
+              <button
+                onClick={() => { handleDeletePlan(deleteConfirm.planId); setDeleteConfirm(null) }}
+                style={{
+                  flex: 1,
+                  background: '#A32D2D',
+                  border: 'none',
+                  borderRadius: 10,
+                  padding: '12px',
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Export loading overlay */}
       {isExporting && (
