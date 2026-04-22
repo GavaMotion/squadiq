@@ -51,8 +51,9 @@ export default function GameDayPage() {
   const [isWide,          setIsWide]           = useState(
     () => typeof window !== 'undefined' && window.innerWidth >= 768
   )
-  const [showShareSheet, setShowShareSheet] = useState(false)
-  const [isExporting,    setIsExporting]    = useState(false)
+  const [showShareSheet,  setShowShareSheet]  = useState(false)
+  const [isExporting,     setIsExporting]     = useState(false)
+  const [shakingPlayerId, setShakingPlayerId] = useState(null)
 
   const activePlanRef    = useRef(activePlanId)
   const planStatesRef    = useRef(planStates)
@@ -61,6 +62,7 @@ export default function GameDayPage() {
   const ghostRef         = useRef(null)
   const viewedQuarterRef = useRef(1)
   const handleDropRef    = useRef(null)
+  const triggerShakeRef  = useRef(null)
 
   useEffect(() => { planStatesRef.current = planStates }, [planStates])
   useEffect(() => { viewedQuarterRef.current = viewedQuarter }, [viewedQuarter])
@@ -125,6 +127,7 @@ export default function GameDayPage() {
       setHoverDrop(null)
 
       if (dropTarget) handleDropRef.current?.(ds, dropTarget)
+      else            triggerShakeRef.current?.(ds.playerId)
     }
 
     window.addEventListener('pointermove', onMove, { passive: true })
@@ -599,8 +602,12 @@ export default function GameDayPage() {
     }
   }
 
-  // Keep drop handler ref current every render
+  // Keep drop handler and shake trigger ref current every render
   handleDropRef.current = handleDrop
+  triggerShakeRef.current = (playerId) => {
+    setShakingPlayerId(playerId)
+    setTimeout(() => setShakingPlayerId(null), 400)
+  }
 
   // ─── Export helpers ───────────────────────────────────────────
   function getSlotPos(slotId, formation) {
@@ -889,6 +896,7 @@ export default function GameDayPage() {
                 onDragStart={onDragStart}
                 draggingPlayerId={draggingPlayerId}
                 hoverSlotId={hoverSlotId}
+                isDragging={draggingPlayerId !== null}
               />
             )}
           </div>
@@ -922,6 +930,7 @@ export default function GameDayPage() {
             isMobile={!isWide}
             onDragStart={onDragStart}
             draggingPlayerId={draggingPlayerId}
+            shakingPlayerId={shakingPlayerId}
             benchIsOver={hoverDrop === 'bench'}
           />
         </div>

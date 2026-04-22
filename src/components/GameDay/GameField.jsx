@@ -61,7 +61,7 @@ function PlayerChip({ player, fromSlot, sizePct, chipColor, onDragStart, isDragg
 }
 
 // ── Droppable slot ───────────────────────────────────────────────
-function Slot({ slot, slotSizePct, player, zone, onDragStart, draggingPlayerId, hoverSlotId }) {
+function Slot({ slot, slotSizePct, player, zone, onDragStart, draggingPlayerId, hoverSlotId, isAnyDragging }) {
   const colors = slotColors[zone] || slotColors.FWD
   const isOver     = hoverSlotId === slot.id
   const isDragging = !!player && player.id === draggingPlayerId
@@ -113,7 +113,7 @@ function Slot({ slot, slotSizePct, player, zone, onDragStart, draggingPlayerId, 
           height:        visualSize,
           borderRadius:  '50%',
           border:        `2px dashed ${isOver ? '#fff' : colors.border}`,
-          background:    isOver ? 'rgba(255,255,255,0.12)' : theme.slotFill,
+          background:    isOver ? 'rgba(255,255,255,0.12)' : isAnyDragging ? 'rgba(0,200,83,0.08)' : theme.slotFill,
           display:       'flex',
           alignItems:    'center',
           justifyContent:'center',
@@ -210,7 +210,7 @@ function FieldZones() {
 // ── Main export ──────────────────────────────────────────────────
 export default function GameField({
   formation, slotAssignments, players,
-  onDragStart, draggingPlayerId, hoverSlotId,
+  onDragStart, draggingPlayerId, hoverSlotId, isDragging,
 }) {
   if (!formation) return null
 
@@ -230,6 +230,7 @@ export default function GameField({
           onDragStart={onDragStart}
           draggingPlayerId={draggingPlayerId}
           hoverSlotId={hoverSlotId}
+          isAnyDragging={isDragging}
         />
       ))}
     </div>

@@ -19,7 +19,7 @@ function QDot({ state }) {
 }
 
 // ── Single draggable player tag ───────────────────────────────────
-function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile, dimmed, onDragStart, isDragging }) {
+function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile, dimmed, onDragStart, isDragging, isShaking }) {
   let borderColor
   if (totalPlanned >= 3)      borderColor = '#00c853'
   else if (totalPlanned > 0)  borderColor = '#EF9F27'
@@ -31,6 +31,7 @@ function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile
   return (
     <div
       onPointerDown={e => onDragStart(e, player.id, 'bench', null)}
+      className={isShaking ? 'shake' : undefined}
       style={{
         width:          w,
         height:         h,
@@ -75,7 +76,7 @@ function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile
 }
 
 // ── Tag wrap row ──────────────────────────────────────────────────
-function TagRow({ players, getQStates, getTotalPlanned, onFieldSet, isMobile, dimmed, onDragStart, draggingPlayerId }) {
+function TagRow({ players, getQStates, getTotalPlanned, onFieldSet, isMobile, dimmed, onDragStart, draggingPlayerId, shakingPlayerId }) {
   return (
     <div style={{
       display:     'flex',
@@ -95,6 +96,7 @@ function TagRow({ players, getQStates, getTotalPlanned, onFieldSet, isMobile, di
           dimmed={dimmed}
           onDragStart={onDragStart}
           isDragging={draggingPlayerId === player.id}
+          isShaking={shakingPlayerId === player.id}
         />
       ))}
     </div>
@@ -111,6 +113,7 @@ export default function PlayerTagGrid({
   isMobile,
   onDragStart,
   draggingPlayerId,
+  shakingPlayerId,
   benchIsOver,
 }) {
   function getQuarterStates(pid) {
@@ -185,6 +188,7 @@ export default function PlayerTagGrid({
               dimmed={false}
               onDragStart={onDragStart}
               draggingPlayerId={draggingPlayerId}
+              shakingPlayerId={shakingPlayerId}
             />
           </>
         )}
@@ -227,6 +231,7 @@ export default function PlayerTagGrid({
               dimmed={true}
               onDragStart={onDragStart}
               draggingPlayerId={draggingPlayerId}
+              shakingPlayerId={shakingPlayerId}
             />
           )}
         </div>
