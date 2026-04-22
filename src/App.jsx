@@ -4,6 +4,7 @@ import theme from './theme'
 import { AppProvider, useApp } from './contexts/AppContext'
 import { supabase } from './lib/supabase'
 import AuthPage from './components/Auth/AuthPage'
+import Onboarding from './components/Onboarding/Onboarding'
 import MyTeamPage from './components/Team/MyTeamPage'
 import GameDayPage from './components/GameDay/GameDayPage'
 import SketchPage from './components/Sketch/SketchPage'
@@ -404,7 +405,7 @@ const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
 const isInStandalone = window.matchMedia('(display-mode: standalone)').matches
 
 // ── Inner content (rendered inside AppProvider) ──────────────────
-function AppContent({ tab, setTab, onSignOut }) {
+function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
   const { createTeam } = useApp()
   const [isWide, setIsWide] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
   const [showNewTeam, setShowNewTeam] = useState(false)
@@ -459,7 +460,7 @@ function AppContent({ tab, setTab, onSignOut }) {
     <div className="flex flex-col bg-gray-950" style={{ height: '100dvh', overflow: 'hidden' }}>
       {isWide && <AppHeader onSignOut={onSignOut} />}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {tab === 'team'     && <MyTeamPage onSignOut={isWide ? undefined : onSignOut} onCreateTeam={() => setShowNewTeam(true)} />}
+        {tab === 'team'     && <MyTeamPage onSignOut={isWide ? undefined : onSignOut} onCreateTeam={() => setShowNewTeam(true)} onShowOnboarding={onShowOnboarding} />}
         {tab === 'lineup'   && <GameDayPage />}
         {tab === 'sketch'   && <SketchPage />}
         {tab === 'practice' && <PracticePage />}
@@ -557,6 +558,7 @@ export default function App() {
   const [newPassword,       setNewPassword]       = useState('')
   const [confirmPassword,   setConfirmPassword]   = useState('')
   const [passwordError,     setPasswordError]     = useState('')
+  const [showOnboarding,    setShowOnboarding]    = useState(false)
 
   useEffect(() => {
     Object.entries(theme).forEach(([key, value]) => {
@@ -581,6 +583,18 @@ export default function App() {
       setShowResetPassword(true)
     }
   }, [])
+
+  useEffect(() => {
+    if (!session?.user) return
+    const completed = localStorage.getItem('onboardingComplete')
+    if (!completed) {
+      const createdAt = new Date(session.user.created_at)
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+      if (createdAt > fiveMinutesAgo) {
+        setShowOnboarding(true)
+      }
+    }
+  }, [session])
 
   async function handleUpdatePassword() {
     if (newPassword !== confirmPassword) {
@@ -624,9 +638,13 @@ export default function App() {
         visibility: showSplash ? 'hidden' : 'visible',
       }}>
         <AppProvider userId={session.user.id}>
-          <AppContent tab={tab} setTab={setTab} onSignOut={signOut} />
+          <AppContent tab={tab} setTab={setTab} onSignOut={signOut} onShowOnboarding={() => setShowOnboarding(true)} />
         </AppProvider>
       </div>
+
+      {!showSplash && showOnboarding && (
+        <Onboarding onComplete={() => setShowOnboarding(false)} />
+      )}
 
       {showResetPassword && (
         <div style={{

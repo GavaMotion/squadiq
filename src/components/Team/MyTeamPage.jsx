@@ -52,7 +52,7 @@ function DeleteTeamDialog({ teamName, onConfirm, onCancel }) {
 }
 
 // ── Main page ─────────────────────────────────────────────────────
-export default function MyTeamPage({ onSignOut, onCreateTeam }) {
+export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding }) {
   const {
     teams,     setTeams,
     team,      setTeam,
@@ -522,11 +522,22 @@ export default function MyTeamPage({ onSignOut, onCreateTeam }) {
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 4, marginBottom: 8, fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+        <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 4, marginBottom: 4, fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
           <span onClick={() => setShowTerms(true)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Terms of Service</span>
           <span>·</span>
           <span onClick={() => setShowPrivacy(true)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Privacy Policy</span>
         </div>
+
+        <span
+          onClick={() => { localStorage.removeItem('onboardingComplete'); onShowOnboarding?.() }}
+          style={{
+            color: 'rgba(255,255,255,0.2)', fontSize: 11, cursor: 'pointer',
+            textDecoration: 'underline', display: 'block', textAlign: 'center',
+            marginBottom: 8,
+          }}
+        >
+          View intro again
+        </span>
       </div>
 
       {/* ── Modals ── */}
