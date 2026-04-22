@@ -1066,7 +1066,7 @@ export default function PracticePage() {
                 </div>
               )
             })}
-            <div style={{ marginTop: 24, color: 'rgba(255,255,255,0.2)', fontSize: 10, textAlign: 'center' }}>Created with CoachPad Tactix</div>
+            <div style={{ marginTop: 24, color: 'rgba(255,255,255,0.2)', fontSize: 10, textAlign: 'center' }}>Created with SquadIQ</div>
           </div>
         )
       })()}

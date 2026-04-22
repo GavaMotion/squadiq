@@ -24,7 +24,7 @@ const STEPS = [
   {
     icon: '🚀',
     title: "You're ready!",
-    description: 'CoachPad Tactix is designed to be used on the sideline. Install it on your home screen for the best experience.',
+    description: 'SquadIQ is designed to be used on the sideline. Install it on your home screen for the best experience.',
   },
 ]
 

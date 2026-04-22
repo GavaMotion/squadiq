@@ -38,7 +38,7 @@ function SplashScreen({ onDone }) {
     >
       <img
         src="/coachpad_cover.png"
-        alt="CoachPad Tactix"
+        alt="SquadIQ"
         onLoad={() => setImageLoaded(true)}
         onError={() => onDone()}
         style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
@@ -284,8 +284,8 @@ function TeamSwitcher() {
 function AppWordmark() {
   return (
     <span style={{ fontSize: 16, lineHeight: 1, userSelect: 'none', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
-      <span style={{ color: '#e5e7eb', fontWeight: 400 }}>CoachPad</span>
-      <span style={{ color: 'var(--team-primary, #00c853)', fontWeight: 800 }}> Tactix</span>
+      <span style={{ color: '#e5e7eb', fontWeight: 400 }}>Squad</span>
+      <span style={{ color: 'var(--team-primary, #00c853)', fontWeight: 800 }}>IQ</span>
     </span>
   )
 }
@@ -519,7 +519,7 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <img src="/icons/icon-72.png" style={{ width: 40, height: 40, borderRadius: 8, flexShrink: 0 }} alt="" />
             <div style={{ flex: 1 }}>
-              <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Install CoachPad Tactix</div>
+              <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Install SquadIQ</div>
               <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>Add to your home screen</div>
             </div>
             <button
@@ -543,7 +543,7 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
       {showIOSBanner && (
         <div style={bannerStyle}>
           <div style={{ color: '#fff', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-            Install CoachPad Tactix
+            Install SquadIQ
           </div>
           <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, lineHeight: 1.5 }}>
             Tap the <strong style={{ color: '#fff' }}>Share</strong> button below, then tap <strong style={{ color: '#fff' }}>"Add to Home Screen"</strong>

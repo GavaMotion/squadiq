@@ -289,7 +289,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding }
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `coachpad-tactix-backup-${new Date().toISOString().split('T')[0]}.json`
+      a.download = `squadiq-backup-${new Date().toISOString().split('T')[0]}.json`
       document.body.appendChild(a); a.click(); document.body.removeChild(a)
       URL.revokeObjectURL(url)
       addToast('Data exported successfully', 'success')
@@ -637,7 +637,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding }
             {SUPPORT_EMAIL}
           </a>
           <div style={{ color: 'rgba(255,255,255,0.15)', fontSize: 10 }}>
-            CoachPad Tactix v{APP_VERSION}
+            SquadIQ v{APP_VERSION}
           </div>
         </div>
 

@@ -730,7 +730,7 @@ export default function GameDayPage() {
           borderBottom: '1px solid #1f2937',
         }}>
           <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 400, flexShrink: 0, letterSpacing: '-0.01em' }}>
-            CoachPad <span style={{ fontWeight: 700, color: '#00c853' }}>Tactix</span>
+            Squad<span style={{ fontWeight: 700, color: '#00c853' }}>IQ</span>
           </span>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 0 }}>
             <div style={{
@@ -1118,7 +1118,7 @@ export default function GameDayPage() {
                 ⚠ Under 3 quarters: {atRisk.map(p => p.name).join(', ')}
               </div>
             )}
-            <div style={{ marginTop: 16, color: 'rgba(255,255,255,0.2)', fontSize: 10, textAlign: 'center' }}>Created with CoachPad Tactix</div>
+            <div style={{ marginTop: 16, color: 'rgba(255,255,255,0.2)', fontSize: 10, textAlign: 'center' }}>Created with SquadIQ</div>
           </div>
         )
       })()}

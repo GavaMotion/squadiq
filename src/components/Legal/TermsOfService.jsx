@@ -25,11 +25,11 @@ export default function TermsOfService({ onBack }) {
         {[
           {
             title: '1. Acceptance of terms',
-            body: 'By creating an account and using CoachPad Tactix you agree to these Terms of Service. If you do not agree, please do not use the app.',
+            body: 'By creating an account and using SquadIQ you agree to these Terms of Service. If you do not agree, please do not use the app.',
           },
           {
             title: '2. Description of service',
-            body: 'CoachPad Tactix is a coaching management tool for youth soccer coaches. It provides team roster management, game day lineup planning, practice planning, and tactical sketching tools.',
+            body: 'SquadIQ is a coaching management tool for youth soccer coaches. It provides team roster management, game day lineup planning, practice planning, and tactical sketching tools.',
           },
           {
             title: '3. Account responsibility',
@@ -45,7 +45,7 @@ export default function TermsOfService({ onBack }) {
           },
           {
             title: '6. Acceptable use',
-            body: 'You agree to use CoachPad Tactix only for lawful purposes and in accordance with these terms. You may not use the app to store or transmit any unlawful, harmful, or offensive content.',
+            body: 'You agree to use SquadIQ only for lawful purposes and in accordance with these terms. You may not use the app to store or transmit any unlawful, harmful, or offensive content.',
           },
           {
             title: '7. Player data',
@@ -53,11 +53,11 @@ export default function TermsOfService({ onBack }) {
           },
           {
             title: '8. Intellectual property',
-            body: 'CoachPad Tactix and all its content, features, and functionality are owned by Gava Motion and are protected by copyright and other intellectual property laws.',
+            body: 'SquadIQ and all its content, features, and functionality are owned by Gava Motion and are protected by copyright and other intellectual property laws.',
           },
           {
             title: '9. Limitation of liability',
-            body: 'CoachPad Tactix is provided "as is" without warranties of any kind. Gava Motion is not liable for any indirect, incidental, or consequential damages arising from your use of the app.',
+            body: 'SquadIQ is provided "as is" without warranties of any kind. Gava Motion is not liable for any indirect, incidental, or consequential damages arising from your use of the app.',
           },
           {
             title: '10. Changes to terms',
@@ -83,7 +83,7 @@ export default function TermsOfService({ onBack }) {
           borderTop: '1px solid rgba(255,255,255,0.08)',
           color: 'rgba(255,255,255,0.55)', fontSize: 11, textAlign: 'center',
         }}>
-          CoachPad Tactix — by Gava Motion
+          SquadIQ — by Gava Motion
         </div>
       </div>
     </div>

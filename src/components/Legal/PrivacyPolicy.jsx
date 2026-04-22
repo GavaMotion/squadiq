@@ -29,7 +29,7 @@ export default function PrivacyPolicy({ onBack }) {
           },
           {
             title: '2. How we use your information',
-            body: 'We use your information solely to provide the CoachPad Tactix service — storing your teams, rosters, game plans and practice plans so you can access them across devices. We do not sell, share, or rent your information to any third party.',
+            body: 'We use your information solely to provide the SquadIQ service — storing your teams, rosters, game plans and practice plans so you can access them across devices. We do not sell, share, or rent your information to any third party.',
           },
           {
             title: '3. Data storage',
@@ -37,7 +37,7 @@ export default function PrivacyPolicy({ onBack }) {
           },
           {
             title: "4. Children's privacy",
-            body: 'CoachPad Tactix is designed for coaches who are adults. We do not knowingly collect personal information from children under 13. Player names and jersey numbers entered by coaches are used solely for team management within the app.',
+            body: 'SquadIQ is designed for coaches who are adults. We do not knowingly collect personal information from children under 13. Player names and jersey numbers entered by coaches are used solely for team management within the app.',
           },
           {
             title: '5. Cookies',
@@ -75,7 +75,7 @@ export default function PrivacyPolicy({ onBack }) {
           borderTop: '1px solid rgba(255,255,255,0.08)',
           color: 'rgba(255,255,255,0.55)', fontSize: 11, textAlign: 'center',
         }}>
-          CoachPad Tactix — by Gava Motion
+          SquadIQ — by Gava Motion
         </div>
       </div>
     </div>

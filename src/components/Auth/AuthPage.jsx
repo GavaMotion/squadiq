@@ -46,7 +46,7 @@ export default function AuthPage() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: 'https://coachpad-tactix.vercel.app' },
+        options: { emailRedirectTo: 'https://squadiq.vercel.app' },
       })
       setLoading(false)
       if (signUpError) { setError(signUpError.message); return }
@@ -72,7 +72,7 @@ export default function AuthPage() {
     if (!resetEmail) { setResetError('Please enter your email address'); return }
     setResetError('')
     const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: 'https://coachpad-tactix.vercel.app/reset-password',
+      redirectTo: 'https://squadiq.vercel.app/reset-password',
     })
     if (error) { setResetError(error.message) } else { setResetSent(true); addToast('Reset link sent — check your email', 'success') }
   }
@@ -82,7 +82,7 @@ export default function AuthPage() {
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
-      options: { emailRedirectTo: 'https://coachpad-tactix.vercel.app' },
+      options: { emailRedirectTo: 'https://squadiq.vercel.app' },
     })
     if (!error) {
       setResendCooldown(60)
@@ -116,8 +116,7 @@ export default function AuthPage() {
           </svg>
         </div>
         <h1 className="text-3xl tracking-tight" style={{ color: '#fff', fontWeight: 400 }}>
-          CoachPad{' '}
-          <span style={{ fontWeight: 800, color: 'var(--color-green, #00c853)' }}>Tactix</span>
+          Squad<span style={{ fontWeight: 800, color: 'var(--color-green, #00c853)' }}>IQ</span>
         </h1>
         <p className="text-gray-500 mt-1 text-sm">The smart coaching companion.</p>
       </div>
