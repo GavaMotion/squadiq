@@ -81,6 +81,11 @@ export default function MyTeamPage({ onSignOut, onCreateTeam }) {
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showTerms,   setShowTerms]   = useState(false)
 
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleteError,       setDeleteError]       = useState('')
+  const [isDeleting,        setIsDeleting]        = useState(false)
+
   // ── Derived values (before any early return) ──────────────────
   const teamColors = [team?.color_primary, team?.color_secondary, team?.color_accent].filter(Boolean)
 
@@ -233,6 +238,30 @@ export default function MyTeamPage({ onSignOut, onCreateTeam }) {
   function openEdit(player) {
     setEditingPlayer(player)
     setShowModal(true)
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteConfirmText !== 'DELETE') return
+    setIsDeleting(true)
+    setDeleteError('')
+    try {
+      const { error: teamsError } = await supabase.from('teams').delete().eq('user_id', userId)
+      if (teamsError) throw teamsError
+
+      await supabase.from('custom_drills').delete().eq('user_id', userId)
+      await supabase.from('drill_favorites').delete().eq('user_id', userId)
+
+      const { error: rpcError } = await supabase.rpc('delete_user')
+      if (rpcError) throw rpcError
+
+      await supabase.auth.signOut()
+      setTeams([])
+      setTeam(null)
+    } catch (err) {
+      console.error('Delete account error:', err)
+      setDeleteError('Something went wrong. Please try again or contact support@gavamotion.com')
+      setIsDeleting(false)
+    }
   }
 
   // ── Render ───────────────────────────────────────────────────
@@ -487,6 +516,18 @@ export default function MyTeamPage({ onSignOut, onCreateTeam }) {
           </div>
         )}
 
+        <div style={{ textAlign: 'center', marginTop: 4 }}>
+          <button
+            onClick={() => setShowDeleteAccount(true)}
+            style={{
+              background: 'none', border: 'none', color: 'rgba(220,50,50,0.5)',
+              fontSize: 12, cursor: 'pointer', textDecoration: 'underline', padding: '4px 0',
+            }}
+          >
+            Delete my account
+          </button>
+        </div>
+
         <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 4, marginBottom: 8, fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
           <span onClick={() => setShowTerms(true)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Terms of Service</span>
           <span>·</span>
@@ -520,6 +561,70 @@ export default function MyTeamPage({ onSignOut, onCreateTeam }) {
 
       {showPrivacy && <PrivacyPolicy onBack={() => setShowPrivacy(false)} />}
       {showTerms   && <TermsOfService onBack={() => setShowTerms(false)} />}
+
+      {showDeleteAccount && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 24,
+        }}>
+          <div style={{
+            background: '#1a1a2e', border: '1px solid rgba(220,50,50,0.3)',
+            borderRadius: 16, padding: 24, width: '100%', maxWidth: 360,
+            display: 'flex', flexDirection: 'column', gap: 16,
+          }}>
+            <div style={{ color: '#E24B4A', fontSize: 18, fontWeight: 700 }}>Delete account</div>
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.6 }}>
+              This will permanently delete your account and all your data including teams, players, game plans and practice plans. This cannot be undone.
+            </div>
+            <div>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 6 }}>
+                Type DELETE to confirm:
+              </div>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={e => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                style={{
+                  background: '#0d0d1a', border: '1px solid rgba(220,50,50,0.3)',
+                  borderRadius: 8, padding: '10px 12px', color: '#fff',
+                  fontSize: 14, width: '100%', boxSizing: 'border-box', outline: 'none',
+                }}
+              />
+            </div>
+            {deleteError && (
+              <div style={{ color: '#E24B4A', fontSize: 12 }}>{deleteError}</div>
+            )}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => { setShowDeleteAccount(false); setDeleteConfirmText(''); setDeleteError('') }}
+                style={{
+                  flex: 1, background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8,
+                  padding: '12px', color: '#fff', fontSize: 14, cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+                style={{
+                  flex: 1,
+                  background: deleteConfirmText === 'DELETE' ? '#A32D2D' : 'rgba(163,45,45,0.3)',
+                  border: 'none', borderRadius: 8, padding: '12px',
+                  color: deleteConfirmText === 'DELETE' ? '#fff' : 'rgba(255,255,255,0.3)',
+                  fontSize: 14, fontWeight: 600,
+                  cursor: deleteConfirmText === 'DELETE' ? 'pointer' : 'default',
+                }}
+              >
+                {isDeleting ? 'Deleting…' : 'Delete forever'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
