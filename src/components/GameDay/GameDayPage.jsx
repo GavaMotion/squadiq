@@ -208,20 +208,29 @@ export default function GameDayPage() {
 
   // ─── Persist plan to Supabase ─────────────────────────────────
   const doSavePlan = useCallback(async (planId) => {
-    if (!planId || String(planId).startsWith('local-')) return
+    console.log('=== SAVING GAME PLAN ===')
+    console.log('planId:', planId, '| activePlanRef.current:', activePlanRef.current)
+    if (!planId || String(planId).startsWith('local-')) {
+      console.log('save skipped — no planId or local- prefix')
+      return
+    }
     const state = planStatesRef.current[planId]
-    if (!state) return
+    if (!state) { console.log('save skipped — no state for planId'); return }
+    const planData = {
+      quarter_data:   planStateToQuarterData(state),
+      absent_players: [...(state.outAllIds || new Set())],
+      updated_at:     new Date().toISOString(),
+    }
+    console.log('data being saved:', planData)
     setSaving(true)
     try {
-      const { ok, queued } = await saveWithOfflineSupport('saved_game_plans', 'update', {
-        quarter_data:   planStateToQuarterData(state),
-        absent_players: [...(state.outAllIds || new Set())],
-        updated_at:     new Date().toISOString(),
-      }, 'id', planId)
+      const { ok, queued } = await saveWithOfflineSupport('saved_game_plans', 'update', planData, 'id', planId)
+      console.log('save result — ok:', ok, 'queued:', queued)
       if (queued)     addToast('Offline — game plan queued', 'warning', 2000)
       else if (ok)    addToast('Game plan saved', 'success', 2000)
       else            throw new Error('save failed')
-    } catch {
+    } catch (e) {
+      console.log('save threw:', e)
       addToast('Could not save game plan — changes may be lost', 'error')
     } finally {
       setSaving(false)
