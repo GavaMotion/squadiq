@@ -9,6 +9,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState('login') // 'login' | 'signup'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -37,6 +38,11 @@ export default function AuthPage() {
         setLoading(false)
         return
       }
+      if (password !== confirmPassword) {
+        setError('Passwords do not match')
+        setLoading(false)
+        return
+      }
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -45,6 +51,7 @@ export default function AuthPage() {
       setLoading(false)
       if (signUpError) { setError(signUpError.message); return }
       if (data?.user && !data.user.confirmed_at) {
+        setConfirmPassword('')
         setShowVerificationMessage(true)
       }
     } else {
@@ -240,6 +247,48 @@ export default function AuthPage() {
                 )}
               </div>
 
+              {mode === 'signup' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 500 }}>
+                    Confirm password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Repeat your password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    style={{
+                      background: '#1a1a2e',
+                      border: `1px solid ${
+                        confirmPassword && confirmPassword !== password
+                          ? 'rgba(220,50,50,0.6)'
+                          : confirmPassword && confirmPassword === password
+                            ? 'rgba(0,200,83,0.6)'
+                            : 'rgba(255,255,255,0.15)'
+                      }`,
+                      borderRadius: 8,
+                      padding: '12px 14px',
+                      color: '#fff',
+                      fontSize: 14,
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                    }}
+                  />
+                  {confirmPassword && confirmPassword !== password && (
+                    <div style={{ color: '#E24B4A', fontSize: 11, marginTop: 2 }}>
+                      Passwords do not match
+                    </div>
+                  )}
+                  {confirmPassword && confirmPassword === password && (
+                    <div style={{ color: '#00c853', fontSize: 11, marginTop: 2 }}>
+                      ✓ Passwords match
+                    </div>
+                  )}
+                </div>
+              )}
+
               {error && (
                 <div className="text-red-400 text-sm bg-red-900/30 border border-red-800 rounded-lg px-3 py-2">
                   {error}
@@ -247,11 +296,18 @@ export default function AuthPage() {
               )}
 
               <button
-                type="submit" disabled={loading}
-                className="w-full py-2.5 rounded-lg font-semibold text-white transition-opacity disabled:opacity-60"
-                style={{ backgroundColor: 'var(--color-green, #00c853)' }}
-                onMouseEnter={e => !loading && (e.target.style.opacity = '0.85')}
-                onMouseLeave={e => (e.target.style.opacity = '1')}
+                type="submit"
+                disabled={loading || (mode === 'signup' && confirmPassword !== password)}
+                className="w-full py-2.5 rounded-lg font-semibold text-white transition-opacity"
+                style={{
+                  background: mode === 'signup' && confirmPassword !== password
+                    ? 'rgba(0,200,83,0.4)'
+                    : 'var(--color-green, #00c853)',
+                  cursor: mode === 'signup' && confirmPassword !== password ? 'default' : 'pointer',
+                  opacity: loading ? 0.6 : 1,
+                }}
+                onMouseEnter={e => !loading && !(mode === 'signup' && confirmPassword !== password) && (e.target.style.opacity = '0.85')}
+                onMouseLeave={e => (e.target.style.opacity = loading ? '0.6' : '1')}
               >
                 {loading ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Create Account'}
               </button>
@@ -260,7 +316,7 @@ export default function AuthPage() {
             <p className="mt-6 text-center text-sm text-gray-400">
               {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
               <button
-                onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError('') }}
+                onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); setConfirmPassword('') }}
                 className="font-medium underline"
                 style={{ color: 'var(--color-green, #00c853)' }}
               >
