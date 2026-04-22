@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useApp, applyTeamCSSVars } from '../../contexts/AppContext'
+import { useToast } from '../UI/Toast'
 import theme from '../../theme'
 import PlayerCard from './PlayerCard'
 import AddPlayerModal from './AddPlayerModal'
@@ -8,6 +9,7 @@ import BrandingFields from './BrandingFields'
 import PrivacyPolicy from '../Legal/PrivacyPolicy'
 import TermsOfService from '../Legal/TermsOfService'
 import { MyTeamSkeleton } from '../UI/Skeleton'
+import { APP_VERSION, SUPPORT_EMAIL } from '../../version'
 
 const DIVISIONS = ['8U', '10U', '12U', '14U', '16U', '19U']
 
@@ -62,6 +64,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding }
     userId,
     deleteTeam: ctxDeleteTeam,
   } = useApp()
+  const { addToast } = useToast()
 
   // Team edit state
   const [teamName,    setTeamName]    = useState('')
@@ -175,8 +178,10 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding }
       setTeams(prev => prev.map(t => t.id === freshTeam.id ? freshTeam : t))
       applyTeamCSSVars(freshTeam)
       setEditingTeam(false)
+      addToast('Team saved', 'success')
     } catch (err) {
       setError(err.message)
+      addToast('Could not save team — check your connection', 'error')
     } finally {
       setSavingTeam(false)
     }
@@ -202,15 +207,18 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding }
           .from('players').update(playerData).eq('id', editingPlayer.id).select().single()
         if (err) throw err
         setPlayers(prev => prev.map(p => p.id === data.id ? data : p))
+        addToast('Player saved', 'success')
       } else {
         const { data, error: err } = await supabase
           .from('players').insert({ ...playerData, team_id: team.id }).select().single()
         if (err) throw err
         setPlayers(prev => [...prev, data].sort((a, b) => a.jersey_number - b.jersey_number))
         setPlayerCount(prev => prev + 1)
+        addToast('Player added', 'success')
       }
     } catch (err) {
       setError(err.message)
+      addToast('Could not add player', 'error')
     } finally {
       setShowModal(false)
       setEditingPlayer(null)
@@ -248,6 +256,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding }
       const { error: rpcError } = await supabase.rpc('delete_user')
       if (rpcError) throw rpcError
 
+      addToast('Account deleted', 'success')
       await supabase.auth.signOut()
       setTeams([])
       setTeam(null)
@@ -538,6 +547,18 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding }
         >
           View intro again
         </span>
+
+        <div style={{ textAlign: 'center', marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, textDecoration: 'none' }}
+          >
+            {SUPPORT_EMAIL}
+          </a>
+          <div style={{ color: 'rgba(255,255,255,0.15)', fontSize: 10 }}>
+            CoachPad Tactix v{APP_VERSION}
+          </div>
+        </div>
       </div>
 
       {/* ── Modals ── */}

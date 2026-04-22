@@ -3,6 +3,7 @@ import html2canvas from 'html2canvas'
 import theme from '../../theme'
 import { supabase } from '../../lib/supabase'
 import { useApp, emptyPlan, buildBlankPlanState, planStateToQuarterData } from '../../contexts/AppContext'
+import { useToast } from '../UI/Toast'
 import {
   FORMATIONS_BY_DIVISION,
   getDefaultFormation,
@@ -34,6 +35,7 @@ export default function GameDayPage() {
     gdActivePlanId: activePlanId, setGdActivePlanId: setActivePlanId,
     gdPlanStates:   planStates,   setGdPlanStates:   setPlanStates,
   } = useApp()
+  const { addToast } = useToast()
 
   const loading = !dataLoaded
   const error   = loadError
@@ -202,15 +204,19 @@ export default function GameDayPage() {
     if (!state) return
     setSaving(true)
     try {
-      await supabase.from('saved_game_plans').update({
+      const { error } = await supabase.from('saved_game_plans').update({
         quarter_data:   planStateToQuarterData(state),
         absent_players: [...(state.outAllIds || new Set())],
         updated_at:     new Date().toISOString(),
       }).eq('id', planId)
-    } catch { /* silent */ } finally {
+      if (error) throw error
+      addToast('Game plan saved', 'success', 2000)
+    } catch {
+      addToast('Could not save game plan — changes may be lost', 'error')
+    } finally {
       setSaving(false)
     }
-  }, [])
+  }, [addToast])
 
   // ─── Switch plan ──────────────────────────────────────────────
   function switchPlan(planId) {
@@ -319,6 +325,7 @@ export default function GameDayPage() {
       setActivePlanId(cur => cur === tempId ? data.id : cur)
       if (activePlanRef.current === tempId) activePlanRef.current = data.id
       try { localStorage.setItem(`gameday-active-${teamIdRef.current}`, data.id) } catch {}
+      addToast('Plan duplicated', 'success', 1500)
     }
   }
 
@@ -372,6 +379,7 @@ export default function GameDayPage() {
       if (!String(planId).startsWith('local-')) {
         supabase.from('saved_game_plans').delete().eq('id', planId)
       }
+      addToast('Plan deleted', 'success', 2000)
       return
     }
 
@@ -388,6 +396,7 @@ export default function GameDayPage() {
     if (!String(planId).startsWith('local-')) {
       supabase.from('saved_game_plans').delete().eq('id', planId)
     }
+    addToast('Plan deleted', 'success', 2000)
   }
 
   // ─── Formation change ─────────────────────────────────────────

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import html2canvas from 'html2canvas'
 import { supabase } from '../../lib/supabase'
 import { useApp } from '../../contexts/AppContext'
+import { useToast } from '../UI/Toast'
 import {
   DRILLS, CATEGORY_META, CATEGORY_ORDER, PHASE_META,
   DIVISIONS_ORDER, matchesDivision,
@@ -219,12 +220,14 @@ function DrillTag({ drill, planDrillId, isPlan, isFavorite, onInfo, onFavorite, 
           {catMeta.label} · {duration}m
         </span>
         <span
+          role="button" aria-label="View drill details"
           onPointerDown={e => { e.stopPropagation(); e.preventDefault() }}
           onClick={e => { e.stopPropagation(); onInfo?.() }}
           style={{ fontSize: 28, color: 'rgba(255,255,255,0.55)', cursor: 'pointer', lineHeight: 1, padding: '2px 4px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
           ⓘ
         </span>
         <span
+          role="button" aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'} aria-pressed={isFavorite}
           onPointerDown={e => { e.stopPropagation(); e.preventDefault() }}
           onClick={e => { e.stopPropagation(); onFavorite?.() }}
           style={{ fontSize: 28, color: isFavorite ? '#EF9F27' : 'rgba(255,255,255,0.3)', cursor: 'pointer', lineHeight: 1, padding: '2px 4px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
@@ -232,6 +235,7 @@ function DrillTag({ drill, planDrillId, isPlan, isFavorite, onInfo, onFavorite, 
         </span>
         {isPlan && onRemove && (
           <span
+            role="button" aria-label="Remove drill from plan"
             onPointerDown={e => { e.stopPropagation(); e.preventDefault() }}
             onClick={e => { e.stopPropagation(); onRemove() }}
             style={{ fontSize: 20, color: 'rgba(255,255,255,0.35)', cursor: 'pointer', lineHeight: 1, padding: '2px 4px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
@@ -253,6 +257,7 @@ export default function PracticePage() {
     customDrills, addCustomDrill, updateCustomDrill, deleteCustomDrill,
     favoriteDrillNames, toggleFavorite,
   } = useApp()
+  const { addToast } = useToast()
 
   const loading = !dataLoaded
 
@@ -423,15 +428,19 @@ export default function PracticePage() {
     setAllPlanDrills(prev => ({ ...prev, [planId]: [...(prev[planId] || []), newEntry] }))
     setSaving(true)
     try {
-      const { data } = await supabase.from('practice_plan_drills').insert({
+      const { data, error } = await supabase.from('practice_plan_drills').insert({
         plan_id: planId, drill_name: drill.name, drill_description: null,
         skill_category: drill.category, duration_minutes: drill.duration,
         sort_order: existing.length, is_custom: drill.isCustom || false,
       }).select().single()
+      if (error) throw error
       if (data) setAllPlanDrills(prev => ({
         ...prev, [planId]: (prev[planId] || []).map(d => d.id === tempId ? data : d),
       }))
-    } catch { /* silent */ } finally { setSaving(false) }
+      addToast('Drill added to plan', 'success', 1500)
+    } catch {
+      addToast('Could not add drill', 'error')
+    } finally { setSaving(false) }
   }
 
   async function handleRemoveDrill(drillId) {
@@ -509,6 +518,7 @@ export default function PracticePage() {
         }
       } catch { /* silent */ }
       if (!String(planId).startsWith('local-')) supabase.from('practice_plans').delete().eq('id', planId)
+      addToast('Plan deleted', 'success', 2000)
       return
     }
     setPlans(prev => prev.filter(p => p.id !== planId))
@@ -517,6 +527,7 @@ export default function PracticePage() {
       try { localStorage.setItem(`practice-active-${teamIdRef.current}`, next.id) } catch {}
     }
     if (!String(planId).startsWith('local-')) supabase.from('practice_plans').delete().eq('id', planId)
+    addToast('Plan deleted', 'success', 2000)
   }
 
   async function handleDuplicatePlan(planId) {
@@ -548,6 +559,7 @@ export default function PracticePage() {
       if (inserted) copied = inserted.sort((a, b) => a.sort_order - b.sort_order)
     }
     setAllPlanDrills(prev => { const n = { ...prev }; n[newPlan.id] = copied; delete n[tempId]; return n })
+    addToast('Plan duplicated', 'success', 1500)
   }
 
   async function handleSetGeneratedPlan(generatedDrills, note) {
@@ -567,7 +579,10 @@ export default function PracticePage() {
     try {
       await supabase.from('practice_plan_drills').delete().eq('plan_id', planId)
       await supabase.from('practice_plan_drills').insert(drillsToSave.map(({ id: _id, ...rest }) => rest))
-    } catch { /* silent */ } finally { setSaving(false) }
+      addToast('Practice plan saved', 'success')
+    } catch {
+      addToast('Could not save practice plan', 'error')
+    } finally { setSaving(false) }
   }
 
   function openDetailDrill(drillOrRow, source) {

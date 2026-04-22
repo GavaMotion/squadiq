@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { AuthProvider } from './contexts/AuthContext'
+import { ToastProvider } from './components/UI/Toast'
 import App from './App'
 import './index.css'
 
@@ -44,8 +45,10 @@ class GlobalErrorBoundary extends React.Component {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <GlobalErrorBoundary>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </ToastProvider>
   </GlobalErrorBoundary>
 )

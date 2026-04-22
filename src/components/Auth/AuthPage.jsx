@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useToast } from '../UI/Toast'
 import PrivacyPolicy from '../Legal/PrivacyPolicy'
 import TermsOfService from '../Legal/TermsOfService'
 
 export default function AuthPage() {
+  const { addToast } = useToast()
   const [mode, setMode] = useState('login') // 'login' | 'signup'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -65,7 +67,7 @@ export default function AuthPage() {
     const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
       redirectTo: 'https://coachpad-tactix.vercel.app/reset-password',
     })
-    if (error) { setResetError(error.message) } else { setResetSent(true) }
+    if (error) { setResetError(error.message) } else { setResetSent(true); addToast('Reset link sent — check your email', 'success') }
   }
 
   async function handleResendVerification() {

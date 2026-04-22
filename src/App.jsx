@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from './contexts/AuthContext'
+import { useToast } from './components/UI/Toast'
 import theme from './theme'
 import { AppProvider, useApp } from './contexts/AppContext'
 import { supabase } from './lib/supabase'
@@ -409,6 +410,7 @@ const isInStandalone = window.matchMedia('(display-mode: standalone)').matches
 // ── Inner content (rendered inside AppProvider) ──────────────────
 function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
   const { createTeam } = useApp()
+  const { addToast } = useToast()
   const [isWide, setIsWide] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
   const [showNewTeam, setShowNewTeam] = useState(false)
 
@@ -424,6 +426,16 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
     window.addEventListener('resize', onResize, { passive: true })
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  useEffect(() => {
+    function onUnhandledRejection(event) {
+      if (event.reason?.message?.includes('fetch')) {
+        addToast('Connection error — please check your internet', 'error')
+      }
+    }
+    window.addEventListener('unhandledrejection', onUnhandledRejection)
+    return () => window.removeEventListener('unhandledrejection', onUnhandledRejection)
+  }, [addToast])
 
   useEffect(() => {
     function onBeforeInstall(e) {
