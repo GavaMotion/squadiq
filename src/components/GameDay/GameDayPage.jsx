@@ -231,9 +231,9 @@ export default function GameDayPage() {
     setSaving(true)
     try {
       const { ok, queued } = await saveWithOfflineSupport('saved_game_plans', 'upsert', planData, 'id', planId)
-      if (queued)     addToast('Offline — game plan queued', 'warning', 2000)
-      else if (ok)    addToast('Game plan saved ✓', 'success', 2000)
-      else            throw new Error('save failed')
+      if (queued)     addToast('Offline — changes will sync when reconnected', 'warning', 2000)
+      else if (!ok)   throw new Error('save failed')
+      // No toast on successful save — it saves silently
     } catch {
       addToast('Could not save game plan — changes may be lost', 'error')
     } finally {
