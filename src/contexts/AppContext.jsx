@@ -104,6 +104,29 @@ export function applyTeamCSSVars(teamData) {
   document.documentElement.style.setProperty('--team-primary-12', `rgba(${rgb},0.12)`)
 }
 
+// ── localStorage cache helpers ────────────────────────────────────
+function cacheData(key, data) {
+  try { localStorage.setItem(key, JSON.stringify({ data, ts: Date.now() })) } catch { /* storage full */ }
+}
+function getCachedData(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    return JSON.parse(raw).data
+  } catch { return null }
+}
+export function getCachedAge(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const mins = Math.round((Date.now() - JSON.parse(raw).ts) / 60000)
+    if (mins < 1) return 'just now'
+    if (mins < 60) return `${mins} min${mins === 1 ? '' : 's'} ago`
+    const hrs = Math.round(mins / 60)
+    return `${hrs} hour${hrs === 1 ? '' : 's'} ago`
+  } catch { return null }
+}
+
 // ── Context ──────────────────────────────────────────────────────
 const AppContext = createContext(null)
 
@@ -128,9 +151,18 @@ export function AppProvider({ userId, children }) {
   const [loadError,  setLoadError]  = useState('')
 
   // Stable refs shared across screens
-  const teamRef     = useRef(null)
-  const teamIdRef   = useRef(null)
-  const validIdsRef = useRef(new Set())
+  const teamRef           = useRef(null)
+  const teamIdRef         = useRef(null)
+  const validIdsRef       = useRef(new Set())
+  const pendingChangesRef = useRef([])
+
+  // Load pending changes from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('pending_changes')
+      if (raw) pendingChangesRef.current = JSON.parse(raw)
+    } catch { pendingChangesRef.current = [] }
+  }, [])
 
   // ── Game Day persistent state ─────────────────────────────────
   const [gdPlans,        setGdPlans]        = useState([])
@@ -154,9 +186,14 @@ export function AppProvider({ userId, children }) {
       applyTeamCSSVars(teamData)
 
       // ── Players ─────────────────────────────────────────────
-      const { data: playersData } = await supabase
+      const { data: playersData, error: playersErr } = await supabase
         .from('players').select('*').eq('team_id', teamData.id).order('jersey_number')
-      const allPlayers = playersData || []
+      let allPlayers = playersData || []
+      if (!playersErr) {
+        cacheData(`cache_players_${teamData.id}`, allPlayers)
+      } else {
+        allPlayers = getCachedData(`cache_players_${teamData.id}`) || []
+      }
       setPlayers(allPlayers)
       setPlayerCount(allPlayers.length)
       const vids = new Set(allPlayers.map(p => p.id))
@@ -168,8 +205,15 @@ export function AppProvider({ userId, children }) {
         const { data: saved, error: err } = await supabase
           .from('saved_game_plans').select('*')
           .eq('team_id', teamData.id).order('created_at', { ascending: true })
-        if (!err) gdAllPlans = saved || []
-      } catch { /* table may not exist */ }
+        if (!err) {
+          gdAllPlans = saved || []
+          if (gdAllPlans.length > 0) cacheData(`cache_gameplans_${teamData.id}`, gdAllPlans)
+        } else {
+          gdAllPlans = getCachedData(`cache_gameplans_${teamData.id}`) || []
+        }
+      } catch {
+        gdAllPlans = getCachedData(`cache_gameplans_${teamData.id}`) || []
+      }
 
       if (gdAllPlans.length === 0) {
         const baseForm = getDefaultFormation(teamData.division)
@@ -218,8 +262,15 @@ export function AppProvider({ userId, children }) {
         const { data: saved, error: err } = await supabase
           .from('practice_plans').select('*')
           .eq('team_id', teamData.id).order('created_at', { ascending: true })
-        if (!err) allPracticePlans = saved || []
-      } catch { /* table may not exist */ }
+        if (!err) {
+          allPracticePlans = saved || []
+          if (allPracticePlans.length > 0) cacheData(`cache_practiceplans_${teamData.id}`, allPracticePlans)
+        } else {
+          allPracticePlans = getCachedData(`cache_practiceplans_${teamData.id}`) || []
+        }
+      } catch {
+        allPracticePlans = getCachedData(`cache_practiceplans_${teamData.id}`) || []
+      }
 
       if (allPracticePlans.length === 0) {
         try {
@@ -249,13 +300,23 @@ export function AppProvider({ userId, children }) {
       const grouped = {}
       allPracticePlans.forEach(p => { grouped[p.id] = [] })
       if (practicePlanIds.length > 0) {
-        const { data: allDrills } = await supabase
+        const { data: allDrills, error: drillsErr } = await supabase
           .from('practice_plan_drills').select('*')
           .in('plan_id', practicePlanIds).order('sort_order', { ascending: true })
-        ;(allDrills || []).forEach(d => {
-          if (!grouped[d.plan_id]) grouped[d.plan_id] = []
-          grouped[d.plan_id].push(d)
-        })
+        if (!drillsErr) {
+          const drills = allDrills || []
+          drills.forEach(d => {
+            if (!grouped[d.plan_id]) grouped[d.plan_id] = []
+            grouped[d.plan_id].push(d)
+          })
+          cacheData(`cache_practicedrills_${teamData.id}`, drills)
+        } else {
+          const cached = getCachedData(`cache_practicedrills_${teamData.id}`) || []
+          cached.forEach(d => {
+            if (!grouped[d.plan_id]) grouped[d.plan_id] = []
+            grouped[d.plan_id].push(d)
+          })
+        }
       }
       setAllPlanDrills(grouped)
 
@@ -285,6 +346,7 @@ export function AppProvider({ userId, children }) {
           return
         }
 
+        cacheData(`cache_teams_${userId}`, allTeams)
         setTeams(allTeams)
 
         const storedId = (() => {
@@ -297,8 +359,17 @@ export function AppProvider({ userId, children }) {
         await loadTeamData(activeTeam)
       } catch (err) {
         console.error('[AppContext] loadTeams error:', err)
-        setLoadError(err.message || 'Failed to load teams')
-        setDataLoaded(true)
+        const cachedTeams = getCachedData(`cache_teams_${userId}`)
+        if (cachedTeams && cachedTeams.length > 0) {
+          setTeams(cachedTeams)
+          const storedId = (() => { try { return localStorage.getItem(`active-team-${userId}`) } catch { return null } })()
+          const activeTeam = cachedTeams.find(t => t.id === storedId) || cachedTeams[0]
+          setActiveTeamId(activeTeam.id)
+          await loadTeamData(activeTeam)
+        } else {
+          setLoadError(err.message || 'Failed to load teams')
+          setDataLoaded(true)
+        }
       }
     }
 
@@ -436,6 +507,55 @@ export function AppProvider({ userId, children }) {
     }
   }
 
+  // ── Offline queue ─────────────────────────────────────────────
+  function queueChange(table, operation, data, matchField, matchValue) {
+    if (operation === 'update' && matchField && matchValue !== undefined) {
+      pendingChangesRef.current = pendingChangesRef.current.filter(
+        c => !(c.table === table && c.operation === 'update' && c.matchField === matchField && c.matchValue === matchValue)
+      )
+    }
+    pendingChangesRef.current.push({ id: crypto.randomUUID(), table, operation, data, matchField, matchValue })
+    try { localStorage.setItem('pending_changes', JSON.stringify(pendingChangesRef.current)) } catch { /* full */ }
+  }
+
+  async function saveWithOfflineSupport(table, operation, data, matchField, matchValue) {
+    if (!navigator.onLine) {
+      queueChange(table, operation, data, matchField, matchValue)
+      return { ok: true, queued: true }
+    }
+    try {
+      let error
+      const q = supabase.from(table)
+      if (operation === 'update')      ({ error } = await q.update(data).eq(matchField, matchValue))
+      else if (operation === 'insert') ({ error } = await q.insert(data))
+      else if (operation === 'upsert') ({ error } = await q.upsert(data))
+      if (error) throw error
+      return { ok: true, queued: false }
+    } catch {
+      return { ok: false, queued: false }
+    }
+  }
+
+  async function syncPendingChanges() {
+    const changes = [...pendingChangesRef.current]
+    if (changes.length === 0) return { synced: 0, failed: 0 }
+    let synced = 0, failed = 0
+    for (const change of changes) {
+      try {
+        let error
+        const q = supabase.from(change.table)
+        if (change.operation === 'update')      ({ error } = await q.update(change.data).eq(change.matchField, change.matchValue))
+        else if (change.operation === 'insert') ({ error } = await q.insert(change.data))
+        else if (change.operation === 'upsert') ({ error } = await q.upsert(change.data))
+        if (error) throw error
+        synced++
+        pendingChangesRef.current = pendingChangesRef.current.filter(c => c.id !== change.id)
+      } catch { failed++ }
+    }
+    try { localStorage.setItem('pending_changes', JSON.stringify(pendingChangesRef.current)) } catch { /* full */ }
+    return { synced, failed }
+  }
+
   // ── Refresh players after roster changes ──────────────────────
   async function refreshPlayers() {
     if (!teamIdRef.current) return
@@ -488,6 +608,8 @@ export function AppProvider({ userId, children }) {
     dataLoaded,
     loadError,
     refreshPlayers,
+    saveWithOfflineSupport,
+    syncPendingChanges,
 
     // Game Day
     gdPlans,        setGdPlans,

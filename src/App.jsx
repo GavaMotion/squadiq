@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import { useToast } from './components/UI/Toast'
 import theme from './theme'
-import { AppProvider, useApp } from './contexts/AppContext'
+import { AppProvider, useApp, getCachedAge } from './contexts/AppContext'
+import { useOnlineStatus } from './hooks/useOnlineStatus'
 import { supabase } from './lib/supabase'
 import AuthPage from './components/Auth/AuthPage'
 import Onboarding from './components/Onboarding/Onboarding'
@@ -409,8 +410,10 @@ const isInStandalone = window.matchMedia('(display-mode: standalone)').matches
 
 // ── Inner content (rendered inside AppProvider) ──────────────────
 function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
-  const { createTeam } = useApp()
+  const { createTeam, syncPendingChanges, activeTeamId } = useApp()
   const { addToast } = useToast()
+  const isOnline = useOnlineStatus()
+  const wasOfflineRef = useRef(false)
   const [isWide, setIsWide] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
   const [showNewTeam, setShowNewTeam] = useState(false)
 
@@ -426,6 +429,20 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
     window.addEventListener('resize', onResize, { passive: true })
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  useEffect(() => {
+    if (!isOnline) {
+      wasOfflineRef.current = true
+      addToast('You\'re offline — changes will be saved when you reconnect', 'warning', 5000)
+    } else if (wasOfflineRef.current) {
+      wasOfflineRef.current = false
+      addToast('Back online — syncing changes…', 'success', 3000)
+      syncPendingChanges().then(({ synced, failed }) => {
+        if (synced > 0) addToast(`${synced} change${synced === 1 ? '' : 's'} synced`, 'success', 3000)
+        if (failed > 0) addToast(`${failed} change${failed === 1 ? '' : 's'} could not be synced`, 'error', 5000)
+      })
+    }
+  }, [isOnline, addToast, syncPendingChanges])
 
   useEffect(() => {
     function onUnhandledRejection(event) {
@@ -470,8 +487,23 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
     borderRadius: 12, padding: '12px 16px', zIndex: 9999,
   }
 
+  const cacheAge = activeTeamId ? getCachedAge(`cache_players_${activeTeamId}`) : null
+
   return (
     <div className="flex flex-col bg-gray-950" style={{ height: '100dvh', overflow: 'hidden' }}>
+      {!isOnline && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99997,
+          background: 'rgba(120,70,8,0.97)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: 6, padding: '6px 16px', fontSize: 12, color: '#fff', fontWeight: 500,
+        }}>
+          <span>⚡</span>
+          <span>
+            You're offline{cacheAge ? ` — showing data from ${cacheAge}` : ''}
+          </span>
+        </div>
+      )}
       {isWide && <AppHeader onSignOut={onSignOut} />}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {tab === 'team'     && <MyTeamPage onSignOut={isWide ? undefined : onSignOut} onCreateTeam={() => setShowNewTeam(true)} onShowOnboarding={onShowOnboarding} />}

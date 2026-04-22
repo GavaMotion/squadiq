@@ -34,6 +34,7 @@ export default function GameDayPage() {
     gdPlans:        plans,        setGdPlans:        setPlans,
     gdActivePlanId: activePlanId, setGdActivePlanId: setActivePlanId,
     gdPlanStates:   planStates,   setGdPlanStates:   setPlanStates,
+    saveWithOfflineSupport,
   } = useApp()
   const { addToast } = useToast()
 
@@ -204,19 +205,20 @@ export default function GameDayPage() {
     if (!state) return
     setSaving(true)
     try {
-      const { error } = await supabase.from('saved_game_plans').update({
+      const { ok, queued } = await saveWithOfflineSupport('saved_game_plans', 'update', {
         quarter_data:   planStateToQuarterData(state),
         absent_players: [...(state.outAllIds || new Set())],
         updated_at:     new Date().toISOString(),
-      }).eq('id', planId)
-      if (error) throw error
-      addToast('Game plan saved', 'success', 2000)
+      }, 'id', planId)
+      if (queued)     addToast('Offline — game plan queued', 'warning', 2000)
+      else if (ok)    addToast('Game plan saved', 'success', 2000)
+      else            throw new Error('save failed')
     } catch {
       addToast('Could not save game plan — changes may be lost', 'error')
     } finally {
       setSaving(false)
     }
-  }, [addToast])
+  }, [addToast, saveWithOfflineSupport])
 
   // ─── Switch plan ──────────────────────────────────────────────
   function switchPlan(planId) {
