@@ -303,11 +303,6 @@ export default function PracticePage() {
   }, [])
   useEffect(() => { if (team?.division) setFilterDiv(team.division) }, [team?.division])
 
-  useEffect(() => {
-    console.log('Practice screen mounted / activePlanId changed:', activePlanId)
-    console.log('allPlanDrills:', allPlanDrills)
-  }, [activePlanId]) // eslint-disable-line react-hooks/exhaustive-deps
-
   // ── Derived ──
   const planDrills = (allPlanDrills && activePlanId) ? (allPlanDrills[activePlanId] || []) : []
   const totalMins  = useMemo(() => (planDrills || []).reduce((s, d) => s + (d?.duration_minutes || 0), 0), [planDrills])
@@ -350,26 +345,19 @@ export default function PracticePage() {
       setDragState(prev => prev ? { ...prev, currentX: e.clientX, currentY: e.clientY } : null)
     }
     function onUp(e) {
-      console.log('=== POINTER UP FIRED ===')
-      console.log('dragState at up:', dragState)
       if (ghostRef.current) ghostRef.current.style.display = 'none'
       handleDrillDrop(e, dragState)
       setDragState(null)
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup',   onUp)
-    console.log('Drag listeners attached')
     return () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup',   onUp)
-      console.log('Drag listeners removed')
     }
   }, [dragState]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleDrillDrop(e, drag) {
-    console.log('Drop fired:', e.clientX, e.clientY)
-    console.log('activePlanId:', activePlanId)
-
     let isOverLibrary = false
     if (libraryAreaRef.current) {
       const rect = libraryAreaRef.current.getBoundingClientRect()
@@ -378,10 +366,7 @@ export default function PracticePage() {
         e.clientY >= rect.top  && e.clientY <= rect.bottom
       )
     }
-    console.log('isOverLibrary:', isOverLibrary)
-
     if (isOverLibrary && drag.source === 'library') {
-      console.log('Dropped back in library — ignoring')
       isOverPlanRef.current = false
       return
     }

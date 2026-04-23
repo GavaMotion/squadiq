@@ -512,13 +512,6 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
       const priceKey = plan === 'multi' ? 'premium' : 'solo'
       const priceId = PRICE_IDS[priceKey]?.[billingPeriod]
 
-      console.log('=== UPGRADE CLICKED ===')
-      console.log('plan:', plan)
-      console.log('billingPeriod:', billingPeriod)
-      console.log('priceId:', priceId)
-      console.log('user.id:', user?.id)
-      console.log('user.email:', user?.email)
-
       if (!priceId) {
         addToast(`No price ID found for ${plan} ${billingPeriod}`, 'error')
         return
@@ -538,14 +531,9 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
         cancelUrl: 'https://squadiq-coach.vercel.app',
       }
 
-      console.log('Sending payload:', JSON.stringify(payload))
-
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: payload,
       })
-
-      console.log('Response data:', data)
-      console.log('Response error:', error)
 
       if (error) throw error
       if (!data?.url) throw new Error('No checkout URL returned')
@@ -939,7 +927,6 @@ export default function App() {
     const refreshInterval = setInterval(async () => {
       const { error } = await supabase.auth.refreshSession()
       if (error) {
-        console.log('Could not refresh session:', error.message)
         setShowSessionExpired(true)
       }
     }, 30 * 60 * 1000)

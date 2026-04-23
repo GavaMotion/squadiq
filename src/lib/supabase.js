@@ -12,7 +12,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 })
 
 // Force schema cache refresh on startup
-supabase.from('teams').select('id').limit(1).then(() => {
-  console.log('Schema cache refreshed')
-})
+supabase.from('teams').select('id').limit(1)
 
