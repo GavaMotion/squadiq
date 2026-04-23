@@ -668,6 +668,7 @@ export function AppProvider({ userId, children }) {
     // Subscription
     subscription, subscriptionLoading,
     maxTeams, isTrialExpired, daysLeftInTrial,
+    setSubscription,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

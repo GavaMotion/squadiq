@@ -451,7 +451,7 @@ const isInStandalone = window.matchMedia('(display-mode: standalone)').matches
 
 // ── Inner content (rendered inside AppProvider) ──────────────────
 function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
-  const { createTeam, syncPendingChanges, activeTeamId, teams, maxTeams, isTrialExpired, daysLeftInTrial, subscription } = useApp()
+  const { createTeam, syncPendingChanges, activeTeamId, teams, maxTeams, isTrialExpired, daysLeftInTrial, subscription, setSubscription } = useApp()
   const { session } = useAuth()
   const user = session?.user
   const { addToast } = useToast()
@@ -462,6 +462,36 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [billingPeriod, setBillingPeriod] = useState('monthly')
   const [checkoutLoading, setCheckoutLoading] = useState(null)
+
+  // Check for successful Stripe payment on return from checkout
+  useEffect(() => {
+    async function checkPaymentSuccess() {
+      const urlParams = new URLSearchParams(window.location.search)
+      const sessionId = urlParams.get('session_id')
+      if (!sessionId || !user) return
+
+      window.history.replaceState({}, '', window.location.pathname)
+
+      try {
+        addToast('Confirming your subscription...', 'info', 3000)
+
+        const { data, error } = await supabase.functions.invoke('confirm-subscription', {
+          body: { sessionId, userId: user.id },
+        })
+
+        if (error) throw error
+
+        if (data?.plan) {
+          setSubscription(prev => ({ ...prev, plan: data.plan }))
+          addToast(`Welcome to SquadIQ ${data.plan === 'premium' ? 'Premium' : 'Solo'}! 🎉`, 'success', 5000)
+        }
+      } catch (err) {
+        console.error('Payment confirmation error:', err)
+      }
+    }
+
+    checkPaymentSuccess()
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleUpgrade(plan) {
     try {
