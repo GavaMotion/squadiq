@@ -71,15 +71,18 @@ export function generateAILineup({
   const quarterCount = {}
   allAvailable.forEach(p => { quarterCount[p.id] = 0 })
 
-  // GK rotation — distribute GK quarters evenly across GK-capable players
-  const gkPlayers = allAvailable.filter(p => (p.positions || []).includes('GK'))
-  const gkRotation = {}
-  if (gkPlayers.length > 1 && quarters.length === 4) {
+  // GK rotation — pre-assign GK per quarter, rotate if multiple GK players
+  const gkCapable = allAvailable
+    .filter(p => (p.positions || []).includes('GK'))
+    .sort((a, b) => (b.position_ratings?.GK || 0) - (a.position_ratings?.GK || 0))
+
+  const gkPerQuarter = {}
+  if (gkCapable.length > 0) {
     quarters.forEach((q, i) => {
-      gkRotation[q] = gkPlayers[i % gkPlayers.length].id
+      gkPerQuarter[q] = gkCapable[i % gkCapable.length].id
     })
   }
-  console.log('GK players:', gkPlayers.map(p => p.name), 'rotation:', gkRotation)
+  console.log('GK players:', gkCapable.map(p => p.name), 'gkPerQuarter:', gkPerQuarter)
 
   const lineup        = {}
   const outOfPosition = []
@@ -94,17 +97,19 @@ export function generateAILineup({
     const assignment = {}
     const usedIds    = new Set()
 
+    // Force GK assignment for this quarter before Pass 1
+    if (gkPerQuarter[q]) {
+      const gkSlot   = sortedSlots.find(s => s.label === 'GK')
+      const gkPlayer = available.find(p => p.id === gkPerQuarter[q])
+      if (gkSlot && gkPlayer && !usedIds.has(gkPlayer.id)) {
+        assignment[gkSlot.id] = gkPlayer.id
+        usedIds.add(gkPlayer.id)
+      }
+    }
+
     // PASS 1 — assign players who match the slot label
     for (const slot of sortedSlots) {
-      // GK slot — use rotation if available
-      if (slot.label === 'GK' && gkRotation[q]) {
-        const rotatedGK = available.find(p => p.id === gkRotation[q] && !usedIds.has(p.id))
-        if (rotatedGK) {
-          assignment[slot.id] = rotatedGK.id
-          usedIds.add(rotatedGK.id)
-          continue
-        }
-      }
+      if (assignment[slot.id]) continue // already assigned (e.g. GK above)
 
       let best      = null
       let bestScore = -Infinity

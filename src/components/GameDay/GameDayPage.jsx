@@ -724,6 +724,8 @@ export default function GameDayPage() {
       quarters: quartersToGenerate,
     })
 
+    console.log('LINEUP TO APPLY:', JSON.stringify(lineup))
+
     setPlanStates(prev => {
       const current = prev[activePlanId] || {}
       const updatedQuarters = { ...(current.quarters || {}) }
@@ -754,6 +756,8 @@ export default function GameDayPage() {
         },
       }
     })
+
+    console.log('PLAN STATE AFTER SET:', JSON.stringify(planStates[activePlanId]?.quarters))
 
     setShowAILineup(false)
 
