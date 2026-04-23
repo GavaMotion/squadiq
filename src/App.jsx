@@ -18,52 +18,57 @@ import BrandingFields from './components/Team/BrandingFields'
 function SplashScreen({ onDone }) {
   const [fadeOut, setFadeOut] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const timerRef = useRef(null)
+  const doneCalledRef = useRef(false)
   const [isLandscape, setIsLandscape] = useState(
-    () => window.innerWidth > window.innerHeight
+    () => typeof window !== 'undefined' && window.innerWidth > window.innerHeight
   )
 
   useEffect(() => {
-    function handleOrientationChange() {
-      setIsLandscape(window.innerWidth > window.innerHeight)
-    }
-    window.addEventListener('resize', handleOrientationChange)
-    return () => window.removeEventListener('resize', handleOrientationChange)
+    function handleResize() { setIsLandscape(window.innerWidth > window.innerHeight) }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  function triggerDone() {
+    if (doneCalledRef.current) return
+    doneCalledRef.current = true
+    setFadeOut(true)
+    setTimeout(() => onDone(), 500)
+  }
+
+  // Absolute maximum — splash never stays longer than 5 seconds
+  useEffect(() => {
+    const absoluteMax = setTimeout(() => triggerDone(), 5000)
+    return () => clearTimeout(absoluteMax)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!imageLoaded) return
-    const fadeTimer = setTimeout(() => setFadeOut(true), 2000)
-    const doneTimer = setTimeout(() => onDone(), 2500)
-    return () => { clearTimeout(fadeTimer); clearTimeout(doneTimer) }
-  }, [imageLoaded])
-
-  useEffect(() => {
-    setImageLoaded(false)
-  }, [isLandscape])
+    timerRef.current = setTimeout(() => triggerDone(), 2000)
+    return () => clearTimeout(timerRef.current)
+  }, [imageLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const coverSrc = isLandscape ? '/cover_H.png' : '/cover_V.png'
 
   return (
-    <div
-      className="splash-container"
-      style={{
-        zIndex: 99999,
-        background: '#0d0d1a',
-        opacity: fadeOut ? 0 : 1,
-        transition: 'opacity 0.5s ease-in-out',
-      }}
-    >
+    <div style={{
+      position: 'fixed', top: 0, left: 0,
+      width: '100vw', height: '100vh',
+      overflow: 'hidden', zIndex: 99999,
+      background: '#0d0d1a',
+      opacity: fadeOut ? 0 : 1,
+      transition: 'opacity 0.5s ease-in-out',
+    }}>
       <img
         key={coverSrc}
         src={coverSrc}
         alt="SquadIQ"
         onLoad={() => setImageLoaded(true)}
-        onError={() => onDone()}
+        onError={() => triggerDone()}
         style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          objectPosition: 'center',
+          width: '100%', height: '100%',
+          objectFit: 'cover', objectPosition: 'center',
           display: 'block',
         }}
       />
