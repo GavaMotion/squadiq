@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { getDefaultFormation, getFormationById } from '../lib/formations'
+import { PLANS } from '../version'
 
 // ── Game Day helpers — exported so GameDayPage can import them ───
 export function emptyPlan(formation) {
@@ -173,6 +174,49 @@ export function AppProvider({ userId, children }) {
   const [practicePlans,        setPracticePlans]        = useState([])
   const [practiceActivePlanId, setPracticeActivePlanId] = useState(null)
   const [allPlanDrills,        setAllPlanDrills]        = useState({})
+
+  // ── Subscription ──────────────────────────────────────────────
+  const [subscription,        setSubscription]        = useState(null)
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true)
+
+  useEffect(() => {
+    if (!userId) { setSubscription(null); setSubscriptionLoading(false); return }
+    async function fetchSubscription() {
+      setSubscriptionLoading(true)
+      try {
+        let { data, error } = await supabase
+          .from('subscriptions').select('*').eq('user_id', userId).single()
+        if (error || !data) {
+          const { data: newSub } = await supabase
+            .from('subscriptions')
+            .insert({
+              user_id:     userId,
+              plan:        'trial',
+              trial_start: new Date().toISOString(),
+              trial_end:   new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            })
+            .select().single()
+          data = newSub
+        }
+        if (data?.plan === 'trial' && new Date(data.trial_end) < new Date()) {
+          data = { ...data, plan: 'expired' }
+          await supabase.from('subscriptions').update({ plan: 'expired' }).eq('user_id', userId)
+        }
+        setSubscription(data)
+      } catch (err) {
+        console.error('Failed to fetch subscription:', err)
+      } finally {
+        setSubscriptionLoading(false)
+      }
+    }
+    fetchSubscription()
+  }, [userId])
+
+  const maxTeams       = PLANS[subscription?.plan]?.maxTeams ?? 1
+  const isTrialExpired = subscription?.plan === 'expired'
+  const daysLeftInTrial = subscription?.plan === 'trial'
+    ? Math.max(0, Math.ceil((new Date(subscription.trial_end) - new Date()) / (1000 * 60 * 60 * 24)))
+    : null
 
   // ── Load all data for one team ────────────────────────────────
   const loadTeamData = useCallback(async (teamData) => {
@@ -620,6 +664,10 @@ export function AppProvider({ userId, children }) {
     practicePlans,        setPracticePlans,
     practiceActivePlanId, setPracticeActivePlanId,
     allPlanDrills,        setAllPlanDrills,
+
+    // Subscription
+    subscription, subscriptionLoading,
+    maxTeams, isTrialExpired, daysLeftInTrial,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

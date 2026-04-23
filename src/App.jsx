@@ -192,7 +192,8 @@ function NewTeamModal({ onSave, onCancel }) {
 
 // ── Team switcher dropdown (used inside AppHeader) ───────────────
 function TeamSwitcher() {
-  const { teams, activeTeamId, team, switchTeam, createTeam } = useApp()
+  const { teams, activeTeamId, team, switchTeam, createTeam, maxTeams, isTrialExpired } = useApp()
+  const { addToast } = useToast()
   const [open,        setOpen]        = useState(false)
   const [showNewTeam, setShowNewTeam] = useState(false)
   const dropdownRef = useRef(null)
@@ -280,7 +281,17 @@ function TeamSwitcher() {
             })}
             <div style={{ borderTop: '1px solid var(--border-purple)' }}>
               <button
-                onClick={() => { setOpen(false); setShowNewTeam(true) }}
+                onClick={() => {
+                  setOpen(false)
+                  if (teams.length >= maxTeams) {
+                    addToast(isTrialExpired
+                      ? 'Your trial has expired — upgrade to add teams'
+                      : `Your plan allows up to ${maxTeams} team${maxTeams === 1 ? '' : 's'} — upgrade to add more`,
+                      'warning', 4000)
+                    return
+                  }
+                  setShowNewTeam(true)
+                }}
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition"
                 onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'none')}
@@ -439,12 +450,29 @@ const isInStandalone = window.matchMedia('(display-mode: standalone)').matches
 
 // ── Inner content (rendered inside AppProvider) ──────────────────
 function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
-  const { createTeam, syncPendingChanges, activeTeamId } = useApp()
+  const { createTeam, syncPendingChanges, activeTeamId, teams, maxTeams, isTrialExpired, daysLeftInTrial, subscription } = useApp()
   const { addToast } = useToast()
   const isOnline = useOnlineStatus()
   const wasOfflineRef = useRef(false)
   const [isWide, setIsWide] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
   const [showNewTeam, setShowNewTeam] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+
+  function handleUpgrade(plan) {
+    addToast('Payment coming soon — stay tuned!', 'info', 3000)
+  }
+
+  async function handleCreateTeam(name, division, branding) {
+    if (teams.length >= maxTeams) {
+      addToast(isTrialExpired
+        ? 'Your trial has expired — upgrade to add teams'
+        : `Your plan allows up to ${maxTeams} team${maxTeams === 1 ? '' : 's'} — upgrade to add more`,
+        'warning', 4000)
+      setShowUpgradeModal(true)
+      return
+    }
+    await createTeam(name, division, branding)
+  }
 
   // Android install prompt
   const [installPrompt,     setInstallPrompt]     = useState(null)
@@ -611,11 +639,103 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
       {showNewTeam && (
         <NewTeamModal
           onSave={async (name, division, branding) => {
-            await createTeam(name, division, branding)
+            await handleCreateTeam(name, division, branding)
             setShowNewTeam(false)
           }}
           onCancel={() => setShowNewTeam(false)}
         />
+      )}
+
+      {/* ── Trial expiry banner ── */}
+      {subscription?.plan === 'trial' && daysLeftInTrial !== null && daysLeftInTrial <= 7 && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0,
+          background: daysLeftInTrial <= 3 ? 'rgba(163,45,45,0.95)' : 'rgba(133,79,11,0.95)',
+          color: '#fff', fontSize: 12, fontWeight: 500,
+          padding: '6px 16px', textAlign: 'center', zIndex: 9000,
+        }}>
+          {daysLeftInTrial === 0
+            ? 'Your trial expires today — upgrade to keep access'
+            : `${daysLeftInTrial} day${daysLeftInTrial === 1 ? '' : 's'} left in your free trial`}
+          <span
+            onClick={() => setShowUpgradeModal(true)}
+            style={{ marginLeft: 10, textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}
+          >
+            Upgrade
+          </span>
+        </div>
+      )}
+
+      {/* ── Upgrade modal ── */}
+      {(isTrialExpired || showUpgradeModal) && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 99990, padding: 24,
+        }}>
+          <div style={{
+            background: '#1a1a2e', border: '1px solid rgba(0,200,83,0.2)',
+            borderRadius: 20, padding: 32, width: '100%', maxWidth: 380,
+            display: 'flex', flexDirection: 'column', gap: 16, textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 36 }}>🏆</div>
+            <div style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>
+              {isTrialExpired ? 'Your trial has ended' : 'Upgrade SquadIQ'}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.6 }}>
+              {isTrialExpired
+                ? 'Subscribe to continue coaching with SquadIQ'
+                : 'Choose a plan to unlock more teams'}
+            </div>
+
+            {/* Solo plan */}
+            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 16, textAlign: 'left' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>Solo Coach</div>
+                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>1 team · All features</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ color: '#00c853', fontSize: 18, fontWeight: 700 }}>$4.99</div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>/month</div>
+                </div>
+              </div>
+              <button onClick={() => handleUpgrade('solo')} style={{ marginTop: 12, width: '100%', background: '#00c853', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                Choose Solo — $4.99/mo
+              </button>
+            </div>
+
+            {/* Multi plan */}
+            <div style={{ background: 'rgba(0,200,83,0.05)', border: '1px solid rgba(0,200,83,0.3)', borderRadius: 12, padding: 16, textAlign: 'left', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: -10, right: 16, background: '#00c853', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 20 }}>
+                BEST VALUE
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>Multi Coach</div>
+                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Up to 4 teams · All features</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ color: '#00c853', fontSize: 18, fontWeight: 700 }}>$7.99</div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>/month</div>
+                </div>
+              </div>
+              <button onClick={() => handleUpgrade('multi')} style={{ marginTop: 12, width: '100%', background: '#00c853', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                Choose Multi — $7.99/mo
+              </button>
+            </div>
+
+            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
+              Save 33% with annual billing · $39.99/yr Solo · $63.99/yr Multi
+            </div>
+
+            {!isTrialExpired && (
+              <button onClick={() => setShowUpgradeModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 12, cursor: 'pointer' }}>
+                Not now
+              </button>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )
