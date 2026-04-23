@@ -63,6 +63,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding }
     dataLoaded,
     userId,
     deleteTeam: ctxDeleteTeam,
+    subscription,
   } = useApp()
   const { addToast } = useToast()
 
@@ -89,6 +90,23 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding }
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deleteError,       setDeleteError]       = useState('')
   const [isDeleting,        setIsDeleting]        = useState(false)
+  const [billingLoading,    setBillingLoading]    = useState(false)
+
+  async function handleManageBilling() {
+    setBillingLoading(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        body: { returnUrl: window.location.href },
+      })
+      if (error || !data?.url) throw new Error(error?.message || 'No portal URL returned')
+      window.location.href = data.url
+    } catch (err) {
+      addToast('Could not open billing portal — please try again', 'error')
+      console.error('Billing portal error:', err)
+    } finally {
+      setBillingLoading(false)
+    }
+  }
 
   // ── Derived values (before any early return) ──────────────────
   const teamColors = [team?.color_primary, team?.color_secondary, team?.color_accent].filter(Boolean)
@@ -547,6 +565,26 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding }
             )}
           </>
         )}
+        {/* Manage Billing — only for paid subscribers */}
+        {subscription && ['solo', 'multi'].includes(subscription.plan) && (
+          <div style={{ paddingTop: 8, paddingBottom: 4, textAlign: 'center' }}>
+            <button
+              onClick={handleManageBilling}
+              disabled={billingLoading}
+              style={{
+                fontSize: 13, color: 'rgba(0,200,83,0.7)', background: 'none',
+                border: '1px solid rgba(0,200,83,0.25)', cursor: billingLoading ? 'not-allowed' : 'pointer',
+                padding: '6px 16px', borderRadius: 8, transition: 'color 0.15s',
+                opacity: billingLoading ? 0.6 : 1,
+              }}
+              onMouseEnter={e => { if (!billingLoading) e.currentTarget.style.color = '#00c853' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(0,200,83,0.7)' }}
+            >
+              {billingLoading ? 'Opening billing…' : 'Manage Billing'}
+            </button>
+          </div>
+        )}
+
         {onSignOut && (
           <div style={{ paddingTop: 8, paddingBottom: 4, textAlign: 'center' }}>
             <button

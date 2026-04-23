@@ -5,6 +5,7 @@ import theme from './theme'
 import { AppProvider, useApp, getCachedAge } from './contexts/AppContext'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import { supabase } from './lib/supabase'
+import { getStripe, PRICE_IDS } from './lib/stripe'
 import AuthPage from './components/Auth/AuthPage'
 import Onboarding from './components/Onboarding/Onboarding'
 import MyTeamPage from './components/Team/MyTeamPage'
@@ -457,9 +458,25 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
   const [isWide, setIsWide] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
   const [showNewTeam, setShowNewTeam] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [billingPeriod, setBillingPeriod] = useState('monthly')
+  const [checkoutLoading, setCheckoutLoading] = useState(null)
 
-  function handleUpgrade(plan) {
-    addToast('Payment coming soon — stay tuned!', 'info', 3000)
+  async function handleUpgrade(plan) {
+    const priceId = PRICE_IDS[plan === 'multi' ? 'premium' : 'solo'][billingPeriod]
+    setCheckoutLoading(plan)
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { priceId, billingPeriod },
+      })
+      if (error || !data?.url) throw new Error(error?.message || 'No checkout URL returned')
+      const stripe = await getStripe()
+      window.location.href = data.url
+    } catch (err) {
+      addToast('Could not start checkout — please try again', 'error')
+      console.error('Checkout error:', err)
+    } finally {
+      setCheckoutLoading(null)
+    }
   }
 
   async function handleCreateTeam(name, division, branding) {
@@ -688,6 +705,24 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
                 : 'Choose a plan to unlock more teams'}
             </div>
 
+            {/* Billing period toggle */}
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 3, gap: 2 }}>
+              {['monthly', 'yearly'].map(period => (
+                <button
+                  key={period}
+                  onClick={() => setBillingPeriod(period)}
+                  style={{
+                    flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    fontSize: 12, fontWeight: 600, transition: 'all 0.15s',
+                    background: billingPeriod === period ? '#00c853' : 'none',
+                    color: billingPeriod === period ? '#fff' : 'rgba(255,255,255,0.45)',
+                  }}
+                >
+                  {period === 'monthly' ? 'Monthly' : 'Yearly · save 33%'}
+                </button>
+              ))}
+            </div>
+
             {/* Solo plan */}
             <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 16, textAlign: 'left' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -696,12 +731,20 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
                   <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>1 team · All features</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ color: '#00c853', fontSize: 18, fontWeight: 700 }}>$4.99</div>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>/month</div>
+                  <div style={{ color: '#00c853', fontSize: 18, fontWeight: 700 }}>
+                    {billingPeriod === 'monthly' ? '$4.99' : '$39.99'}
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
+                    {billingPeriod === 'monthly' ? '/month' : '/year'}
+                  </div>
                 </div>
               </div>
-              <button onClick={() => handleUpgrade('solo')} style={{ marginTop: 12, width: '100%', background: '#00c853', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-                Choose Solo — $4.99/mo
+              <button
+                onClick={() => handleUpgrade('solo')}
+                disabled={!!checkoutLoading}
+                style={{ marginTop: 12, width: '100%', background: '#00c853', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 600, cursor: checkoutLoading ? 'not-allowed' : 'pointer', opacity: checkoutLoading === 'solo' ? 0.7 : 1 }}
+              >
+                {checkoutLoading === 'solo' ? 'Opening checkout…' : billingPeriod === 'monthly' ? 'Choose Solo — $4.99/mo' : 'Choose Solo — $39.99/yr'}
               </button>
             </div>
 
@@ -716,17 +759,25 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
                   <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Up to 4 teams · All features</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ color: '#00c853', fontSize: 18, fontWeight: 700 }}>$7.99</div>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>/month</div>
+                  <div style={{ color: '#00c853', fontSize: 18, fontWeight: 700 }}>
+                    {billingPeriod === 'monthly' ? '$7.99' : '$63.99'}
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
+                    {billingPeriod === 'monthly' ? '/month' : '/year'}
+                  </div>
                 </div>
               </div>
-              <button onClick={() => handleUpgrade('multi')} style={{ marginTop: 12, width: '100%', background: '#00c853', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-                Choose Multi — $7.99/mo
+              <button
+                onClick={() => handleUpgrade('multi')}
+                disabled={!!checkoutLoading}
+                style={{ marginTop: 12, width: '100%', background: '#00c853', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 600, cursor: checkoutLoading ? 'not-allowed' : 'pointer', opacity: checkoutLoading === 'multi' ? 0.7 : 1 }}
+              >
+                {checkoutLoading === 'multi' ? 'Opening checkout…' : billingPeriod === 'monthly' ? 'Choose Multi — $7.99/mo' : 'Choose Multi — $63.99/yr'}
               </button>
             </div>
 
             <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
-              Save 33% with annual billing · $39.99/yr Solo · $63.99/yr Multi
+              Secure payment via Stripe · Cancel anytime
             </div>
 
             {!isTrialExpired && (
