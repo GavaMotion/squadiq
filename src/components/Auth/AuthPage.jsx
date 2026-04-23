@@ -72,7 +72,7 @@ export default function AuthPage() {
     if (!resetEmail) { setResetError('Please enter your email address'); return }
     setResetError('')
     const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: 'https://squadiq-coach.vercel.app/reset-password',
+      redirectTo: 'https://squadiq-coach.vercel.app',
     })
     if (error) { setResetError(error.message) } else { setResetSent(true); addToast('Reset link sent — check your email', 'success') }
   }
