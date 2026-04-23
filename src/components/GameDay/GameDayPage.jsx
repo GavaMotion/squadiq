@@ -56,8 +56,18 @@ export default function GameDayPage() {
   const [isExporting,     setIsExporting]     = useState(false)
   const [shakingPlayerId, setShakingPlayerId] = useState(null)
   const [deleteConfirm,   setDeleteConfirm]   = useState(null)
-  const [showAILineup,    setShowAILineup]    = useState(false)
-  const [aiQuarterMode,   setAIQuarterMode]   = useState('All 4 quarters')
+  const [showAILineup,     setShowAILineup]     = useState(false)
+  const [aiStep,           setAiStep]           = useState('options')
+  const [aiQuarterMode,    setAIQuarterMode]    = useState('All 4 quarters')
+  const [aiAbsentAll,      setAiAbsentAll]      = useState(new Set())
+  const [aiAbsentQuarters, setAiAbsentQuarters] = useState({})
+
+  function openAILineup() {
+    setAiStep('options')
+    setAiAbsentAll(new Set())
+    setAiAbsentQuarters({})
+    setShowAILineup(true)
+  }
 
   const activePlanRef    = useRef(activePlanId)
   const planStatesRef    = useRef(planStates)
@@ -700,12 +710,14 @@ export default function GameDayPage() {
       return
     }
 
-    const absentIds = new Set(planStates[activePlanId]?.outAllIds || [])
+    const existingAbsent = new Set(planStates[activePlanId]?.outAllIds || [])
+    const allAbsentIds   = new Set([...existingAbsent, ...aiAbsentAll])
     const quartersToGenerate = aiQuarterMode === 'All 4 quarters' ? [1, 2, 3, 4] : [viewedQuarter]
 
     const { lineup, warnings } = generateAILineup({
       players,
-      absentPlayerIds: absentIds,
+      absentPlayerIds: allAbsentIds,
+      absentQuarters:  aiAbsentQuarters,
       formation: currentFormation,
       quarters: quartersToGenerate,
     })
@@ -772,7 +784,7 @@ export default function GameDayPage() {
           />
           {saving && <span className="text-green-700 text-xs flex-shrink-0" title="Saving…">●</span>}
           <button
-            onClick={() => setShowAILineup(true)}
+            onClick={openAILineup}
             style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8,
               background: 'linear-gradient(135deg, #7b3fa8, #00c853)', color: '#fff',
               border: 'none', cursor: 'pointer', flexShrink: 0, fontSize: 13, fontWeight: 600 }}
@@ -822,7 +834,7 @@ export default function GameDayPage() {
           </div>
           {saving && <span style={{ fontSize: 9, color: '#00c853', flexShrink: 0 }}>●</span>}
           <button
-            onClick={() => setShowAILineup(true)}
+            onClick={openAILineup}
             style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 8,
               background: 'linear-gradient(135deg, #7b3fa8, #00c853)', color: '#fff',
               border: 'none', cursor: 'pointer', flexShrink: 0, fontSize: 12, fontWeight: 600 }}
@@ -1093,80 +1105,197 @@ export default function GameDayPage() {
         </div>
       )}
 
-      {/* AI Lineup modal */}
+      {/* AI Lineup modal — 2-step */}
       {showAILineup && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 24 }}
-          onClick={() => setShowAILineup(false)}
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 24, overflowY: 'auto' }}
         >
           <div style={{ background: '#1a1a2e', border: '1px solid rgba(123,63,168,0.3)',
-            borderRadius: 20, padding: 28, width: '100%', maxWidth: 400,
-            display: 'flex', flexDirection: 'column', gap: 16 }}
+            borderRadius: 20, padding: 24, width: '100%', maxWidth: 420,
+            display: 'flex', flexDirection: 'column', gap: 16, margin: 'auto' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 24 }}>✨</span>
-              <div>
-                <div style={{ color: '#fff', fontSize: 17, fontWeight: 700 }}>AI Lineup Planner</div>
-                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Optimizes based on position ratings</div>
-              </div>
-            </div>
-
-            {/* Quarter mode */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Plan which quarters?
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {['All 4 quarters', 'Current quarter only'].map(option => (
-                  <button key={option} onClick={() => setAIQuarterMode(option)} style={{
-                    flex: 1, padding: '10px 8px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    border: `1px solid ${aiQuarterMode === option ? 'rgba(123,63,168,0.6)' : 'rgba(255,255,255,0.1)'}`,
-                    background: aiQuarterMode === option ? 'rgba(123,63,168,0.2)' : 'rgba(255,255,255,0.03)',
-                    color: aiQuarterMode === option ? '#fff' : 'rgba(255,255,255,0.5)',
-                  }}>
-                    {option}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Warning if players have no ratings */}
-            {(() => {
-              const unrated = players.filter(p => !p.position_ratings || Object.keys(p.position_ratings).length === 0).length
-              return unrated > 0 ? (
-                <div style={{ background: 'rgba(133,79,11,0.15)', border: '1px solid rgba(239,159,39,0.3)',
-                  borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#EF9F27', lineHeight: 1.5 }}>
-                  ⚠ {unrated} player{unrated > 1 ? 's' : ''} have no position ratings — they'll be placed by position only
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 22 }}>✨</span>
+                <div>
+                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>AI Lineup Planner</div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
+                    {aiStep === 'options' ? 'Step 1 of 2 — Options' : 'Step 2 of 2 — Player Availability'}
+                  </div>
                 </div>
-              ) : null
-            })()}
-
-            {/* Info */}
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 8, padding: '10px 12px', fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
-              ✓ Every player plays at least 3 quarters<br/>
-              ✓ Best-rated players placed in their top positions<br/>
-              ✓ Bench time distributed evenly
-            </div>
-
-            {/* Buttons */}
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setShowAILineup(false)} style={{
-                flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 10, padding: 12, color: 'rgba(255,255,255,0.6)', fontSize: 14, cursor: 'pointer',
-              }}>
-                Cancel
-              </button>
-              <button onClick={handleGenerateAILineup} style={{
-                flex: 2, background: 'linear-gradient(135deg, #7b3fa8, #00c853)',
-                border: 'none', borderRadius: 10, padding: 12,
-                color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-              }}>
-                ✨ Generate Lineup
+              </div>
+              <button onClick={() => setShowAILineup(false)}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer' }}>
+                ✕
               </button>
             </div>
+
+            {/* Progress bar */}
+            <div style={{ height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', borderRadius: 2, transition: 'width 0.3s ease',
+                width: aiStep === 'options' ? '50%' : '100%',
+                background: 'linear-gradient(90deg, #7b3fa8, #00c853)',
+              }} />
+            </div>
+
+            {/* STEP 1 — Options */}
+            {aiStep === 'options' && (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Plan which quarters?
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {['All 4 quarters', 'Current quarter only'].map(option => (
+                      <button key={option} onClick={() => setAIQuarterMode(option)} style={{
+                        flex: 1, padding: '10px 8px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        border: `1px solid ${aiQuarterMode === option ? 'rgba(123,63,168,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                        background: aiQuarterMode === option ? 'rgba(123,63,168,0.2)' : 'rgba(255,255,255,0.03)',
+                        color: aiQuarterMode === option ? '#fff' : 'rgba(255,255,255,0.5)',
+                      }}>
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 8, padding: '10px 12px', fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
+                  ✓ Every player plays at least 3 quarters<br/>
+                  ✓ Players placed in their best rated position<br/>
+                  ✓ Unrated players get a random 1–3 star estimate<br/>
+                  ✓ Substitutions matched by position
+                </div>
+
+                <button onClick={() => setAiStep('availability')} style={{
+                  background: 'linear-gradient(135deg, #7b3fa8, #00c853)', border: 'none',
+                  borderRadius: 10, padding: 13, color: '#fff', fontSize: 14, fontWeight: 700,
+                  cursor: 'pointer', width: '100%',
+                }}>
+                  Next — Set Availability →
+                </button>
+              </>
+            )}
+
+            {/* STEP 2 — Availability */}
+            {aiStep === 'availability' && (
+              <>
+                <div>
+                  <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                    Player Availability
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
+                    Tap "Out?" to mark absent. Tap quarter buttons to restrict specific quarters.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
+                  {players.map(player => {
+                    const isAbsentAll = aiAbsentAll.has(player.id)
+                    const absentQs   = aiAbsentQuarters[player.id] || []
+                    return (
+                      <div key={player.id} style={{
+                        background: isAbsentAll ? 'rgba(220,50,50,0.1)' : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${isAbsentAll ? 'rgba(220,50,50,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                        borderRadius: 10, padding: '10px 12px',
+                        display: 'flex', alignItems: 'center', gap: 10,
+                      }}>
+                        <div style={{
+                          width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                          background: isAbsentAll ? 'rgba(220,50,50,0.3)' : (team?.color_primary || '#00c853'),
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, fontWeight: 700, color: '#fff',
+                        }}>
+                          {player.jersey_number}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ color: isAbsentAll ? 'rgba(255,255,255,0.3)' : '#fff',
+                            fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {player.name}
+                          </div>
+                          <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>
+                            {(player.positions || []).join(', ')}
+                          </div>
+                        </div>
+
+                        {/* Quarter buttons — only for "All 4 quarters" mode and not absent all */}
+                        {!isAbsentAll && aiQuarterMode === 'All 4 quarters' && (
+                          <div style={{ display: 'flex', gap: 3 }}>
+                            {[1, 2, 3, 4].map(q => {
+                              const isOut = absentQs.includes(q)
+                              return (
+                                <button key={q} onClick={() => setAiAbsentQuarters(prev => {
+                                  const cur = prev[player.id] || []
+                                  return { ...prev, [player.id]: isOut ? cur.filter(x => x !== q) : [...cur, q] }
+                                })} style={{
+                                  width: 24, height: 24, borderRadius: 4, fontSize: 9, fontWeight: 700, cursor: 'pointer',
+                                  border: `1px solid ${isOut ? 'rgba(220,50,50,0.6)' : 'rgba(255,255,255,0.15)'}`,
+                                  background: isOut ? 'rgba(220,50,50,0.2)' : 'transparent',
+                                  color: isOut ? '#E24B4A' : 'rgba(255,255,255,0.4)',
+                                }}>
+                                  Q{q}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+
+                        {/* Absent all toggle */}
+                        <button onClick={() => {
+                          setAiAbsentAll(prev => {
+                            const next = new Set(prev)
+                            if (next.has(player.id)) {
+                              next.delete(player.id)
+                            } else {
+                              next.add(player.id)
+                              setAiAbsentQuarters(p => { const n = { ...p }; delete n[player.id]; return n })
+                            }
+                            return next
+                          })
+                        }} style={{
+                          background: isAbsentAll ? 'rgba(220,50,50,0.3)' : 'rgba(255,255,255,0.05)',
+                          border: `1px solid ${isAbsentAll ? 'rgba(220,50,50,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                          borderRadius: 6, padding: '4px 8px', flexShrink: 0,
+                          color: isAbsentAll ? '#E24B4A' : 'rgba(255,255,255,0.4)',
+                          fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                        }}>
+                          {isAbsentAll ? 'OUT' : 'Out?'}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {(aiAbsentAll.size > 0 || Object.values(aiAbsentQuarters).some(q => q.length > 0)) && (
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
+                    {aiAbsentAll.size > 0 && `${aiAbsentAll.size} player(s) out all game`}
+                    {aiAbsentAll.size > 0 && Object.values(aiAbsentQuarters).some(q => q.length > 0) && ' · '}
+                    {Object.values(aiAbsentQuarters).filter(q => q.length > 0).length > 0 &&
+                      `${Object.values(aiAbsentQuarters).filter(q => q.length > 0).length} player(s) restricted to specific quarters`}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setAiStep('options')} style={{
+                    flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 10, padding: 12, color: 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer',
+                  }}>
+                    ← Back
+                  </button>
+                  <button onClick={handleGenerateAILineup} style={{
+                    flex: 2, background: 'linear-gradient(135deg, #7b3fa8, #00c853)',
+                    border: 'none', borderRadius: 10, padding: 12,
+                    color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                  }}>
+                    ✨ Generate Lineup
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

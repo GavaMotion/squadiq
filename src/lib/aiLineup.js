@@ -22,7 +22,7 @@ const SLOT_COMPAT = {
   CF:  ['ST', 'CAM', 'RW/LW'],
 }
 
-function scorePlayerForSlot(player, slotLabel) {
+function getEffectiveRating(player, slotLabel) {
   const ratings   = player.position_ratings || {}
   const positions = player.positions || []
   const compat    = SLOT_COMPAT[slotLabel] || [slotLabel]
@@ -30,14 +30,30 @@ function scorePlayerForSlot(player, slotLabel) {
   for (let i = 0; i < compat.length; i++) {
     const pos = compat[i]
     if (positions.includes(pos)) {
-      const rating = ratings[pos] ?? 3
-      return rating * 10 - i * 5 // penalty for each step away from primary
+      if (ratings[pos] !== undefined && ratings[pos] > 0) {
+        // Use actual rating, slightly penalised for non-primary slot
+        return i === 0 ? ratings[pos] : ratings[pos] * 0.7
+      }
+      // Player plays this position but no rating — random estimate
+      return i === 0
+        ? Math.floor(Math.random() * 3) + 1  // 1–3 for primary
+        : Math.floor(Math.random() * 2) + 1  // 1–2 for compatible
     }
   }
-  return 1 // can play but no position match
+  return 0.5 // can play but not their position
 }
 
-export function generateAILineup({ players, absentPlayerIds, formation, quarters = [1, 2, 3, 4] }) {
+function scorePlayerForSlot(player, slotLabel) {
+  return getEffectiveRating(player, slotLabel) * 10
+}
+
+export function generateAILineup({
+  players,
+  absentPlayerIds,
+  absentQuarters = {},   // { playerId: [1, 3] } — absent in specific quarters
+  formation,
+  quarters = [1, 2, 3, 4],
+}) {
   const available = players.filter(p => !absentPlayerIds.has(p.id))
   const slots = formation.slots || []
 
@@ -50,6 +66,12 @@ export function generateAILineup({ players, absentPlayerIds, formation, quarters
     const assignment = {}
     const usedIds    = new Set()
 
+    // Filter out players absent this specific quarter
+    const quarterAvailable = available.filter(p => {
+      const restricted = absentQuarters[p.id] || []
+      return !restricted.includes(quarterNum)
+    })
+
     // GK first, then rest
     const sortedSlots = [...slots].sort((a, b) => {
       if (a.label === 'GK') return -1
@@ -57,8 +79,8 @@ export function generateAILineup({ players, absentPlayerIds, formation, quarters
       return 0
     })
 
-    // Players who need minutes most go first in candidate list
-    const candidates = [...available].sort((a, b) => {
+    // Players who need minutes most go first
+    const candidates = [...quarterAvailable].sort((a, b) => {
       const aNeed = Math.max(0, 3 - quarterCount[a.id])
       const bNeed = Math.max(0, 3 - quarterCount[b.id])
       return bNeed - aNeed
@@ -102,7 +124,8 @@ export function generateAILineup({ players, absentPlayerIds, formation, quarters
   const warnings = []
   if (quarters.length === 4) {
     available.forEach(p => {
-      if (quarterCount[p.id] < 3) {
+      const restricted = Object.values(absentQuarters[p.id] || []).length
+      if (quarterCount[p.id] < 3 && restricted < 2) {
         warnings.push(`${p.name.split(' ')[0]} only plays ${quarterCount[p.id]} quarter(s)`)
       }
     })
