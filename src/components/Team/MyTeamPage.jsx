@@ -669,29 +669,23 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding }
 
         {/* Export buttons */}
         <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 16, padding: '0 4px' }}>
-          {[
-            { label: 'Export all data', onClick: handleExportData },
-            { label: 'Export roster CSV', onClick: handleExportRoster },
-          ].map(({ label, onClick }) => (
-            <button
-              key={label}
-              onClick={onClick}
-              aria-label={label}
-              style={{
-                flex: 1, background: 'none', border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: 8, padding: '10px 8px', color: 'rgba(255,255,255,0.5)',
-                fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', gap: 6,
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              {label}
-            </button>
-          ))}
+          <button
+            onClick={handleExportRoster}
+            aria-label="Export roster CSV"
+            style={{
+              flex: 1, background: 'none', border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 8, padding: '10px 8px', color: 'rgba(255,255,255,0.5)',
+              fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 6,
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export roster CSV
+          </button>
         </div>
       </div>
 
