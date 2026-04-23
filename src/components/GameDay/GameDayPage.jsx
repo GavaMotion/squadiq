@@ -16,6 +16,7 @@ import PlayerTagGrid from './PlayerTagGrid'
 import OutPanel from './OutPanel'
 import PlanTabs from './PlanTabs'
 import { LineupSkeleton } from '../UI/Skeleton'
+import { generateAILineup } from '../../lib/aiLineup'
 
 // ─── Pure local helpers ────────────────────────────────────────────
 function blankQuarterData(formation) {
@@ -55,6 +56,8 @@ export default function GameDayPage() {
   const [isExporting,     setIsExporting]     = useState(false)
   const [shakingPlayerId, setShakingPlayerId] = useState(null)
   const [deleteConfirm,   setDeleteConfirm]   = useState(null)
+  const [showAILineup,    setShowAILineup]    = useState(false)
+  const [aiQuarterMode,   setAIQuarterMode]   = useState('All 4 quarters')
 
   const activePlanRef    = useRef(activePlanId)
   const planStatesRef    = useRef(planStates)
@@ -687,6 +690,49 @@ export default function GameDayPage() {
     finally { setIsExporting(false) }
   }
 
+  // ─── AI Lineup ───────────────────────────────────────────────
+  function handleGenerateAILineup() {
+    const currentFormation = formation || getFormationById(
+      planStates[activePlanId]?.quarters?.[viewedQuarter]?.formationId
+    )
+    if (!currentFormation) {
+      addToast('Please select a formation first', 'warning')
+      return
+    }
+
+    const absentIds = new Set(planStates[activePlanId]?.outAllIds || [])
+    const quartersToGenerate = aiQuarterMode === 'All 4 quarters' ? [1, 2, 3, 4] : [viewedQuarter]
+
+    const { lineup, warnings } = generateAILineup({
+      players,
+      absentPlayerIds: absentIds,
+      formation: currentFormation,
+      quarters: quartersToGenerate,
+    })
+
+    setPlanStates(prev => {
+      const current = prev[activePlanId] || {}
+      const updatedQuarters = { ...(current.quarters || {}) }
+      for (const q of quartersToGenerate) {
+        updatedQuarters[q] = { ...updatedQuarters[q], slots: lineup[q] || {} }
+      }
+      return { ...prev, [activePlanId]: { ...current, quarters: updatedQuarters } }
+    })
+
+    setShowAILineup(false)
+
+    if (warnings.length > 0) {
+      addToast(`⚠ ${warnings[0]}`, 'warning', 4000)
+    } else {
+      addToast(
+        `✨ Lineup generated for ${quartersToGenerate.length === 4 ? 'all 4 quarters' : `Q${viewedQuarter}`}`,
+        'success', 3000
+      )
+    }
+
+    scheduleSave(activePlanId)
+  }
+
   // ─── Render guards ────────────────────────────────────────────
   if (loading) return <LineupSkeleton />
   if (error) {
@@ -725,6 +771,15 @@ export default function GameDayPage() {
             onChange={handleFormationChange}
           />
           {saving && <span className="text-green-700 text-xs flex-shrink-0" title="Saving…">●</span>}
+          <button
+            onClick={() => setShowAILineup(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8,
+              background: 'linear-gradient(135deg, #7b3fa8, #00c853)', color: '#fff',
+              border: 'none', cursor: 'pointer', flexShrink: 0, fontSize: 13, fontWeight: 600 }}
+            aria-label="AI Lineup"
+          >
+            ✨ AI Lineup
+          </button>
           <button
             onClick={() => setShowShareSheet(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
@@ -766,6 +821,15 @@ export default function GameDayPage() {
             <FormationPicker formations={formationList} selectedId={formationId} onChange={handleFormationChange} />
           </div>
           {saving && <span style={{ fontSize: 9, color: '#00c853', flexShrink: 0 }}>●</span>}
+          <button
+            onClick={() => setShowAILineup(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 8,
+              background: 'linear-gradient(135deg, #7b3fa8, #00c853)', color: '#fff',
+              border: 'none', cursor: 'pointer', flexShrink: 0, fontSize: 12, fontWeight: 600 }}
+            aria-label="AI Lineup"
+          >
+            ✨ AI
+          </button>
           <button
             onClick={() => setShowShareSheet(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
@@ -1025,6 +1089,84 @@ export default function GameDayPage() {
             <button onClick={() => setShowShareSheet(false)} style={{ padding: '10px', borderRadius: 10, background: 'none', border: '1px solid #374151', color: '#6b7280', fontSize: 13, cursor: 'pointer' }}>
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* AI Lineup modal */}
+      {showAILineup && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 24 }}
+          onClick={() => setShowAILineup(false)}
+        >
+          <div style={{ background: '#1a1a2e', border: '1px solid rgba(123,63,168,0.3)',
+            borderRadius: 20, padding: 28, width: '100%', maxWidth: 400,
+            display: 'flex', flexDirection: 'column', gap: 16 }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 24 }}>✨</span>
+              <div>
+                <div style={{ color: '#fff', fontSize: 17, fontWeight: 700 }}>AI Lineup Planner</div>
+                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Optimizes based on position ratings</div>
+              </div>
+            </div>
+
+            {/* Quarter mode */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Plan which quarters?
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {['All 4 quarters', 'Current quarter only'].map(option => (
+                  <button key={option} onClick={() => setAIQuarterMode(option)} style={{
+                    flex: 1, padding: '10px 8px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    border: `1px solid ${aiQuarterMode === option ? 'rgba(123,63,168,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                    background: aiQuarterMode === option ? 'rgba(123,63,168,0.2)' : 'rgba(255,255,255,0.03)',
+                    color: aiQuarterMode === option ? '#fff' : 'rgba(255,255,255,0.5)',
+                  }}>
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Warning if players have no ratings */}
+            {(() => {
+              const unrated = players.filter(p => !p.position_ratings || Object.keys(p.position_ratings).length === 0).length
+              return unrated > 0 ? (
+                <div style={{ background: 'rgba(133,79,11,0.15)', border: '1px solid rgba(239,159,39,0.3)',
+                  borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#EF9F27', lineHeight: 1.5 }}>
+                  ⚠ {unrated} player{unrated > 1 ? 's' : ''} have no position ratings — they'll be placed by position only
+                </div>
+              ) : null
+            })()}
+
+            {/* Info */}
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 8, padding: '10px 12px', fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
+              ✓ Every player plays at least 3 quarters<br/>
+              ✓ Best-rated players placed in their top positions<br/>
+              ✓ Bench time distributed evenly
+            </div>
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setShowAILineup(false)} style={{
+                flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 10, padding: 12, color: 'rgba(255,255,255,0.6)', fontSize: 14, cursor: 'pointer',
+              }}>
+                Cancel
+              </button>
+              <button onClick={handleGenerateAILineup} style={{
+                flex: 2, background: 'linear-gradient(135deg, #7b3fa8, #00c853)',
+                border: 'none', borderRadius: 10, padding: 12,
+                color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              }}>
+                ✨ Generate Lineup
+              </button>
+            </div>
           </div>
         </div>
       )}

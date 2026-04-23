@@ -16,10 +16,18 @@ export default function AddPlayerModal({ onSave, onClose, initial }) {
   const [name,      setName]      = useState(initial?.name || '')
   const [jersey,    setJersey]    = useState(initial?.jersey_number ?? '')
   const [positions, setPositions] = useState(initial?.positions || [])
+  const [positionRatings, setPositionRatings] = useState(initial?.position_ratings || {})
   const [error,     setError]     = useState('')
 
-  function togglePosition(id) {
-    setPositions(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
+  function handlePositionToggle(id) {
+    setPositions(prev => {
+      if (prev.includes(id)) {
+        // Remove rating when position is deselected
+        setPositionRatings(r => { const nr = { ...r }; delete nr[id]; return nr })
+        return prev.filter(p => p !== id)
+      }
+      return [...prev, id]
+    })
   }
 
   function handleSubmit(e) {
@@ -28,12 +36,15 @@ export default function AddPlayerModal({ onSave, onClose, initial }) {
     if (jersey === '' || isNaN(Number(jersey))) return setError('Valid jersey number required.')
     if (positions.length === 0)                return setError('Select at least one position.')
     setError('')
-    onSave({ name: name.trim(), jersey_number: Number(jersey), positions })
+    onSave({ name: name.trim(), jersey_number: Number(jersey), positions, position_ratings: positionRatings })
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 px-0 sm:px-4">
-      <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl p-6" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-purple)' }}>
+      <div
+        className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl p-6 overflow-y-auto"
+        style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-purple)', maxHeight: '92dvh' }}
+      >
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-bold text-white">
             {initial ? 'Edit Player' : 'Add Player'}
@@ -83,7 +94,7 @@ export default function AddPlayerModal({ onSave, onClose, initial }) {
                   <button
                     key={pos.id}
                     type="button"
-                    onClick={() => togglePosition(pos.id)}
+                    onClick={() => handlePositionToggle(pos.id)}
                     style={{
                       padding: '6px 4px',
                       borderRadius: 8,
@@ -105,6 +116,42 @@ export default function AddPlayerModal({ onSave, onClose, initial }) {
               })}
             </div>
           </div>
+
+          {/* Position Ratings — star rating per selected position */}
+          {positions.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Position Ratings
+              </div>
+              {positions.map(pos => (
+                <div key={pos} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 8, padding: '8px 12px',
+                }}>
+                  <span style={{ color: '#fff', fontSize: 13, fontWeight: 600, minWidth: 44 }}>{pos}</span>
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <span
+                        key={star}
+                        onClick={() => setPositionRatings(prev => ({
+                          ...prev,
+                          [pos]: prev[pos] === star ? 0 : star,
+                        }))}
+                        style={{
+                          fontSize: 22, cursor: 'pointer', lineHeight: 1,
+                          color: star <= (positionRatings[pos] || 0) ? '#FFD700' : 'rgba(255,255,255,0.2)',
+                          transition: 'color 0.12s',
+                        }}
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {error && <p className="text-red-400 text-sm">{error}</p>}
 
