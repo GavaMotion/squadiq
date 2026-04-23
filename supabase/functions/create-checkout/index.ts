@@ -37,13 +37,20 @@ serve(async (req: Request) => {
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: successUrl ?? `${Deno.env.get('APP_URL') ?? 'https://squadiq-coach.vercel.app'}?checkout=success`,
-      cancel_url:  cancelUrl  ?? `${Deno.env.get('APP_URL') ?? 'https://squadiq-coach.vercel.app'}?checkout=cancelled`,
-      metadata: { user_id: user.id, billing_period: billingPeriod ?? 'monthly' },
-      subscription_data: { metadata: { user_id: user.id } },
+      mode: 'subscription',
+      success_url: `${successUrl ?? Deno.env.get('APP_URL') ?? 'https://squadiq-coach.vercel.app'}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  cancelUrl  ?? `${Deno.env.get('APP_URL') ?? 'https://squadiq-coach.vercel.app'}`,
+      allow_promotion_codes: true,
+      metadata: {
+        supabase_user_id: user.id,
+      },
+      subscription_data: {
+        metadata: {
+          supabase_user_id: user.id,
+        },
+      },
     })
 
     return new Response(JSON.stringify({ url: session.url }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
