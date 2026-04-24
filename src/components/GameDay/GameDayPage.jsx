@@ -175,6 +175,10 @@ export default function GameDayPage() {
   const playerMap     = useMemo(() => Object.fromEntries((players || []).map(p => [p.id, p])), [players])
   const formationList = team ? (FORMATIONS_BY_DIVISION[team.division] || []) : []
 
+  useEffect(() => {
+    console.log(`FIELD SLOTS Q${viewedQuarter}:`, JSON.stringify(slots), '| formation slots:', formation?.slots?.map(s => s.id))
+  }, [slots, viewedQuarter]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const quarterPlansForList = useMemo(() => ({
     1: quarters?.[1]?.slots || {},
     2: quarters?.[2]?.slots || {},
@@ -740,7 +744,7 @@ export default function GameDayPage() {
         return acc
       }, {})
 
-      return {
+      const newState = {
         ...prev,
         [activePlanId]: {
           ...current,
@@ -755,9 +759,11 @@ export default function GameDayPage() {
           outOfPositionByQuarter,
         },
       }
+      console.log('NEW PLAN STATE Q slots:', JSON.stringify(
+        Object.fromEntries(quartersToGenerate.map(q => [q, newState[activePlanId].quarters[q]?.slots]))
+      ))
+      return newState
     })
-
-    console.log('PLAN STATE AFTER SET:', JSON.stringify(planStates[activePlanId]?.quarters))
 
     setShowAILineup(false)
 
