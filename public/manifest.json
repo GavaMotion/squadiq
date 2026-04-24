@@ -5,11 +5,14 @@
   "description": "The smart coaching companion for youth soccer coaches",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#0d0d1a",
   "theme_color": "#00c853",
   "orientation": "portrait",
   "categories": ["sports", "education", "productivity"],
+  "iarc_rating_id": "",
   "prefer_related_applications": false,
+  "related_applications": [],
   "icons": [
     { "src": "/icons/icon-72.png",  "sizes": "72x72",   "type": "image/png" },
     { "src": "/icons/icon-96.png",  "sizes": "96x96",   "type": "image/png" },
@@ -23,14 +26,14 @@
   "screenshots": [
     {
       "src": "/cover_V.png",
-      "sizes": "1080x1080",
+      "sizes": "2304x2304",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "SquadIQ lineup planning screen"
     },
     {
       "src": "/cover_H.png",
-      "sizes": "1920x1080",
+      "sizes": "3140x2304",
       "type": "image/png",
       "form_factor": "wide",
       "label": "SquadIQ coaching dashboard"
