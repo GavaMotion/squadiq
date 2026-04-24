@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.gavamotion.squadiq",
+    "sha256_cert_fingerprints": ["A8:4D:23:CB:3E:3D:5B:8A:FA:4E:22:97:EE:C4:2B:42:14:1B:45:AD:9A:D4:9D:BD:0A:C3:C2:32:F3:67:3F:44"]
+  }
+}]
