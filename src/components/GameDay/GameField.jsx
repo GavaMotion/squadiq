@@ -10,10 +10,11 @@ function getZone(label) {
   if (['CB','RB','LB','SW','RWB','LWB'].includes(l)) return 'DEF'
   if (['CDM','CM','CAM','RM','LM','DM','AM'].includes(l)) return 'MID'
   if (['ST','RW','LW','CF','SS','FW'].includes(l)) return 'FWD'
-  if (l.includes('GK')) return 'GK'
-  if (l.endsWith('B') || l === 'DEF') return 'DEF'
-  if (l.includes('M')) return 'MID'
-  return 'FWD'
+  // fallback for any remaining generic labels
+  if (l === 'DEF') return 'DEF'
+  if (l === 'MID') return 'MID'
+  if (l === 'FWD') return 'FWD'
+  return 'MID'
 }
 
 const slotColors = {
