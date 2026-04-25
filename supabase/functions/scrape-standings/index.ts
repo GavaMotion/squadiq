@@ -9,56 +9,128 @@ const corsHeaders = {
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36';
 
 // ─── MatchTrak ───────────────────────────────────────────────
-async function fetchMatchTrak(url: string) {
-  const parsedUrl = new URL(url);
-  const subdomain = parsedUrl.hostname.split('.')[0];
-  const base = `https://${subdomain}.matchtrak.com`;
+function parseMatchTrakHTML(html: string) {
+  const cleaned = html
+    .replace(/<\/table>\s*<table[^>]*>/gi, ' ')
+    .replace(/<font[^>]*>/gi, '')
+    .replace(/<\/font>/gi, '')
+    .replace(/<i>/gi, '')
+    .replace(/<\/i>/gi, '');
 
-  const csvEndpoints = [
-    `${base}/11/main.nsf/standings-csv-open?openform`,
-    `${base}/main.nsf/standings-csv-open?openform`,
-    `${base}/standings-csv-open?openform`,
-  ];
+  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  const anchorRegex = /<a[^>]*>([\s\S]*?)<\/a>/i;
 
-  for (const csvUrl of csvEndpoints) {
-    try {
-      console.log('Trying CSV:', csvUrl);
-      const res = await fetch(csvUrl, { headers: { 'User-Agent': UA } });
-      if (res.ok) {
-        const text = await res.text();
-        console.log('CSV response length:', text.length);
-        if (text.length > 50) {
-          const parsed = parseMatchTrakCSV(text);
-          if (parsed && parsed.length > 0) return parsed;
+  const allRows: string[][] = [];
+  let rowMatch;
+
+  while ((rowMatch = rowRegex.exec(cleaned)) !== null) {
+    const cells: string[] = [];
+    let cellMatch;
+    const localCellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+    while ((cellMatch = localCellRegex.exec(rowMatch[1])) !== null) {
+      let text = cellMatch[1];
+      const anchorMatch = anchorRegex.exec(text);
+      if (anchorMatch) {
+        text = anchorMatch[1];
+      }
+      text = text.replace(/<[^>]+>/g, '').trim();
+      if (text.includes('~')) {
+        text = text.split('~')[0].trim();
+      }
+      cells.push(text);
+    }
+    if (cells.some(c => c.length > 0)) allRows.push(cells);
+  }
+
+  if (allRows.length < 2) return null;
+
+  let headerIdx = -1;
+  const colMap: Record<string, number> = {};
+
+  for (let i = 0; i < Math.min(10, allRows.length); i++) {
+    const row = allRows[i].map(c => c.toLowerCase().trim());
+    const hasPoints = row.some(c => c === 'points' || c === 'pts');
+    const hasTeam = row.some(c => c === 'team' || c === 'club');
+    if (hasPoints || hasTeam) {
+      headerIdx = i;
+      let pointsFound = false;
+      row.forEach((cell, idx) => {
+        if (cell === 'team' || cell === 'club') colMap.team = idx;
+        else if (cell === 'mp' || cell === 'gp' || cell === 'played') colMap.gp = idx;
+        else if (cell === 'w-l-d' || cell === 'w-l-t' || cell === 'record') colMap.wld = idx;
+        else if (cell === 'w') colMap.w = idx;
+        else if (cell === 'l') colMap.l = idx;
+        else if (cell === 'd' || cell === 't') colMap.t = idx;
+        else if (cell === 'gf' || cell === 'f') colMap.gf = idx;
+        else if (cell === 'ga' || cell === 'a') colMap.ga = idx;
+        else if (cell === 'gd' || cell === 'diff') colMap.gd = idx;
+        else if ((cell === 'points' || cell === 'pts') && !pointsFound) {
+          colMap.pts = idx;
+          pointsFound = true;
         }
-      }
-    } catch (e) {
-      console.log('CSV endpoint failed:', csvUrl, e.message);
+      });
+      if (colMap.team === undefined) colMap.team = 0;
+      break;
     }
   }
 
-  const htmlEndpoints = [
-    `${base}/11/main.nsf/standings-circuit?openview&count=1000&ExpandView`,
-    `${base}/main.nsf/standings?openview`,
-    url,
-  ];
+  if (headerIdx === -1) return null;
 
-  for (const htmlUrl of htmlEndpoints) {
-    try {
-      console.log('Trying HTML:', htmlUrl);
-      const res = await fetch(htmlUrl, { headers: { 'User-Agent': UA } });
-      if (res.ok) {
-        const html = await res.text();
-        console.log('HTML response length:', html.length);
-        const parsed = parseHTMLTable(html);
-        if (parsed && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.log('HTML endpoint failed:', htmlUrl, e.message);
+  const rows: any[] = [];
+  for (let i = headerIdx + 1; i < allRows.length; i++) {
+    const row = allRows[i];
+    if (row.length < 3) continue;
+
+    const teamName = row[colMap.team ?? 0]?.trim();
+    if (!teamName || teamName.length < 2 || /^[\d\s\-]+$/.test(teamName)) continue;
+
+    let w = 0, l = 0, t = 0;
+    if (colMap.wld !== undefined && row[colMap.wld]) {
+      const parts = row[colMap.wld].split('-').map(p => parseInt(p) || 0);
+      w = parts[0] || 0;
+      l = parts[1] || 0;
+      t = parts[2] || 0;
+    } else {
+      w = parseInt(row[colMap.w ?? -1]) || 0;
+      l = parseInt(row[colMap.l ?? -1]) || 0;
+      t = parseInt(row[colMap.t ?? -1]) || 0;
     }
+
+    const gf = colMap.gf !== undefined ? parseInt(row[colMap.gf]) || null : null;
+    const ga = colMap.ga !== undefined ? parseInt(row[colMap.ga]) || null : null;
+    const pts = colMap.pts !== undefined ? parseInt(row[colMap.pts]) || (w * 3 + t) : (w * 3 + t);
+    const gp = colMap.gp !== undefined ? parseInt(row[colMap.gp]) || (w + l + t) : (w + l + t);
+
+    rows.push({
+      team: teamName,
+      gp,
+      w, l, t,
+      gf,
+      ga,
+      gd: gf !== null && ga !== null ? gf - ga : null,
+      pts,
+    });
   }
 
-  throw new Error('Could not find standings on this MatchTrak page. Try pasting the direct standings URL.');
+  return rows.length > 0 ? rows : null;
+}
+
+async function fetchMatchTrak(url: string) {
+  if (url.includes('RestrictToCategory')) {
+    console.log('Fetching MatchTrak division URL:', url);
+    const res = await fetch(url, {
+      headers: { 'User-Agent': UA, 'Accept': 'text/html' },
+    });
+    if (!res.ok) throw new Error(`MatchTrak returned ${res.status}`);
+    const html = await res.text();
+    console.log('HTML length:', html.length);
+    const parsed = parseMatchTrakHTML(html);
+    console.log('Parsed rows:', parsed?.length);
+    if (parsed && parsed.length > 0) return parsed;
+    throw new Error('Could not parse standings table from this MatchTrak page');
+  }
+
+  throw new Error('Please paste a specific division URL, not the homepage');
 }
 
 function parseMatchTrakCSV(csv: string) {
