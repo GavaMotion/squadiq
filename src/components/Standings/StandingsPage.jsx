@@ -8,6 +8,7 @@ export default function StandingsPage({ team }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [refreshing, setRefreshing] = useState(new Set())
+  const [myTeamRow, setMyTeamRow] = useState({})
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -24,6 +25,13 @@ export default function StandingsPage({ team }) {
     if (data && data.length > 0) {
       setStandingsList(data)
       setActiveId(data[0].id)
+
+      const savedMyTeam = {}
+      data.forEach(s => {
+        if (s.my_team_name) savedMyTeam[s.id] = s.my_team_name
+      })
+      setMyTeamRow(savedMyTeam)
+
       const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000)
       data.forEach(s => {
         if (s.source_url && new Date(s.updated_at) < sixHoursAgo) {
@@ -31,6 +39,16 @@ export default function StandingsPage({ team }) {
         }
       })
     }
+  }
+
+  async function toggleMyTeam(standing, teamName) {
+    const current = myTeamRow[standing.id]
+    const newValue = current === teamName ? null : teamName
+    setMyTeamRow(prev => ({ ...prev, [standing.id]: newValue }))
+    await supabase
+      .from('standings')
+      .update({ my_team_name: newValue })
+      .eq('id', standing.id)
   }
 
   async function fetchAndAdd() {
@@ -215,19 +233,35 @@ export default function StandingsPage({ team }) {
               </thead>
               <tbody>
                 {active.table_data.map((row, i) => {
-                  const isMe = team?.name && row.team?.toLowerCase().includes(team.name.toLowerCase().split(' ')[0])
+                  const isMe = myTeamRow[active.id] === row.team
                   return (
-                    <tr key={i} style={{ background: isMe ? 'rgba(0,200,83,0.08)' : i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                    <tr
+                      key={i}
+                      onClick={() => toggleMyTeam(active, row.team)}
+                      style={{
+                        background: isMe ? 'rgba(0,200,83,0.08)' : i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
+                        borderTop: '1px solid rgba(255,255,255,0.04)',
+                        cursor: 'pointer',
+                      }}
+                    >
                       <td style={{ padding: '7px 4px', color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>{i + 1}</td>
-                      <td style={{ padding: '7px 4px', color: isMe ? '#00c853' : '#fff', fontWeight: isMe ? 700 : 400, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.team}</td>
+                      <td style={{ padding: '7px 4px', color: isMe ? '#00c853' : '#fff', fontWeight: isMe ? 700 : 400, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {isMe && <span style={{ marginRight: 4 }}>⚽</span>}
+                        {row.team}
+                      </td>
                       {['gp','w','l','t','gf','ga','gd','pts'].map(k => (
-                        <td key={k} style={{ padding: '7px 4px', color: k === 'pts' ? '#fff' : 'rgba(255,255,255,0.6)', fontWeight: k === 'pts' ? 700 : 400, textAlign: 'center' }}>{row[k] ?? '–'}</td>
+                        <td key={k} style={{ padding: '7px 4px', color: k === 'pts' ? (isMe ? '#00c853' : '#fff') : 'rgba(255,255,255,0.6)', fontWeight: k === 'pts' ? 700 : 400, textAlign: 'center' }}>
+                          {row[k] ?? '–'}
+                        </td>
                       ))}
                     </tr>
                   )
                 })}
               </tbody>
             </table>
+          </div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '6px 0' }}>
+            Tap a row to highlight your team
           </div>
         </>
       )}
