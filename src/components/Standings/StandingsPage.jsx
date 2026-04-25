@@ -134,7 +134,10 @@ export default function StandingsPage({ team }) {
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               value={url}
-              onChange={e => setUrl(e.target.value)}
+              onChange={e => {
+                console.log('URL input changed:', e.target.value)
+                setUrl(e.target.value)
+              }}
               placeholder="https://s11e-26-spring.matchtrak.com/..."
               style={{ flex: 1, background: '#0d0d1a', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '10px 12px', color: '#fff', fontSize: 12 }}
             />
