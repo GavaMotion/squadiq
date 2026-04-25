@@ -382,19 +382,26 @@ function TabBar({ active, onChange }) {
     {
       id: 'lineup', label: 'Lineup',
       renderIcon: (color) => (
-        <svg width="20" height="20" fill="none" stroke={color} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="9" strokeWidth={2} />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M12 3a9 9 0 010 18M3 12h18M12 3c-2.5 2.5-4 5.5-4 9s1.5 6.5 4 9M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9" />
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="6" r="2.5" />
+          <path d="M12 9.5v5" />
+          <path d="M9 12l3 1.5 3-1.5" />
+          <path d="M10 14.5l-1.5 4" />
+          <path d="M14 14.5l1.5 4" />
+          <circle cx="17.5" cy="17.5" r="2" strokeWidth="1.5" />
         </svg>
       ),
     },
     {
       id: 'sketch', label: 'Sketch',
       renderIcon: (color) => (
-        <svg width="20" height="20" fill="none" stroke={color} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="3" width="20" height="16" rx="2" />
+          <line x1="7" y1="8" x2="10" y2="11" />
+          <line x1="10" y1="8" x2="7" y2="11" />
+          <circle cx="16" cy="9.5" r="2" />
+          <path d="M9 14.5 Q13 12 15 14.5" strokeDasharray="2 1" />
+          <polyline points="13.5,13.5 15,14.5 13.5,15.5" />
         </svg>
       ),
     },
