@@ -14,6 +14,7 @@ import MyTeamPage from './components/Team/MyTeamPage'
 import GameDayPage from './components/GameDay/GameDayPage'
 import SketchPage from './components/Sketch/SketchPage'
 import PracticePage from './components/Practice/PracticePage'
+import StandingsPage from './components/Standings/StandingsPage'
 import TeamBadge from './components/Team/TeamBadge'
 import BrandingFields from './components/Team/BrandingFields'
 
@@ -359,10 +360,11 @@ function AppHeader({ onSignOut }) {
 
 // ── Per-tab active colors ─────────────────────────────────────────
 const TAB_COLORS = {
-  team:     '#D4537E',
-  lineup:   '#00c853',
-  sketch:   '#FF6B2B',
-  practice: '#00BCD4',
+  team:      '#D4537E',
+  lineup:    '#00c853',
+  sketch:    '#FF6B2B',
+  practice:  '#00BCD4',
+  standings: '#F5C842',
 }
 
 // ── Bottom tab bar ───────────────────────────────────────────────
@@ -402,6 +404,15 @@ function TabBar({ active, onChange }) {
         <svg width="20" height="20" fill="none" stroke={color} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+      ),
+    },
+    {
+      id: 'standings', label: 'Standings',
+      renderIcon: (color) => (
+        <svg width="20" height="20" fill="none" stroke={color} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M5 3v18M5 7h6a3 3 0 010 6H5M19 14v7M19 14h-4a3 3 0 010-6h4" />
         </svg>
       ),
     },
@@ -453,7 +464,7 @@ const isInStandalone = window.matchMedia('(display-mode: standalone)').matches
 
 // ── Inner content (rendered inside AppProvider) ──────────────────
 function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
-  const { createTeam, syncPendingChanges, activeTeamId, teams, maxTeams, isTrialExpired, daysLeftInTrial, subscription, setSubscription } = useApp()
+  const { createTeam, syncPendingChanges, activeTeamId, team, teams, maxTeams, isTrialExpired, daysLeftInTrial, subscription, setSubscription } = useApp()
   const { session } = useAuth()
   const user = session?.user
   const { addToast } = useToast()
@@ -649,7 +660,8 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
         {tab === 'team'     && <MyTeamPage onSignOut={isWide ? undefined : onSignOut} onCreateTeam={() => setShowNewTeam(true)} onShowOnboarding={onShowOnboarding} installPrompt={installPrompt} onInstallApp={handleInstallApp} />}
         {tab === 'lineup'   && <GameDayPage />}
         {tab === 'sketch'   && <SketchPage />}
-        {tab === 'practice' && <PracticePage />}
+        {tab === 'practice'  && <PracticePage />}
+        {tab === 'standings' && <StandingsPage team={team} />}
       </div>
       <TabBar active={tab} onChange={setTab} />
 
