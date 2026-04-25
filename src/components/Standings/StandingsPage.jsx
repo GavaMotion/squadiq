@@ -9,6 +9,7 @@ export default function StandingsPage({ team }) {
   const [label, setLabel] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [refreshing, setRefreshing] = useState(new Set())
 
   useEffect(() => {
     if (!team?.id) return
@@ -24,6 +25,13 @@ export default function StandingsPage({ team }) {
     if (data && data.length > 0) {
       setStandingsList(data)
       setActiveId(data[0].id)
+
+      const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000)
+      for (const standing of data) {
+        if (standing.source_url && new Date(standing.updated_at) < sixHoursAgo) {
+          refreshStanding(standing)
+        }
+      }
     }
   }
 
@@ -65,15 +73,15 @@ export default function StandingsPage({ team }) {
     }
   }
 
-  async function refreshActive() {
-    const standing = standingsList.find(s => s.id === activeId)
+  async function refreshStanding(standing) {
     if (!standing?.source_url) return
-    setLoading(true)
+    setRefreshing(prev => new Set([...prev, standing.id]))
     try {
       const { data, error: fnError } = await supabase.functions.invoke('scrape-standings', {
         body: { url: standing.source_url, teamId: team.id, save: false },
       })
-      if (fnError || data?.error) throw new Error(data?.error || fnError?.message)
+      if (fnError || data?.error) return
+      if (!data?.standings?.length) return
 
       const { data: updated } = await supabase
         .from('standings')
@@ -82,11 +90,17 @@ export default function StandingsPage({ team }) {
         .select()
         .single()
 
-      setStandingsList(prev => prev.map(s => s.id === standing.id ? updated : s))
-    } catch (err) {
-      alert('Could not refresh: ' + err.message)
+      if (updated) {
+        setStandingsList(prev => prev.map(s => s.id === standing.id ? updated : s))
+      }
+    } catch (_) {
+      // silent fail
     } finally {
-      setLoading(false)
+      setRefreshing(prev => {
+        const next = new Set(prev)
+        next.delete(standing.id)
+        return next
+      })
     }
   }
 
@@ -121,12 +135,24 @@ export default function StandingsPage({ team }) {
         <div style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>🏆 Standings</div>
         <div style={{ display: 'flex', gap: 8 }}>
           {activeStanding?.source_url && (
-            <button onClick={refreshActive} disabled={loading} style={{
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 8, padding: '6px 10px', color: 'rgba(255,255,255,0.5)',
-              fontSize: 14, cursor: 'pointer',
-            }} title="Refresh standings">
-              {loading ? '...' : '🔄'}
+            <button
+              onClick={() => refreshStanding(activeStanding)}
+              disabled={refreshing.has(activeStanding?.id)}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 8, padding: '6px 12px',
+                color: 'rgba(255,255,255,0.5)',
+                fontSize: 13, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 5,
+              }}
+              title="Refresh standings"
+            >
+              <span style={{
+                display: 'inline-block',
+                animation: refreshing.has(activeStanding?.id) ? 'spin 1s linear infinite' : 'none',
+              }}>🔄</span>
+              {refreshing.has(activeStanding?.id) ? 'Refreshing...' : 'Refresh'}
             </button>
           )}
           {activeStanding && (
@@ -250,8 +276,18 @@ export default function StandingsPage({ team }) {
               })}
             </tbody>
           </table>
-          <div style={{ padding: '8px 12px', color: 'rgba(255,255,255,0.2)', fontSize: 10, textAlign: 'right' }}>
-            Last updated: {new Date(activeStanding.updated_at).toLocaleString()}
+          <div style={{ fontSize: 10, textAlign: 'right', padding: '6px 12px' }}>
+            {(() => {
+              const updated = new Date(activeStanding.updated_at)
+              const hoursAgo = Math.floor((Date.now() - updated) / (1000 * 60 * 60))
+              const isStale = hoursAgo >= 6
+              return (
+                <span style={{ color: isStale ? '#EF9F27' : 'rgba(255,255,255,0.2)' }}>
+                  {isStale ? '⚠ ' : ''}
+                  Updated {hoursAgo === 0 ? 'just now' : `${hoursAgo}h ago`}
+                </span>
+              )
+            })()}
           </div>
         </div>
       )}
