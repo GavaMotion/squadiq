@@ -134,7 +134,8 @@ async function applyTransaction(
 
   const { data, error } = await supabase
     .from('subscriptions')
-    .update({
+    .upsert({
+      user_id:                       userId,
       plan:                          planValue,
       status,
       platform:                      'apple',
@@ -143,8 +144,7 @@ async function applyTransaction(
       apple_environment:             tx.environment ?? null,
       current_period_end:            expires,
       updated_at:                    new Date().toISOString(),
-    })
-    .eq('user_id', userId)
+    }, { onConflict: 'user_id' })
     .select()
     .single()
 
@@ -245,8 +245,16 @@ serve(async (req: Request) => {
     return json({ ok: true, subscription })
 
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    console.error('verify-apple-receipt error:', message)
+    let message: string
+    if (err instanceof Error) {
+      message = err.message
+    } else if (err && typeof err === 'object') {
+      // Supabase / Postgrest errors are plain objects with { message, code, details, hint }
+      message = (err as { message?: string }).message ?? JSON.stringify(err)
+    } else {
+      message = String(err)
+    }
+    console.error('verify-apple-receipt error:', message, 'raw:', JSON.stringify(err))
     return json({ error: message }, 500)
   }
 })
