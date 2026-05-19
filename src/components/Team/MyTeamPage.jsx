@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { useApp, applyTeamCSSVars } from '../../contexts/AppContext'
+import { useApp } from '../../contexts/AppContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../UI/Toast'
 import { getContrastTextColor } from '../../lib/utils'
@@ -117,6 +117,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
     deleteTeam: ctxDeleteTeam,
     subscription,
     switchTeam,
+    updateTeamBranding,
   } = useApp()
   const { addToast } = useToast()
   const { session } = useAuth()
@@ -213,9 +214,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
         color_secondary: branding.colorSecondary || null,
         color_accent:    branding.colorAccent    || null,
       }
-      setTeam(freshTeam)
-      setTeams(prev => prev.map(t => t.id === freshTeam.id ? freshTeam : t))
-      applyTeamCSSVars(freshTeam)
+      updateTeamBranding(freshTeam)
       setEditingTeam(false)
       addToast('Team saved', 'success')
     } catch (err) {

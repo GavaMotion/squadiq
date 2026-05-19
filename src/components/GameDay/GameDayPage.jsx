@@ -91,6 +91,66 @@ export default function GameDayPage() {
     }
   }, [planStates]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // When the active team's division changes (e.g. edited from U16 → U10),
+  // migrate every plan's quarter formations to the new division's default
+  // so the field shows the right number of positions.
+  const lastTeamDivRef = useRef({ id: null, division: null })
+  useEffect(() => {
+    if (!team?.id || !team?.division) return
+    const last = lastTeamDivRef.current
+    const sameTeam   = last.id === team.id
+    const divChanged = last.division !== team.division
+    lastTeamDivRef.current = { id: team.id, division: team.division }
+    if (!sameTeam || !divChanged) return
+
+    const validIds  = new Set((FORMATIONS_BY_DIVISION[team.division] || []).map(f => f.id))
+    const defaultForm = getDefaultFormation(team.division)
+    if (!defaultForm) return
+
+    const currentStates = planStatesRef.current || {}
+    const migratedStates = {}
+    const affected = []
+    for (const planId of Object.keys(currentStates)) {
+      const state = currentStates[planId]
+      if (!state?.quarters) continue
+      let stateChanged = false
+      const newQuarters = {}
+      for (const q of [1, 2, 3, 4]) {
+        const qState = state.quarters[q]
+        if (qState?.formationId && validIds.has(qState.formationId)) {
+          newQuarters[q] = qState
+        } else {
+          const oldSlots = qState?.formation?.slots || []
+          const oldPlan  = qState?.slots || {}
+          const migrated = migrateQuarterPlan(oldPlan, oldSlots, defaultForm.slots)
+          newQuarters[q] = { formationId: defaultForm.id, formation: defaultForm, slots: migrated }
+          stateChanged = true
+        }
+      }
+      if (stateChanged) {
+        migratedStates[planId] = { ...state, quarters: newQuarters }
+        affected.push(planId)
+      }
+    }
+    if (affected.length === 0) return
+
+    setPlanStates(prev => ({ ...prev, ...migratedStates }))
+    setPlans(prev => prev.map(p => (
+      affected.includes(p.id) ? { ...p, formation_id: defaultForm.id } : p
+    )))
+
+    // Persist all affected plans (active plan is already covered by the
+    // planStates auto-save effect; this handles the others).
+    queueMicrotask(() => {
+      for (const id of affected) {
+        if (!String(id).startsWith('local-')) scheduleSave(id)
+      }
+    })
+
+    setToast(`Formations updated for ${team.division}`)
+    setTimeout(() => setToast(null), 3000)
+  }, [team?.id, team?.division]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     return () => {
       const planId = activePlanRef.current
@@ -1058,17 +1118,21 @@ export default function GameDayPage() {
         overflow:      'clip',
       }}>
 
-        {/* ── Field pane ── */}
+        {/* ── Field pane ──
+            Desktop: pane sizes to its natural content (field at 100/154
+            aspect-ratio × full height, plus the 80px OutPanel). The bench
+            on the right gets whatever space is left over via flex:1.
+            Mobile/portrait: keep the existing 55%-of-height column layout. */}
         <div style={{
-          flex:           isWide ? '0 0 60%' : '0 0 55%',
+          flex:           isWide ? '0 1 auto' : '0 0 55%',
           height:         isWide ? '100%' : undefined,
           display:        'flex',
           flexDirection:  'row',
           alignItems:     isWide ? 'center' : 'stretch',
-          justifyContent: isWide ? 'center' : undefined,
           padding:        isWide ? '10px 0 10px 12px' : '0',
           boxSizing:      'border-box',
-          flexShrink:     0,
+          flexShrink:     isWide ? 1 : 0,
+          minWidth:       0,
           borderRight:    isWide ? '1px solid #1f2937' : 'none',
           overflow:       'hidden',
           position:       'relative',
@@ -1110,12 +1174,15 @@ export default function GameDayPage() {
             </div>
           )}
 
-          {/* Field diagram */}
+          {/* Field diagram —
+              Desktop: full height, width derived from aspect-ratio. No
+              maxWidth so the field never gets compressed below its natural
+              100:154 ratio. The parent pane (flex 0 1 auto) sizes to fit. */}
           <div style={isWide ? {
             position:    'relative',
             height:      '100%',
             aspectRatio: '100 / 154',
-            maxWidth:    '100%',
+            flexShrink:  0,
             borderRadius: 8,
             overflow:    'hidden',
             boxShadow:   '0 4px 32px rgba(0,0,0,0.6)',
