@@ -208,11 +208,37 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
           )
         })}
 
-        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
-          {useApple
-            ? 'Subscriptions are billed through your Apple ID. Cancel anytime in iOS Settings.'
-            : 'Secure payment via Stripe · Cancel anytime'}
-        </div>
+        {useApple ? (
+          <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, lineHeight: 1.6, textAlign: 'left' }}>
+            <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.75)', marginBottom: 4 }}>
+              Subscription terms
+            </div>
+            Payment will be charged to your Apple ID at confirmation of purchase.
+            Subscriptions automatically renew unless auto-renew is turned off at
+            least 24 hours before the end of the current period. Your account
+            will be charged for renewal within 24 hours prior to the end of the
+            current period. You can manage and cancel subscriptions in your
+            Account Settings on the App Store after purchase.
+            <div style={{ marginTop: 8 }}>
+              <a
+                href="https://squadiq-coach.vercel.app/terms"
+                style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'underline', marginRight: 12 }}
+              >
+                Terms of Use (EULA)
+              </a>
+              <a
+                href="https://squadiq-coach.vercel.app/privacy"
+                style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'underline' }}
+              >
+                Privacy Policy
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
+            Secure payment via Stripe · Cancel anytime
+          </div>
+        )}
 
         {useApple && (
           <button
