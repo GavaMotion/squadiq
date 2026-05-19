@@ -6,8 +6,8 @@ import { AppProvider, useApp, getCachedAge } from './contexts/AppContext'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import { supabase } from './lib/supabase'
 import { getContrastTextColor } from './lib/utils'
-import { getStripe, PRICE_IDS } from './lib/stripe'
 import AuthPage from './components/Auth/AuthPage'
+import SubscriptionPage from './components/Subscription/SubscriptionPage'
 import Onboarding from './components/Onboarding/Onboarding'
 import PrivacyPolicy from './components/Legal/PrivacyPolicy'
 import TermsOfService from './components/Legal/TermsOfService'
@@ -597,8 +597,15 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
   const [isWide, setIsWide] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
   const [showNewTeam, setShowNewTeam] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [billingPeriod, setBillingPeriod] = useState('monthly')
-  const [checkoutLoading, setCheckoutLoading] = useState(null)
+  const [showTrialBanner, setShowTrialBanner] = useState(true)
+
+  // Auto-hide the trial-countdown banner after 10s so it doesn't nag the user
+  useEffect(() => {
+    if (subscription?.plan !== 'trial' || daysLeftInTrial === null || daysLeftInTrial > 7) return
+    setShowTrialBanner(true)
+    const t = setTimeout(() => setShowTrialBanner(false), 10000)
+    return () => clearTimeout(t)
+  }, [subscription?.plan, daysLeftInTrial])
 
   // Check for successful Stripe payment on return from checkout
   useEffect(() => {
@@ -643,44 +650,6 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
 
     checkPaymentSuccess()
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function handleUpgrade(plan) {
-    try {
-      const priceKey = plan === 'multi' ? 'premium' : 'solo'
-      const priceId = PRICE_IDS[priceKey]?.[billingPeriod]
-
-      if (!priceId) {
-        addToast(`No price ID found for ${plan} ${billingPeriod}`, 'error')
-        return
-      }
-      if (!user?.id) {
-        addToast('Not logged in', 'error')
-        return
-      }
-
-      addToast('Redirecting to checkout...', 'info', 3000)
-
-      const payload = {
-        priceId,
-        userId: user.id,
-        userEmail: user.email,
-        successUrl: 'https://squadiq-coach.vercel.app',
-        cancelUrl: 'https://squadiq-coach.vercel.app',
-      }
-
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: payload,
-      })
-
-      if (error) throw error
-      if (!data?.url) throw new Error('No checkout URL returned')
-
-      window.location.href = data.url
-    } catch (err) {
-      console.error('Checkout error:', err)
-      addToast('Could not start checkout — please try again', 'error')
-    }
-  }
 
   async function handleCreateTeam(name, division, branding) {
     if (teams.length >= maxTeams) {
@@ -849,7 +818,7 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
       )}
 
       {/* ── Trial expiry banner ── */}
-      {subscription?.plan === 'trial' && daysLeftInTrial !== null && daysLeftInTrial <= 7 && (
+      {showTrialBanner && subscription?.plan === 'trial' && daysLeftInTrial !== null && daysLeftInTrial <= 7 && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0,
           background: daysLeftInTrial <= 3 ? 'rgba(163,45,45,0.95)' : 'rgba(133,79,11,0.95)',
@@ -868,111 +837,13 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
         </div>
       )}
 
-      {/* ── Upgrade modal ── */}
-      {(isTrialExpired || showUpgradeModal) && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 99990, padding: 24,
-        }}>
-          <div style={{
-            background: '#1a1a2e', border: '1px solid rgba(0,200,83,0.2)',
-            borderRadius: 20, padding: 32, width: '100%', maxWidth: 380,
-            display: 'flex', flexDirection: 'column', gap: 16, textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 36 }}>🏆</div>
-            <div style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>
-              {isTrialExpired ? 'Your trial has ended' : 'Upgrade SquadIQ'}
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.6 }}>
-              {isTrialExpired
-                ? 'Subscribe to continue coaching with SquadIQ'
-                : 'Choose a plan to unlock more teams'}
-            </div>
+      {/* ── Upgrade / paywall modal ── */}
+      <SubscriptionPage
+        isOpen={isTrialExpired || showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        isTrialExpired={isTrialExpired}
+      />
 
-            {/* Billing period toggle */}
-            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 3, gap: 2 }}>
-              {['monthly', 'yearly'].map(period => (
-                <button
-                  key={period}
-                  onClick={() => setBillingPeriod(period)}
-                  style={{
-                    flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
-                    fontSize: 12, fontWeight: 600, transition: 'all 0.15s',
-                    background: billingPeriod === period ? '#00c853' : 'none',
-                    color: billingPeriod === period ? '#fff' : 'rgba(255,255,255,0.45)',
-                  }}
-                >
-                  {period === 'monthly' ? 'Monthly' : 'Yearly · save 33%'}
-                </button>
-              ))}
-            </div>
-
-            {/* Solo plan */}
-            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 16, textAlign: 'left' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>Solo Coach</div>
-                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>1 team · All features</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ color: '#00c853', fontSize: 18, fontWeight: 700 }}>
-                    {billingPeriod === 'monthly' ? '$4.99' : '$39.99'}
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
-                    {billingPeriod === 'monthly' ? '/month' : '/year'}
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => handleUpgrade('solo')}
-                disabled={!!checkoutLoading}
-                style={{ marginTop: 12, width: '100%', background: '#00c853', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 600, cursor: checkoutLoading ? 'not-allowed' : 'pointer', opacity: checkoutLoading === 'solo' ? 0.7 : 1 }}
-              >
-                {checkoutLoading === 'solo' ? 'Opening checkout…' : billingPeriod === 'monthly' ? 'Choose Solo — $4.99/mo' : 'Choose Solo — $39.99/yr'}
-              </button>
-            </div>
-
-            {/* Multi plan */}
-            <div style={{ background: 'rgba(0,200,83,0.05)', border: '1px solid rgba(0,200,83,0.3)', borderRadius: 12, padding: 16, textAlign: 'left', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: -10, right: 16, background: '#00c853', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 20 }}>
-                BEST VALUE
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>Multi Coach</div>
-                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Up to 4 teams · All features</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ color: '#00c853', fontSize: 18, fontWeight: 700 }}>
-                    {billingPeriod === 'monthly' ? '$7.99' : '$63.99'}
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
-                    {billingPeriod === 'monthly' ? '/month' : '/year'}
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => handleUpgrade('multi')}
-                disabled={!!checkoutLoading}
-                style={{ marginTop: 12, width: '100%', background: '#00c853', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 600, cursor: checkoutLoading ? 'not-allowed' : 'pointer', opacity: checkoutLoading === 'multi' ? 0.7 : 1 }}
-              >
-                {checkoutLoading === 'multi' ? 'Opening checkout…' : billingPeriod === 'monthly' ? 'Choose Multi — $7.99/mo' : 'Choose Multi — $63.99/yr'}
-              </button>
-            </div>
-
-            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
-              Secure payment via Stripe · Cancel anytime
-            </div>
-
-            {!isTrialExpired && (
-              <button onClick={() => setShowUpgradeModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 12, cursor: 'pointer' }}>
-                Not now
-              </button>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
