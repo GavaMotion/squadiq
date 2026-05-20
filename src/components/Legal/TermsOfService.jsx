@@ -1,10 +1,10 @@
-export default function TermsOfService({ onBack }) {
+export default function TermsOfService({ onBack, zIndex = 9999 }) {
   return (
     <div style={{
       position: 'fixed', inset: 0,
       background: '#0d0d1a',
       overflowY: 'auto',
-      zIndex: 9999,
+      zIndex,
       padding: '24px 20px',
       fontFamily: 'sans-serif',
     }}>

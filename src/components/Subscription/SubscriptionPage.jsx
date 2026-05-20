@@ -5,6 +5,8 @@ import { useToast } from '../UI/Toast'
 import { supabase } from '../../lib/supabase'
 import { PRICE_IDS } from '../../lib/stripe'
 import { useApplePay } from '../../hooks/useApplePay'
+import TermsOfService from '../Legal/TermsOfService'
+import PrivacyPolicy   from '../Legal/PrivacyPolicy'
 
 const PLAN_LABELS = {
   solo:    { title: 'Solo Coach',    subtitle: '1 team · All features' },
@@ -40,6 +42,8 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
 
   const [billingPeriod, setBillingPeriod] = useState('monthly')
   const [purchasing,    setPurchasing]    = useState(null)
+  const [showTerms,     setShowTerms]     = useState(false)
+  const [showPrivacy,   setShowPrivacy]   = useState(false)
 
   if (!isOpen) return null
 
@@ -118,6 +122,7 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
   const buy = useApple ? handleAppleBuy : handleStripeBuy
 
   return (
+    <>
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -220,22 +225,28 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
             current period. You can manage and cancel subscriptions in your
             Account Settings on the App Store after purchase.
             <div style={{ marginTop: 8 }}>
-              <a
-                href="https://squadiq-coach.vercel.app/terms.html"
-                target="_blank"
-                rel="noopener"
-                style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'underline', marginRight: 12 }}
+              <button
+                type="button"
+                onClick={() => setShowTerms(true)}
+                style={{
+                  background: 'none', border: 'none', padding: 0,
+                  color: 'rgba(255,255,255,0.8)', textDecoration: 'underline',
+                  marginRight: 12, cursor: 'pointer', font: 'inherit',
+                }}
               >
                 Terms of Use (EULA)
-              </a>
-              <a
-                href="https://squadiq-coach.vercel.app/privacy.html"
-                target="_blank"
-                rel="noopener"
-                style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'underline' }}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPrivacy(true)}
+                style={{
+                  background: 'none', border: 'none', padding: 0,
+                  color: 'rgba(255,255,255,0.8)', textDecoration: 'underline',
+                  cursor: 'pointer', font: 'inherit',
+                }}
               >
                 Privacy Policy
-              </a>
+              </button>
             </div>
           </div>
         ) : (
@@ -277,5 +288,9 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
         )}
       </div>
     </div>
+
+    {showTerms   && <TermsOfService onBack={() => setShowTerms(false)}   zIndex={99995} />}
+    {showPrivacy && <PrivacyPolicy  onBack={() => setShowPrivacy(false)} zIndex={99995} />}
+    </>
   )
 }

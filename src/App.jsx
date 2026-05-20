@@ -756,7 +756,7 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
       )}
       {isWide && <AppHeader onSignOut={onSignOut} />}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {tab === 'team'     && <MyTeamPage onSignOut={isWide ? undefined : onSignOut} onCreateTeam={() => setShowNewTeam(true)} onShowOnboarding={onShowOnboarding} installPrompt={installPrompt} onInstallApp={handleInstallApp} />}
+        {tab === 'team'     && <MyTeamPage onSignOut={isWide ? undefined : onSignOut} onCreateTeam={() => setShowNewTeam(true)} onShowOnboarding={onShowOnboarding} installPrompt={installPrompt} onInstallApp={handleInstallApp} onUpgrade={() => setShowUpgradeModal(true)} />}
         {tab === 'lineup'   && <GameDayPage />}
         {tab === 'sketch'   && <SketchPage />}
         {tab === 'practice'  && <PracticePage />}

@@ -106,7 +106,7 @@ function DeleteTeamDialog({ teamName, onConfirm, onCancel }) {
 const isRunningInBrowser = !window.matchMedia('(display-mode: standalone)').matches
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
 
-export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, installPrompt, onInstallApp }) {
+export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, installPrompt, onInstallApp, onUpgrade }) {
   const {
     teams,     setTeams,
     team,      setTeam,
@@ -663,8 +663,28 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
             )}
           </>
         )}
+        {/* Upgrade Plan — visible for trial / non-paid users */}
+        {onUpgrade && subscription && !['solo', 'premium', 'multi'].includes(subscription.plan) && (
+          <div style={{ paddingTop: 8, paddingBottom: 4, textAlign: 'center' }}>
+            <button
+              onClick={onUpgrade}
+              style={{
+                fontSize: 13, fontWeight: 600,
+                color: '#fff', background: '#00c853',
+                border: 'none', cursor: 'pointer',
+                padding: '8px 20px', borderRadius: 8, transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              aria-label="Subscribe or upgrade plan"
+            >
+              {subscription.plan === 'expired' ? 'Subscribe to continue' : 'Subscribe / Upgrade Plan'}
+            </button>
+          </div>
+        )}
+
         {/* Manage Billing — only for paid subscribers */}
-        {subscription && ['solo', 'multi'].includes(subscription.plan) && (
+        {subscription && ['solo', 'premium', 'multi'].includes(subscription.plan) && (
           <div style={{ paddingTop: 8, paddingBottom: 4, textAlign: 'center' }}>
             <button
               onClick={handleManageBilling}
