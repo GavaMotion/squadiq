@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+const isInNativeIOSWrapper = !!window.webkit?.messageHandlers?.storekit
+
 const STEPS = [
   {
     icon: '👥',
@@ -24,7 +26,9 @@ const STEPS = [
   {
     icon: '🚀',
     title: "You're ready!",
-    description: 'SquadIQ is designed to be used on the sideline. Install it on your home screen for the best experience.',
+    description: isInNativeIOSWrapper
+      ? "You're all set — SquadIQ is designed to be used on the sideline. Have a great season!"
+      : 'SquadIQ is designed to be used on the sideline. Install it on your home screen for the best experience.',
   },
 ]
 

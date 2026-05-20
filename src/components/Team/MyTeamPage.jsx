@@ -105,6 +105,7 @@ function DeleteTeamDialog({ teamName, onConfirm, onCancel }) {
 // ── Main page ─────────────────────────────────────────────────────
 const isRunningInBrowser = !window.matchMedia('(display-mode: standalone)').matches
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+const isInNativeIOSWrapper = !!window.webkit?.messageHandlers?.storekit
 
 export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, installPrompt, onInstallApp, onUpgrade }) {
   const {
@@ -703,8 +704,8 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
           </div>
         )}
 
-        {/* Install App button — browser only */}
-        {isRunningInBrowser && (installPrompt || isIOS) && (
+        {/* Install App button — browser only, suppressed inside the native iOS wrapper */}
+        {isRunningInBrowser && !isInNativeIOSWrapper && (installPrompt || isIOS) && (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 4 }}>
             <button
               onClick={() => {
