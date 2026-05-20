@@ -221,13 +221,17 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
             Account Settings on the App Store after purchase.
             <div style={{ marginTop: 8 }}>
               <a
-                href="https://squadiq-coach.vercel.app/terms"
+                href="https://squadiq-coach.vercel.app/terms.html"
+                target="_blank"
+                rel="noopener"
                 style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'underline', marginRight: 12 }}
               >
                 Terms of Use (EULA)
               </a>
               <a
-                href="https://squadiq-coach.vercel.app/privacy"
+                href="https://squadiq-coach.vercel.app/privacy.html"
+                target="_blank"
+                rel="noopener"
                 style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'underline' }}
               >
                 Privacy Policy
