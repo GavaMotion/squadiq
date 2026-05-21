@@ -151,6 +151,10 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
   const [showIOSInstallModal,  setShowIOSInstallModal]  = useState(false)
 
   async function handleManageBilling() {
+    if (subscription?.platform === 'apple') {
+      window.open('https://apps.apple.com/account/subscriptions', '_blank')
+      return
+    }
     setBillingLoading(true)
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal', {
