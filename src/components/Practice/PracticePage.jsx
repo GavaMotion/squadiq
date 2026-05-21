@@ -328,7 +328,7 @@ export default function PracticePage() {
   const isMobile = !isWide
 
   // ── Native drag & drop ──
-  // On touch: require a 200ms hold to start a drag so users can scroll the list
+  // On touch: require a 300ms hold to start a drag so users can scroll the list
   // and two-finger-scroll without triggering a drag. Mouse/pen drags start immediately.
   function onDrillPointerDown(e, drill, source, planDrillId = null) {
     if (e.pointerType === 'touch') {
@@ -361,7 +361,7 @@ export default function PracticePage() {
         cleanup()
         try { target.setPointerCapture?.(pointerId) } catch {}
         setDragState({ drill, source, planDrillId, offsetX, offsetY, currentX: startX, currentY: startY })
-      }, 200)
+      }, 300)
       return
     }
 
@@ -387,11 +387,18 @@ export default function PracticePage() {
       handleDrillDrop(e, dragState)
       setDragState(null)
     }
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup',   onUp)
+    function onCancel() {
+      if (ghostRef.current) ghostRef.current.style.display = 'none'
+      isOverPlanRef.current = false
+      setDragState(null)
+    }
+    window.addEventListener('pointermove',   onMove)
+    window.addEventListener('pointerup',     onUp)
+    window.addEventListener('pointercancel', onCancel)
     return () => {
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup',   onUp)
+      window.removeEventListener('pointermove',   onMove)
+      window.removeEventListener('pointerup',     onUp)
+      window.removeEventListener('pointercancel', onCancel)
     }
   }, [dragState]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -817,7 +824,7 @@ export default function PracticePage() {
               style={{
                 flex: 1, minHeight: 200, overflowY: 'auto', WebkitOverflowScrolling: 'touch',
                 overscrollBehavior: 'contain',
-                touchAction: dragState ? 'none' : 'pan-y',
+                touchAction: dragState ? 'none' : 'manipulation',
                 padding: planDrills.length === 0 ? '12px' : '10px',
                 background: overPlan && dragState ? 'rgba(0,200,83,0.08)' : 'transparent',
                 border: overPlan && dragState ? '1px solid rgba(0,200,83,0.3)' : '1px solid transparent',
@@ -936,7 +943,7 @@ export default function PracticePage() {
             )}
 
             {/* Drill list */}
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '8px 10px', touchAction: dragState ? 'none' : 'pan-y' }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '8px 10px', touchAction: dragState ? 'none' : 'manipulation' }}>
               {visibleDrills.length === 0 ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 80 }}>
                   <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>No drills match filters</span>
