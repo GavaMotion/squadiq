@@ -206,7 +206,7 @@ function DrillTag({ drill, planDrillId, isPlan, isFavorite, onInfo, onFavorite, 
         border: `2px solid ${isDragging ? 'transparent' : color}`,
         padding: '8px 10px',
         display: 'flex', flexDirection: 'column', gap: 4,
-        cursor: 'grab', touchAction: 'pan-y', userSelect: 'none',
+        cursor: 'grab', touchAction: 'manipulation', userSelect: 'none',
         opacity: isDragging ? 0.3 : 1,
       }}
     >
