@@ -206,7 +206,7 @@ function DrillTag({ drill, planDrillId, isPlan, isFavorite, onInfo, onFavorite, 
         border: `2px solid ${isDragging ? 'transparent' : color}`,
         padding: '8px 10px',
         display: 'flex', flexDirection: 'column', gap: 4,
-        cursor: 'grab', touchAction: 'manipulation', userSelect: 'none',
+        cursor: 'grab', touchAction: 'none', userSelect: 'none',
         opacity: isDragging ? 0.3 : 1,
       }}
     >
@@ -271,7 +271,7 @@ export default function PracticePage() {
   const [dragState, setDragState] = useState(null)
   const [overPlan, setOverPlan]   = useState(false)
   const ghostRef = useRef(null)
-  const holdTimerRef = useRef(null)
+  const twoFingerScrollRef = useRef(null)
 
   // ── UI ──
   const [isWide, setIsWide]         = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
@@ -328,43 +328,7 @@ export default function PracticePage() {
   const isMobile = !isWide
 
   // ── Native drag & drop ──
-  // On touch: require a 300ms hold to start a drag so users can scroll the list
-  // and two-finger-scroll without triggering a drag. Mouse/pen drags start immediately.
   function onDrillPointerDown(e, drill, source, planDrillId = null) {
-    if (e.pointerType === 'touch') {
-      const target    = e.currentTarget
-      const pointerId = e.pointerId
-      const startX    = e.clientX
-      const startY    = e.clientY
-      const rect      = target.getBoundingClientRect()
-      const offsetX   = startX - rect.left - rect.width  / 2
-      const offsetY   = startY - rect.top  - rect.height / 2
-
-      const cleanup = () => {
-        if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null }
-        window.removeEventListener('pointermove',   onMove)
-        window.removeEventListener('pointerup',     cleanup)
-        window.removeEventListener('pointercancel', cleanup)
-        window.removeEventListener('touchstart',    onExtraTouch)
-      }
-      const onMove = mv => {
-        if (Math.abs(mv.clientX - startX) > 5 || Math.abs(mv.clientY - startY) > 5) cleanup()
-      }
-      const onExtraTouch = te => { if (te.touches.length > 1) cleanup() }
-
-      window.addEventListener('pointermove',   onMove,        { passive: true })
-      window.addEventListener('pointerup',     cleanup,       { passive: true })
-      window.addEventListener('pointercancel', cleanup,       { passive: true })
-      window.addEventListener('touchstart',    onExtraTouch,  { passive: true })
-
-      holdTimerRef.current = setTimeout(() => {
-        cleanup()
-        try { target.setPointerCapture?.(pointerId) } catch {}
-        setDragState({ drill, source, planDrillId, offsetX, offsetY, currentX: startX, currentY: startY })
-      }, 300)
-      return
-    }
-
     e.stopPropagation()
     e.preventDefault()
     const rect = e.currentTarget.getBoundingClientRect()
@@ -376,6 +340,44 @@ export default function PracticePage() {
       currentY: e.clientY,
     })
   }
+
+  // Two-finger touch = scroll the container under the fingers. Lets users
+  // bypass single-finger drag when they need to scroll past a drill card.
+  useEffect(() => {
+    function findScrollable(el) {
+      while (el && el !== document.body) {
+        const s = window.getComputedStyle(el)
+        if ((s.overflowY === 'auto' || s.overflowY === 'scroll') && el.scrollHeight > el.clientHeight) return el
+        el = el.parentElement
+      }
+      return null
+    }
+    function onTouchStart(e) {
+      if (e.touches.length !== 2) return
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+      const container = findScrollable(document.elementFromPoint(midX, midY))
+      if (container) twoFingerScrollRef.current = { container, lastY: midY }
+    }
+    function onTouchMove(e) {
+      if (e.touches.length !== 2 || !twoFingerScrollRef.current) return
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+      twoFingerScrollRef.current.container.scrollTop += twoFingerScrollRef.current.lastY - midY
+      twoFingerScrollRef.current.lastY = midY
+      e.preventDefault()
+    }
+    function onTouchEnd(e) {
+      if (e.touches.length < 2) twoFingerScrollRef.current = null
+    }
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchmove',  onTouchMove,  { passive: false })
+    window.addEventListener('touchend',   onTouchEnd,   { passive: true })
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchmove',  onTouchMove)
+      window.removeEventListener('touchend',   onTouchEnd)
+    }
+  }, [])
 
   useEffect(() => {
     if (!dragState) return
@@ -827,7 +829,7 @@ export default function PracticePage() {
               style={{
                 flex: 1, minHeight: 200, overflowY: 'auto', WebkitOverflowScrolling: 'touch',
                 overscrollBehavior: 'contain',
-                touchAction: dragState ? 'none' : 'manipulation',
+                touchAction: dragState ? 'none' : 'pan-y',
                 padding: planDrills.length === 0 ? '12px' : '10px',
                 background: overPlan && dragState ? 'rgba(0,200,83,0.08)' : 'transparent',
                 border: overPlan && dragState ? '1px solid rgba(0,200,83,0.3)' : '1px solid transparent',
@@ -946,7 +948,7 @@ export default function PracticePage() {
             )}
 
             {/* Drill list */}
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '8px 10px', touchAction: dragState ? 'none' : 'manipulation' }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '8px 10px', touchAction: dragState ? 'none' : 'pan-y' }}>
               {visibleDrills.length === 0 ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 80 }}>
                   <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>No drills match filters</span>
