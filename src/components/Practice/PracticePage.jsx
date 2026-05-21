@@ -392,13 +392,16 @@ export default function PracticePage() {
       isOverPlanRef.current = false
       setDragState(null)
     }
+    function onExtraTouch(te) { if (te.touches.length > 1) onCancel() }
     window.addEventListener('pointermove',   onMove)
     window.addEventListener('pointerup',     onUp)
     window.addEventListener('pointercancel', onCancel)
+    window.addEventListener('touchstart',    onExtraTouch, { passive: true })
     return () => {
       window.removeEventListener('pointermove',   onMove)
       window.removeEventListener('pointerup',     onUp)
       window.removeEventListener('pointercancel', onCancel)
+      window.removeEventListener('touchstart',    onExtraTouch)
     }
   }, [dragState]) // eslint-disable-line react-hooks/exhaustive-deps
 
