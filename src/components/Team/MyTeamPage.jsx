@@ -684,6 +684,23 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
           </div>
         )}
 
+        {/* Always-visible link to the plans sheet — guarantees IAPs are reachable for App Review */}
+        {onUpgrade && (
+          <div style={{ textAlign: 'center', marginTop: 4 }}>
+            <button
+              onClick={onUpgrade}
+              style={{
+                background: 'none', border: 'none',
+                color: 'rgba(255,255,255,0.55)', fontSize: 12,
+                cursor: 'pointer', textDecoration: 'underline', padding: '4px 0',
+              }}
+              aria-label="View available subscription plans"
+            >
+              View available plans
+            </button>
+          </div>
+        )}
+
         {/* Manage Billing — only for paid subscribers */}
         {subscription && ['solo', 'premium', 'multi'].includes(subscription.plan) && (
           <div style={{ paddingTop: 8, paddingBottom: 4, textAlign: 'center' }}>
