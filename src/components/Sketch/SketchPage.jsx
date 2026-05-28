@@ -1005,13 +1005,17 @@ export default function SketchPage() {
           <svg width={isMobile ? 18 : 14} height={isMobile ? 18 : 14} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 3">
             <line x1="5" y1="19" x2="17" y2="7" />
             <polyline points="10 7 17 7 17 14" strokeDasharray="0" />
+            <line x1="18" y1="18" x2="23" y2="23" strokeDasharray="0" strokeWidth="2.6" />
+            <line x1="23" y1="18" x2="18" y2="23" strokeDasharray="0" strokeWidth="2.6" />
           </svg>
           {!isMobile && 'Arrows'}
         </button>
         <button onClick={handleResetPositions} title="Reset all players to bench"
           style={{ height: isMobile ? 36 : 28, padding: isMobile ? '0 12px' : '0 10px', borderRadius: 6, fontSize: isMobile ? 13 : 11, fontWeight: 600, background: '#581c87', color: '#fff', border: '1px solid #6b21a8', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <svg width={isMobile ? 18 : 14} height={isMobile ? 18 : 14} viewBox="0 0 24 24" fill="#fff">
-            <circle cx="12" cy="12" r="6" />
+          <svg width={isMobile ? 18 : 14} height={isMobile ? 18 : 14} viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="2.6" strokeLinecap="round">
+            <circle cx="12" cy="12" r="6" stroke="none" />
+            <line x1="18" y1="18" x2="23" y2="23" />
+            <line x1="23" y1="18" x2="18" y2="23" />
           </svg>
           {!isMobile && 'Reset'}
         </button>
