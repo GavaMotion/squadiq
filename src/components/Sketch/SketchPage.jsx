@@ -968,7 +968,7 @@ export default function SketchPage() {
         {/* Utility buttons */}
         <div style={{ position: 'relative' }}>
           <button onClick={() => setShowLoadQMenu(s => !s)} title="Load a quarter lineup onto field"
-            style={{ height: 28, padding: '0 8px', borderRadius: 6, fontSize: 11, background: 'rgba(255,255,255,0.06)', color: '#9ca3af', border: '1px solid #374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            style={{ height: isMobile ? 36 : 28, padding: isMobile ? '0 14px' : '0 8px', borderRadius: 6, fontSize: isMobile ? 14 : 11, fontWeight: isMobile ? 600 : 400, background: 'rgba(255,255,255,0.06)', color: '#9ca3af', border: '1px solid #374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
             {isMobile ? '↺Q' : '↺ Load Q'}
           </button>
           {showLoadQMenu && (
@@ -1001,11 +1001,11 @@ export default function SketchPage() {
           )}
         </div>
         <button onClick={handleClearArrows} title="Clear all arrows"
-          style={{ height: 28, padding: '0 8px', borderRadius: 6, fontSize: 11, background: 'rgba(255,255,255,0.06)', color: '#9ca3af', border: '1px solid #374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          style={{ height: isMobile ? 36 : 28, padding: isMobile ? '0 14px' : '0 8px', borderRadius: 6, fontSize: isMobile ? 14 : 11, fontWeight: isMobile ? 600 : 400, background: 'rgba(255,255,255,0.06)', color: '#9ca3af', border: '1px solid #374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           {isMobile ? '✕↗' : '✕ Arrows'}
         </button>
         <button onClick={handleResetPositions} title="Reset all players to bench"
-          style={{ height: 28, padding: '0 8px', borderRadius: 6, fontSize: 11, background: 'rgba(255,255,255,0.06)', color: '#9ca3af', border: '1px solid #374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          style={{ height: isMobile ? 36 : 28, padding: isMobile ? '0 14px' : '0 8px', borderRadius: 6, fontSize: isMobile ? 14 : 11, fontWeight: isMobile ? 600 : 400, background: 'rgba(255,255,255,0.06)', color: '#9ca3af', border: '1px solid #374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           {isMobile ? '⟲' : '⟲ Reset'}
         </button>
       </div>
