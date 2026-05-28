@@ -1001,12 +1001,19 @@ export default function SketchPage() {
           )}
         </div>
         <button onClick={handleClearArrows} title="Clear all arrows"
-          style={{ height: isMobile ? 36 : 28, padding: isMobile ? '0 14px' : '0 8px', borderRadius: 6, fontSize: isMobile ? 14 : 11, fontWeight: isMobile ? 600 : 400, background: 'rgba(255,255,255,0.06)', color: '#b91c1c', border: '1px solid #374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          {isMobile ? '✕↗' : '✕ Arrows'}
+          style={{ height: isMobile ? 36 : 28, padding: isMobile ? '0 12px' : '0 10px', borderRadius: 6, fontSize: isMobile ? 13 : 11, fontWeight: 600, background: '#7f1d1d', color: '#fff', border: '1px solid #991b1b', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <svg width={isMobile ? 18 : 14} height={isMobile ? 18 : 14} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 3">
+            <line x1="5" y1="19" x2="17" y2="7" />
+            <polyline points="10 7 17 7 17 14" strokeDasharray="0" />
+          </svg>
+          {!isMobile && 'Arrows'}
         </button>
         <button onClick={handleResetPositions} title="Reset all players to bench"
-          style={{ height: isMobile ? 36 : 28, padding: isMobile ? '0 14px' : '0 8px', borderRadius: 6, fontSize: isMobile ? 14 : 11, fontWeight: isMobile ? 600 : 400, background: 'rgba(255,255,255,0.06)', color: '#7e22ce', border: '1px solid #374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          {isMobile ? '⟲' : '⟲ Reset'}
+          style={{ height: isMobile ? 36 : 28, padding: isMobile ? '0 12px' : '0 10px', borderRadius: 6, fontSize: isMobile ? 13 : 11, fontWeight: 600, background: '#581c87', color: '#fff', border: '1px solid #6b21a8', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <svg width={isMobile ? 18 : 14} height={isMobile ? 18 : 14} viewBox="0 0 24 24" fill="#fff">
+            <circle cx="12" cy="12" r="6" />
+          </svg>
+          {!isMobile && 'Reset'}
         </button>
       </div>
 
