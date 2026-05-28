@@ -1001,11 +1001,11 @@ export default function SketchPage() {
           )}
         </div>
         <button onClick={handleClearArrows} title="Clear all arrows"
-          style={{ height: isMobile ? 36 : 28, padding: isMobile ? '0 14px' : '0 8px', borderRadius: 6, fontSize: isMobile ? 14 : 11, fontWeight: isMobile ? 600 : 400, background: 'rgba(255,255,255,0.06)', color: '#9ca3af', border: '1px solid #374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          style={{ height: isMobile ? 36 : 28, padding: isMobile ? '0 14px' : '0 8px', borderRadius: 6, fontSize: isMobile ? 14 : 11, fontWeight: isMobile ? 600 : 400, background: 'rgba(255,255,255,0.06)', color: '#b91c1c', border: '1px solid #374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           {isMobile ? '✕↗' : '✕ Arrows'}
         </button>
         <button onClick={handleResetPositions} title="Reset all players to bench"
-          style={{ height: isMobile ? 36 : 28, padding: isMobile ? '0 14px' : '0 8px', borderRadius: 6, fontSize: isMobile ? 14 : 11, fontWeight: isMobile ? 600 : 400, background: 'rgba(255,255,255,0.06)', color: '#9ca3af', border: '1px solid #374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          style={{ height: isMobile ? 36 : 28, padding: isMobile ? '0 14px' : '0 8px', borderRadius: 6, fontSize: isMobile ? 14 : 11, fontWeight: isMobile ? 600 : 400, background: 'rgba(255,255,255,0.06)', color: '#7e22ce', border: '1px solid #374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           {isMobile ? '⟲' : '⟲ Reset'}
         </button>
       </div>
