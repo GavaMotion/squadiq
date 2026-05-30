@@ -44,7 +44,7 @@ export const DRILLS = [
       'Head up to see the space and other players',
       'Change direction quickly when you sense a defender coming',
     ],
-    videoUrl: 'https://drill.video/galaxy',
+    videoUrl: 'https://aysou.video/galaxy',
     diagram: 'grid-dribble',
     variations: [
       'Left foot only, then right foot only',
@@ -68,7 +68,7 @@ export const DRILLS = [
       'Use drag-back turn at the center cone',
       'Try a different turn or fake at each outer point',
     ],
-    videoUrl: 'https://drill.video/compass',
+    videoUrl: 'https://aysou.video/compass',
     diagram: 'compass',
     variations: [
       'Time challenge — how fast can you go around all four points?',
@@ -92,7 +92,7 @@ export const DRILLS = [
       'Accelerate out of each turn',
       'Use the outside of the foot around cones',
     ],
-    videoUrl: 'https://drill.video/dmts',
+    videoUrl: 'https://aysou.video/dmts',
     diagram: 'race',
     variations: [
       'Have both players dribble a ball',
