@@ -2,7 +2,7 @@
  * Supabase Edge Function: practice-plan
  * ──────────────────────────────────────
  * Proxies a request to the Anthropic Claude API to generate a custom
- * 60-minute practice plan. The API key is stored as a Supabase
+ * 60-minute AYSO practice plan. The API key is stored as a Supabase
  * secret — it is NEVER exposed to the browser.
  *
  * ── One-time setup ────────────────────────────────────────────────
@@ -54,7 +54,7 @@ serve(async (req: Request) => {
     const team  = teamName    || 'the team'
     const count = playerCount || 10
 
-    const prompt = `You are an expert youth soccer coach educator. Create a structured 60-minute practice plan for a ${div} division team called "${team}" with approximately ${count} players.
+    const prompt = `You are an expert AYSO youth soccer coach educator. Create a structured 60-minute practice plan for a ${div} division team called "${team}" with approximately ${count} players.
 
 Use EXACTLY these section headers (including the time in parentheses):
 
