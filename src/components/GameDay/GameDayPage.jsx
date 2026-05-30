@@ -1569,7 +1569,7 @@ export default function GameDayPage() {
                 )
               })}
             </div>
-            {/* AYSO warning */}
+            {/* ¾ play rule warning */}
             {atRisk.length > 0 && (
               <div style={{ marginTop: 16, padding: '10px 14px', background: 'rgba(133,79,11,0.2)', border: '1px solid rgba(239,159,39,0.3)', borderRadius: 8, fontSize: 12, color: '#EF9F27' }}>
                 ⚠ Under 3 quarters: {atRisk.map(p => p.name).join(', ')}

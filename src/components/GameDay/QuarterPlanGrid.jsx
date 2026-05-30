@@ -4,7 +4,7 @@
  * • Green cell  = player is assigned to that quarter (quarterRoster)
  * • Gray cell   = not assigned
  * • Locked col  = completed quarter (read-only, historical)
- * • Amber row   = total quarters planned < 3 (AYSO ¾ rule at risk)
+ * • Amber row   = total quarters planned < 3 (¾ play rule at risk)
  * • Absent row  = player marked absent (excluded from planning, shown below)
  *
  * Props:
