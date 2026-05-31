@@ -7,3 +7,9 @@ supabase/.env
 .vercel
 
 .claude/settings.local.json
+
+# Secrets — never commit tokens/keys
+*.pem
+github_pat_*
+**/github_pat_*
+*token*.txt
