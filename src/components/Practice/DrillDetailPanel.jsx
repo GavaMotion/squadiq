@@ -325,8 +325,9 @@ const DIAGRAMS = {
 export default function DrillDetailPanel({ drill, source, teamId, onClose, onAddToPlan, isInPlan, onEdit, onPrev, onNext, canPrev, canNext, navLabel }) {
   const panelRef = useRef(null)
   const [addedConfirmation, setAddedConfirmation] = useState(false)
+  const [videoOpen, setVideoOpen] = useState(false)
 
-  useEffect(() => { setAddedConfirmation(false) }, [drill.name, drill.id])
+  useEffect(() => { setAddedConfirmation(false); setVideoOpen(false) }, [drill.name, drill.id])
 
   // Escape closes; arrow keys navigate
   useEffect(() => {
@@ -355,6 +356,12 @@ export default function DrillDetailPanel({ drill, source, teamId, onClose, onAdd
   const ytThumb = url => {
     const m = url.match(/(?:youtube\.com\/watch\?.*v=|youtu\.be\/)([\w-]+)/)
     return m ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : null
+  }
+  // Build a URL suitable for embedding inside an in-app player (no external title bar shown)
+  const embedUrl = url => {
+    const m = url.match(/(?:youtube\.com\/watch\?.*v=|youtu\.be\/)([\w-]+)/)
+    if (m) return `https://www.youtube.com/embed/${m[1]}?autoplay=1&rel=0`
+    return url
   }
 
   return (
@@ -514,11 +521,10 @@ export default function DrillDetailPanel({ drill, source, teamId, onClose, onAdd
             const ytId = drill.videoUrl.match(/(?:youtube\.com\/watch\?.*v=|youtu\.be\/)([\w-]+)/)?.[1]
             if (ytId) {
               return (
-                <a
-                  href={drill.videoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ display: 'block', borderRadius: 10, overflow: 'hidden', textDecoration: 'none', position: 'relative' }}
+                <button
+                  type="button"
+                  onClick={() => setVideoOpen(true)}
+                  style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 10, overflow: 'hidden', textDecoration: 'none', position: 'relative' }}
                 >
                   <img
                     src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
@@ -540,16 +546,15 @@ export default function DrillDetailPanel({ drill, source, teamId, onClose, onAdd
                       </svg>
                     </div>
                   </div>
-                </a>
+                </button>
               )
             }
             return (
-              <a
-                href={drill.videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => setVideoOpen(true)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
+                  display: 'flex', alignItems: 'center', gap: 10, width: '100%', cursor: 'pointer',
                   padding: '10px 14px', borderRadius: 10,
                   background: 'linear-gradient(135deg, color-mix(in srgb, var(--team-primary, #1a5c2e) 13%, transparent), #6366f122)',
                   border: '1px solid #6366f144', textDecoration: 'none',
@@ -564,16 +569,56 @@ export default function DrillDetailPanel({ drill, source, teamId, onClose, onAdd
                     <polygon points="3,1 11,6 3,11" />
                   </svg>
                 </div>
-                <div>
+                <div style={{ textAlign: 'left' }}>
                   <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Watch video</div>
                   <div style={{ color: '#6b7280', fontSize: 11 }}>Watch drill video</div>
                 </div>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: 'auto', flexShrink: 0 }}>
-                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#6b7280" style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                  <polygon points="6,4 20,12 6,20" />
                 </svg>
-              </a>
+              </button>
             )
           })()}
+
+          {/* In-app video player overlay — keeps playback inside the app so no external site title is shown */}
+          {videoOpen && (
+            <div
+              onClick={() => setVideoOpen(false)}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 10000,
+                background: 'rgba(0,0,0,0.92)',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                padding: 16,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setVideoOpen(false)}
+                aria-label="Close video"
+                style={{
+                  position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', right: 16,
+                  width: 40, height: 40, borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff',
+                  fontSize: 22, lineHeight: '40px', cursor: 'pointer',
+                }}
+              >
+                ✕
+              </button>
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{ width: '100%', maxWidth: 900, aspectRatio: '16 / 9', borderRadius: 10, overflow: 'hidden', background: '#000' }}
+              >
+                <iframe
+                  src={embedUrl(drill.videoUrl)}
+                  title="Drill video"
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                  allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          )}
 
           {/* Description */}
           <div>
