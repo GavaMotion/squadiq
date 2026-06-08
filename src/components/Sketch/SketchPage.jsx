@@ -35,6 +35,10 @@ const DIVISION_PLAYER_COUNT = {
   U6: 3, U8: 4, U10: 7, U12: 9, U14: 11, U16: 11, U19: 11,
 }
 
+// Net pointer travel (px) below which a press counts as a tap, not a drag.
+// Generous enough to absorb finger jitter on touch screens.
+const DRAG_THRESHOLD = 10
+
 function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
@@ -261,6 +265,8 @@ export default function SketchPage() {
   const saveSnapshotRef   = useRef(null)
   const undoRef           = useRef(null)
   const redoRef           = useRef(null)
+  const q1PosRef          = useRef({}) // playerId -> { onField, x, y } from GD Q1
+  const dragLastRef       = useRef(null) // last pointermove pos: { clientX, clientY, inField }
 
   useEffect(() => { sketchStatesRef.current   = sketchStates   }, [sketchStates])
   useEffect(() => { activeSketchIdRef.current = activeSketchId }, [activeSketchId])
@@ -321,6 +327,16 @@ export default function SketchPage() {
   undoRef.current         = undo
   redoRef.current         = redo
 
+  // Q1 field positions per player id — used to place a benched player when it's
+  // tapped (not dragged). Read via ref inside the once-bound window handlers.
+  q1PosRef.current = (() => {
+    const map = {}
+    for (const p of buildMyPlayers(players, gdPlanStates, gdActivePlanId, 1)) {
+      map[p.id] = { onField: p.onField, x: p.x, y: p.y }
+    }
+    return map
+  })()
+
   // Clear history/future when switching sketches
   useEffect(() => {
     setHistory([])
@@ -352,17 +368,25 @@ export default function SketchPage() {
       if (!r) return
 
       if (ix.type === 'dragging') {
-        const x = Math.min(100, Math.max(0, ((e.clientX - ix.offsetX - r.left) / r.width)  * 100))
-        const y = Math.min(100, Math.max(0, ((e.clientY - ix.offsetY - r.top)  / r.height) * 100))
-        const key = ix.playerType === 'my' ? 'myPlayers' : 'oppPlayers'
-        setSketchStates(prev => {
-          const sid = activeSketchIdRef.current
-          if (!sid || !prev[sid]) return prev
-          return { ...prev, [sid]: {
-            ...prev[sid],
-            [key]: prev[sid][key].map(p => p.id === ix.playerId ? { ...p, onField: true, x, y } : p),
-          }}
-        })
+        // Record the live pointer position (pointermove coords are reliable on
+        // touch, unlike pointerup). The player renders as a floating ghost at the
+        // cursor; nothing is committed to the field until drop.
+        dragLastRef.current = {
+          clientX: e.clientX,
+          clientY: e.clientY,
+          inField: e.clientX >= r.left && e.clientX <= r.right
+                && e.clientY >= r.top  && e.clientY <= r.bottom,
+        }
+        // Below threshold this is still a tap; don't start the drag ghost yet.
+        const threshold = ix.isTouch ? DRAG_THRESHOLD : 4
+        if (!ix.moved) {
+          const dist = Math.hypot(e.clientX - ix.startClientX, e.clientY - ix.startClientY)
+          if (dist < threshold) return
+        }
+        // Move the floating ghost (and flip moved=true on the first qualifying move).
+        setInteraction(prev => prev
+          ? { ...prev, moved: true, clientX: e.clientX, clientY: e.clientY }
+          : null)
       }
 
       if (ix.type === 'drawing') {
@@ -376,27 +400,104 @@ export default function SketchPage() {
       }
     }
 
-    function onWindowUp(e) {
+    // Also used as the pointercancel handler — Android fires pointercancel
+    // instead of pointerup for many touch taps. Decisions here never read the
+    // event's coordinates, so cancel and up are handled identically.
+    function onWindowUp() {
       const ix = interactionRef.current
       if (!ix) return
-      const r = fieldRef.current?.getBoundingClientRect()
 
       if (ix.type === 'dragging') {
-        saveSnapshotRef.current?.()
-        const inField = !!r && e.clientX >= r.left && e.clientX <= r.right
-                             && e.clientY >= r.top  && e.clientY <= r.bottom
         const key = ix.playerType === 'my' ? 'myPlayers' : 'oppPlayers'
-        setSketchStates(prev => {
+
+        // Tap vs. drag is decided by ix.moved, which only flips true when a
+        // pointermove crossed the threshold. pointerup coords are NOT used (Android
+        // reports them as 0,0 on touch), so a tap can never be misread as a drag.
+        if (!ix.moved) {
           const sid = activeSketchIdRef.current
-          if (!sid || !prev[sid]) return prev
-          return { ...prev, [sid]: {
-            ...prev[sid],
-            // Clear fromFormation when player is manually dragged
-            [key]: prev[sid][key].map(p => p.id === ix.playerId
-              ? { ...p, onField: inField, fromFormation: false }
-              : p),
-          }}
-        })
+          if (!ix.originOnField) {
+            // Tap on a benched player → place it on the field at its Q1 position.
+            const q1     = ix.playerType === 'my' ? q1PosRef.current[ix.playerId] : null
+            const target = q1 && q1.onField ? { x: q1.x, y: q1.y }
+                         : ix.playerType === 'opp' ? { x: 50, y: 25 }   // no Q1 for opponents
+                         : { x: 50, y: 50 }                              // benched in Q1 too → center
+            saveSnapshotRef.current?.()
+            setSketchStates(prev => {
+              if (!sid || !prev[sid]) return prev
+              return { ...prev, [sid]: {
+                ...prev[sid],
+                [key]: prev[sid][key].map(p => p.id === ix.playerId
+                  ? { ...p, onField: true, x: target.x, y: target.y, fromFormation: false }
+                  : p),
+              }}
+            })
+            scheduleSave()
+          } else {
+            // Tap on an on-field player → snap back to where it started, undoing
+            // any sub-threshold drift; it stays on the field.
+            setSketchStates(prev => {
+              if (!sid || !prev[sid]) return prev
+              return { ...prev, [sid]: {
+                ...prev[sid],
+                [key]: prev[sid][key].map(p => p.id === ix.playerId
+                  ? { ...p, onField: true, x: ix.originX, y: ix.originY }
+                  : p),
+              }}
+            })
+          }
+          setInteraction(null)
+          return
+        }
+
+        // Drop: commit based on where the cursor was released (last reliable pos).
+        saveSnapshotRef.current?.()
+        const last    = dragLastRef.current
+        const inField = last?.inField ?? true
+        const sid     = activeSketchIdRef.current
+        const fr      = fieldRef.current?.getBoundingClientRect()
+
+        if (inField && last && fr) {
+          // Dropped inside the field → place the player exactly where released.
+          const x = Math.min(100, Math.max(0, ((last.clientX - ix.offsetX - fr.left) / fr.width)  * 100))
+          const y = Math.min(100, Math.max(0, ((last.clientY - ix.offsetY - fr.top)  / fr.height) * 100))
+          setSketchStates(prev => {
+            if (!sid || !prev[sid]) return prev
+            return { ...prev, [sid]: {
+              ...prev[sid],
+              [key]: prev[sid][key].map(p => p.id === ix.playerId
+                ? { ...p, onField: true, x, y, fromFormation: false }
+                : p),
+            }}
+          })
+        } else if (!ix.originOnField && ix.isTouch) {
+          // Touch only: a benched player released off-field has no drop target —
+          // send it to its Q1 position instead of letting it vanish.
+          const q1     = ix.playerType === 'my' ? q1PosRef.current[ix.playerId] : null
+          const target = q1 && q1.onField ? { x: q1.x, y: q1.y }
+                       : ix.playerType === 'opp' ? { x: 50, y: 25 }
+                       : { x: 50, y: 50 }
+          setSketchStates(prev => {
+            if (!sid || !prev[sid]) return prev
+            return { ...prev, [sid]: {
+              ...prev[sid],
+              [key]: prev[sid][key].map(p => p.id === ix.playerId
+                ? { ...p, onField: true, x: target.x, y: target.y, fromFormation: false }
+                : p),
+            }}
+          })
+        } else {
+          // Dropped outside the field → to the bench (classic mouse behavior; an
+          // on-field player dragged off the field is removed to the bench too).
+          setSketchStates(prev => {
+            if (!sid || !prev[sid]) return prev
+            return { ...prev, [sid]: {
+              ...prev[sid],
+              [key]: prev[sid][key].map(p => p.id === ix.playerId
+                ? { ...p, onField: false, fromFormation: false }
+                : p),
+            }}
+          })
+        }
         scheduleSave()
       }
 
@@ -418,11 +519,13 @@ export default function SketchPage() {
       setInteraction(null)
     }
 
-    window.addEventListener('pointermove', onWindowMove)
-    window.addEventListener('pointerup',   onWindowUp)
+    window.addEventListener('pointermove',   onWindowMove)
+    window.addEventListener('pointerup',     onWindowUp)
+    window.addEventListener('pointercancel', onWindowUp)
     return () => {
-      window.removeEventListener('pointermove', onWindowMove)
-      window.removeEventListener('pointerup',   onWindowUp)
+      window.removeEventListener('pointermove',   onWindowMove)
+      window.removeEventListener('pointerup',     onWindowUp)
+      window.removeEventListener('pointercancel', onWindowUp)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -685,12 +788,22 @@ export default function SketchPage() {
     e.stopPropagation()
     e.preventDefault()
     const elRect = e.currentTarget.getBoundingClientRect()
+    const key    = playerType === 'my' ? 'myPlayers' : 'oppPlayers'
+    const origin = sketchStatesRef.current[activeSketchIdRef.current]?.[key]?.find(p => p.id === playerId)
+    dragLastRef.current = null
     setInteraction({
-      type:      'dragging',
+      type:          'dragging',
       playerType,
       playerId,
-      offsetX:   e.clientX - (elRect.left + elRect.width  / 2),
-      offsetY:   e.clientY - (elRect.top  + elRect.height / 2),
+      offsetX:       e.clientX - (elRect.left + elRect.width  / 2),
+      offsetY:       e.clientY - (elRect.top  + elRect.height / 2),
+      startClientX:  e.clientX,
+      startClientY:  e.clientY,
+      moved:         false,
+      isTouch:       e.pointerType !== 'mouse',
+      originOnField: !!origin?.onField,
+      originX:       origin?.x ?? 50,
+      originY:       origin?.y ?? 50,
     })
   }
 
@@ -759,8 +872,17 @@ export default function SketchPage() {
     )
   }
 
-  const oppBenchPlayers = oppPlayers.filter(p => !p.onField)
-  const myBenchPlayers  = myPlayers.filter(p => !p.onField)
+  // While a drag is in progress the player is "picked up": hidden from its bench
+  // slot / field spot and shown as a floating ghost at the cursor instead.
+  const dragging   = interaction?.type === 'dragging' && interaction.moved ? interaction : null
+  const dragId     = dragging?.playerId ?? null
+  const dragType   = dragging?.playerType ?? null
+  const dragPlayer = dragging
+    ? (dragType === 'my' ? myPlayers : oppPlayers).find(p => p.id === dragId)
+    : null
+
+  const oppBenchPlayers = oppPlayers.filter(p => !p.onField && !(dragType === 'opp' && p.id === dragId))
+  const myBenchPlayers  = myPlayers.filter(p => !p.onField && !(dragType === 'my'  && p.id === dragId))
 
   const benchSelectStyle = {
     width: 90, height: circleSize,
@@ -773,6 +895,26 @@ export default function SketchPage() {
 
   return (
     <SketchErrorBoundary>
+    {/* Floating drag ghost — follows the cursor anywhere, unclipped by the field */}
+    {dragging && dragPlayer && (
+      <div style={{
+        position: 'fixed',
+        left: dragging.clientX - dragging.offsetX,
+        top:  dragging.clientY - dragging.offsetY,
+        transform: 'translate(-50%, -50%)',
+        zIndex: 99998, pointerEvents: 'none', opacity: 0.92,
+      }}>
+        <PlayerCircle
+          p={dragPlayer}
+          isOpp={dragType === 'opp'}
+          color={dragType === 'opp' ? oppColor : myColor}
+          textColor={dragType === 'opp' ? oppTextColor : myTextColor}
+          size={circleSize}
+          isSelected={false}
+          onPointerDown={null}
+        />
+      </div>
+    )}
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: '#0a0f0c', overflow: 'hidden' }}>
 
       {/* ══ Sketch tabs ══ */}
@@ -1125,11 +1267,11 @@ export default function SketchPage() {
           )}
         </svg>
 
-        {/* On-field players */}
+        {/* On-field players (the one being dragged is hidden — shown as a ghost) */}
         {[
           ...myPlayers.filter(p => p.onField).map(p   => ({ p, playerType: 'my'  })),
           ...oppPlayers.filter(p => p.onField).map(p  => ({ p, playerType: 'opp' })),
-        ].map(({ p, playerType }) => (
+        ].filter(({ p, playerType }) => !(playerType === dragType && p.id === dragId)).map(({ p, playerType }) => (
           <div
             key={`${playerType}-${p.id}`}
             style={{
