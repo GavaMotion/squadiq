@@ -466,17 +466,19 @@ export default function DrillDetailPanel({ drill, source, teamId, onClose, onAdd
             <button
               onClick={onClose}
               style={{
-                flexShrink: 0, width: 30, height: 30, borderRadius: '50%',
-                background: '#1f2937', border: 'none', color: '#9ca3af',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, height: 36, padding: '0 16px', borderRadius: 999,
+                background: '#dc2626', border: 'none', color: '#fff',
+                fontSize: 14, fontWeight: 700,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#374151'; e.currentTarget.style.color = '#fff' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#1f2937'; e.currentTarget.style.color = '#9ca3af' }}
-              title="Close"
+              onMouseEnter={e => { e.currentTarget.style.background = '#b91c1c' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#dc2626' }}
+              title="Back"
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M1 1l10 10M11 1L1 11" />
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18l-6-6 6-6" />
               </svg>
+              Back
             </button>
           </div>
           {/* ── Nav row (arrows + position) ── */}
