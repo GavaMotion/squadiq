@@ -467,12 +467,12 @@ export default function DrillDetailPanel({ drill, source, teamId, onClose, onAdd
               onClick={onClose}
               style={{
                 flexShrink: 0, height: 36, padding: '0 16px', borderRadius: 999,
-                background: '#dc2626', border: 'none', color: '#fff',
+                background: '#7c3aed', border: 'none', color: '#fff',
                 fontSize: 14, fontWeight: 700,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#b91c1c' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#dc2626' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#6d28d9' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#7c3aed' }}
               title="Back"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
