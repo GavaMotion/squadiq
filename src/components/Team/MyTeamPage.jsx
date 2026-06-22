@@ -13,7 +13,7 @@ import TermsOfService from '../Legal/TermsOfService'
 import { MyTeamSkeleton } from '../UI/Skeleton'
 import { APP_VERSION, SUPPORT_EMAIL } from '../../version'
 
-const DIVISIONS = ['8U', '10U', '12U', '14U', '16U', '19U']
+const DIVISIONS = ['Futsal', '8U', '10U', '12U', '14U', '16U', '19U']
 
 // ── Delete confirmation dialog ────────────────────────────────────
 function DeleteTeamDialog({ teamName, onConfirm, onCancel }) {

@@ -27,6 +27,12 @@ const SLOT_COMPAT = {
   ST:    ['ST', 'RW/LW', 'CAM'],
   SS:    ['ST', 'RW/LW'],
   CF:    ['ST', 'CAM', 'RW/LW'],
+
+  // Futsal labels (Fixo / Ala / Pivô)
+  D:  ['CB', 'RB/LB', 'CDM'],
+  PV: ['ST', 'CAM', 'RW/LW'],
+  LF: ['ST', 'RW/LW'],
+  RF: ['ST', 'RW/LW'],
 }
 
 function getRating(player, slotLabel) {
@@ -47,7 +53,7 @@ function getRating(player, slotLabel) {
 
 const MIN_QUARTERS = 3
 
-const LABEL_ORDER = ['GK', 'CB', 'RB', 'LB', 'RB/LB', 'SW', 'CDM', 'DM', 'CM', 'CAM', 'AM', 'RM', 'LM', 'RM/LM', 'RW', 'LW', 'RW/LW', 'ST', 'SS', 'CF', 'DEF', 'MID', 'FWD']
+const LABEL_ORDER = ['GK', 'D', 'CB', 'RB', 'LB', 'RB/LB', 'SW', 'CDM', 'DM', 'CM', 'CAM', 'AM', 'RM', 'LM', 'RM/LM', 'RW', 'LW', 'RW/LW', 'PV', 'LF', 'RF', 'ST', 'SS', 'CF', 'DEF', 'MID', 'FWD']
 
 export function generateAILineup({
   players,

@@ -32,7 +32,7 @@ const ARROW_COLORS = {
 }
 
 const DIVISION_PLAYER_COUNT = {
-  U6: 3, U8: 4, U10: 7, U12: 9, U14: 11, U16: 11, U19: 11,
+  Futsal: 5, U6: 3, U8: 4, U10: 7, U12: 9, U14: 11, U16: 11, U19: 11,
 }
 
 // Net pointer travel (px) below which a press counts as a tap, not a drag.

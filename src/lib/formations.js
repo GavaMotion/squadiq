@@ -267,8 +267,54 @@ const F_11V11_532 = {
   ],
 }
 
+// ── Futsal (5v5 — 1 GK + 4 outfield) ────────────────────────────
+const F_FUTSAL_121 = {
+  id: 'futsal-121', label: '1-2-1 (Diamond)', slotSizePct: 15,
+  slots: [
+    { id: 'gk',   label: 'GK', x: 50, y: 88 },
+    { id: 'def1', label: 'D',  x: 50, y: 68 },
+    { id: 'mid1', label: 'LW', x: 28, y: 48 },
+    { id: 'mid2', label: 'RW', x: 72, y: 48 },
+    { id: 'fwd1', label: 'PV', x: 50, y: 22 },
+  ],
+}
+
+const F_FUTSAL_22 = {
+  id: 'futsal-22', label: '2-2 (Square)', slotSizePct: 15,
+  slots: [
+    { id: 'gk',   label: 'GK', x: 50, y: 88 },
+    { id: 'def1', label: 'LB', x: 33, y: 67 },
+    { id: 'def2', label: 'RB', x: 67, y: 67 },
+    { id: 'fwd1', label: 'LF', x: 33, y: 25 },
+    { id: 'fwd2', label: 'RF', x: 67, y: 25 },
+  ],
+}
+
+const F_FUTSAL_31 = {
+  id: 'futsal-31', label: '3-1', slotSizePct: 15,
+  slots: [
+    { id: 'gk',   label: 'GK', x: 50, y: 88 },
+    { id: 'def1', label: 'LB', x: 25, y: 67 },
+    { id: 'def2', label: 'CB', x: 50, y: 67 },
+    { id: 'def3', label: 'RB', x: 75, y: 67 },
+    { id: 'fwd1', label: 'PV', x: 50, y: 25 },
+  ],
+}
+
+const F_FUTSAL_211 = {
+  id: 'futsal-211', label: '2-1-1', slotSizePct: 15,
+  slots: [
+    { id: 'gk',   label: 'GK', x: 50, y: 88 },
+    { id: 'def1', label: 'LB', x: 33, y: 70 },
+    { id: 'def2', label: 'RB', x: 67, y: 70 },
+    { id: 'mid1', label: 'CM', x: 50, y: 48 },
+    { id: 'fwd1', label: 'PV', x: 50, y: 24 },
+  ],
+}
+
 // ── Formation registry by division ──────────────────────────────
 export const FORMATIONS_BY_DIVISION = {
+  Futsal: [F_FUTSAL_121, F_FUTSAL_22, F_FUTSAL_31, F_FUTSAL_211],
   '8U':  [F_8U_21, F_8U_12, F_8U_111],
   '10U': [F_10U_231, F_10U_321, F_10U_222, F_10U_312],
   '12U': [F_12U_332, F_12U_323, F_12U_422, F_12U_242],
@@ -292,6 +338,7 @@ export function getFormationById(id) {
 
 // ── Quarter length = half length ÷ 2 ────────────────────────────
 export const HALF_LENGTHS = {
+  Futsal: 20,
   '8U':  20,
   '10U': 25,
   '12U': 30,

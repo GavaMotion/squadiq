@@ -23,7 +23,10 @@ export const PHASE_META = {
 /** Returns true if the drill is appropriate for a given division (or 'all') */
 export function matchesDivision(drill, selected) {
   if (selected === 'all') return true
-  return DIVISIONS_ORDER.indexOf(drill.minDivision) <= DIVISIONS_ORDER.indexOf(selected)
+  const selIdx = DIVISIONS_ORDER.indexOf(selected)
+  // Non-age divisions (e.g. Futsal) aren't on the age ladder — show all drills.
+  if (selIdx === -1) return true
+  return DIVISIONS_ORDER.indexOf(drill.minDivision) <= selIdx
 }
 
 export const DRILLS = [
