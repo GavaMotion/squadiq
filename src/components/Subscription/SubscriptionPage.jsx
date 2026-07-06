@@ -5,6 +5,7 @@ import { useToast } from '../UI/Toast'
 import { supabase } from '../../lib/supabase'
 import { PRICE_IDS } from '../../lib/stripe'
 import { useApplePay } from '../../hooks/useApplePay'
+import { isAndroidTWA } from '../../lib/platform'
 import TermsOfService from '../Legal/TermsOfService'
 import PrivacyPolicy   from '../Legal/PrivacyPolicy'
 
@@ -35,13 +36,18 @@ const STRIPE_DISPLAY_PRICE = {
 
 export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = false }) {
   const { session } = useAuth()
-  const { setSubscription } = useApp()
+  const { setSubscription, refreshSubscription } = useApp()
   const { addToast } = useToast()
   const apple = useApplePay()
   const useApple = apple.isAvailable
+  // On the Google-Play Android app we may not steer users to Stripe (Play
+  // policy requires Play Billing for digital goods). Until Play Billing ships,
+  // the Android paywall points users to the web instead of offering checkout.
+  const androidTWA = !useApple && isAndroidTWA()
 
   const [billingPeriod, setBillingPeriod] = useState('monthly')
   const [purchasing,    setPurchasing]    = useState(null)
+  const [refreshing,    setRefreshing]    = useState(false)
   const [showTerms,     setShowTerms]     = useState(false)
   const [showPrivacy,   setShowPrivacy]   = useState(false)
 
@@ -119,6 +125,25 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
     }
   }
 
+  // Android: user subscribed on the web, comes back and re-checks entitlement.
+  async function handleAndroidRefresh() {
+    setRefreshing(true)
+    try {
+      const sub = await refreshSubscription()
+      const active = sub && (sub.plan === 'solo' || sub.plan === 'premium' || sub.plan_override === 'unlimited')
+      if (active) {
+        addToast('Subscription activated! 🎉', 'success', 4000)
+        onClose?.()
+      } else {
+        addToast('No active subscription yet. If you just subscribed on the web, give it a moment and try again.', 'info', 5500)
+      }
+    } catch {
+      addToast('Could not refresh — please try again', 'error', 4000)
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   const buy = useApple ? handleAppleBuy : handleStripeBuy
 
   return (
@@ -142,6 +167,42 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
             ? 'Subscribe to continue coaching with SquadIQ'
             : 'Choose a plan to unlock more teams'}
         </div>
+
+        {androidTWA ? (
+          <>
+            <div style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 12, padding: 16, textAlign: 'left',
+              color: 'rgba(255,255,255,0.8)', fontSize: 13, lineHeight: 1.65,
+            }}>
+              <div style={{ fontWeight: 700, color: '#fff', fontSize: 14, marginBottom: 6 }}>
+                Subscribe on the web
+              </div>
+              To unlock more teams, subscribe to SquadIQ from your phone’s browser at{' '}
+              <span style={{ color: '#00c853', fontWeight: 600 }}>squadiq.online</span>{' '}
+              using this same account. Your plan unlocks here automatically once it’s active.
+              <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+                Plans: Solo {STRIPE_DISPLAY_PRICE.solo.monthly.display}/mo · Premium {STRIPE_DISPLAY_PRICE.premium.monthly.display}/mo
+              </div>
+            </div>
+
+            <button
+              onClick={handleAndroidRefresh}
+              disabled={refreshing}
+              style={{
+                width: '100%', background: '#00c853', color: '#fff',
+                border: 'none', borderRadius: 8, padding: '11px',
+                fontSize: 14, fontWeight: 600,
+                cursor: refreshing ? 'not-allowed' : 'pointer',
+                opacity: refreshing ? 0.7 : 1,
+              }}
+            >
+              {refreshing ? 'Checking…' : 'I’ve subscribed — refresh'}
+            </button>
+          </>
+        ) : (
+        <>
 
         {/* Billing period toggle */}
         <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 3, gap: 2 }}>
@@ -273,6 +334,8 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
           >
             Restore purchases
           </button>
+        )}
+        </>
         )}
 
         {!isTrialExpired && (
