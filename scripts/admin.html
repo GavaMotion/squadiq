@@ -148,6 +148,58 @@
 
     .trial-cell { color: var(--muted); font-size: 12px; }
     .trial-cell.urgent { color: var(--warn); font-weight: 600; }
+    .platform-cell { font-size: 12px; color: var(--text); cursor: default; }
+    .location-cell { font-size: 12px; color: var(--muted); cursor: default; }
+    .dim-dash { color: var(--dim); }
+
+    .actions-cell { white-space: nowrap; }
+    .plan-select {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 5px 8px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .plan-select:focus { outline: none; border-color: var(--accent); }
+    .plan-select:disabled { opacity: 0.5; cursor: wait; }
+    .mini-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 5px 9px;
+      border-radius: 7px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      margin-left: 6px;
+      transition: border-color 0.12s, color 0.12s;
+    }
+    .mini-btn:hover { border-color: var(--warn); color: var(--warn); }
+    .mini-btn:disabled { opacity: 0.5; cursor: wait; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--panel);
+      border: 1px solid var(--border-strong);
+      color: var(--text);
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.ok { border-color: var(--accent); }
+    .toast.err { border-color: var(--danger); color: #ff8b8b; }
 
     .empty, .loading-state { padding: 60px 20px; text-align: center; color: var(--muted); }
     .error {
@@ -164,8 +216,8 @@
       body { padding: 14px; }
       .summary-card { min-width: 90px; padding: 10px 12px; }
       .summary-value { font-size: 18px; }
-      th:nth-child(4), td:nth-child(4),
-      th:nth-child(5), td:nth-child(5) { display: none; }
+      th:nth-child(5), td:nth-child(5),
+      th:nth-child(6), td:nth-child(6) { display: none; }
       .search { min-width: 0; flex: 1; }
     }
   </style>
@@ -200,10 +252,13 @@
         <tr>
           <th data-sort="email">Email</th>
           <th data-sort="plan">Plan</th>
+          <th data-sort="platform">Platform</th>
+          <th data-sort="location">Location</th>
           <th data-sort="signup" class="sorted desc">Signed up</th>
           <th data-sort="last_seen">Last seen</th>
           <th data-sort="teams">Teams</th>
           <th>Trial</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -211,6 +266,8 @@
     <div id="empty" class="empty" style="display:none">No users match these filters.</div>
     <div id="loading" class="loading-state">Loading…</div>
   </div>
+
+  <div id="toast" class="toast"></div>
 
 <script>
   let allUsers = []
@@ -267,6 +324,8 @@
       switch (sortField) {
         case 'email': return a.email.localeCompare(b.email) * -dir
         case 'plan':  return a.plan.localeCompare(b.plan) * -dir
+        case 'platform': return (a.platform || '').localeCompare(b.platform || '') * -dir
+        case 'location': return (a.location || '').localeCompare(b.location || '') * -dir
         case 'last_seen': return (new Date(b.last_seen||0) - new Date(a.last_seen||0)) * dir
         case 'teams': return (b.teams - a.teams) * dir
         default: return (new Date(b.signup) - new Date(a.signup)) * dir
@@ -309,10 +368,20 @@
       return `<tr class="row">
         <td><span class="email">${escapeHtml(u.email)}</span>${provider}</td>
         <td><span class="badge badge-${planClass}">${escapeHtml(u.plan)}</span>${override}</td>
+        <td class="platform-cell" title="${escapeHtml(u.user_agent || '')}">${u.platform ? escapeHtml(u.platform) : '<span class="dim-dash">—</span>'}</td>
+        <td class="location-cell" title="${escapeHtml(u.ip || '')}">${u.location ? escapeHtml(u.location) : '<span class="dim-dash">—</span>'}</td>
         <td class="num">${rel(u.signup)}</td>
         <td class="num">${rel(u.last_seen)}</td>
         <td class="num">${u.teams}</td>
         <td class="trial-cell ${tl.urgent ? 'urgent' : ''}">${tl.text}</td>
+        <td class="actions-cell">
+          <select class="plan-select" data-uid="${escapeHtml(u.id)}" title="Set plan">
+            ${['trial','solo','premium','expired'].map(p =>
+              `<option value="${p}" ${u.plan === p ? 'selected' : ''}>${p}</option>`).join('')}
+            ${['trial','solo','premium','expired'].includes(u.plan) ? '' : `<option value="" selected disabled>${escapeHtml(u.plan)}</option>`}
+          </select>
+          <button class="mini-btn reset-trial" data-uid="${escapeHtml(u.id)}" title="Restart a fresh 30-day trial">↻ Trial</button>
+        </td>
       </tr>`
     }).join('')
   }
@@ -373,6 +442,77 @@
   })
 
   $('refresh').addEventListener('click', load)
+
+  // ── Mutations: set plan / reset trial ──────────────────────────
+  const toastEl = $('toast')
+  let toastTimer
+  function toast(msg, type) {
+    toastEl.textContent = msg
+    toastEl.className = 'toast show' + (type ? ' ' + type : '')
+    clearTimeout(toastTimer)
+    toastTimer = setTimeout(() => { toastEl.className = 'toast' }, 3200)
+  }
+
+  async function postAction(url, payload) {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-squadiq-admin': '1' },
+      body: JSON.stringify(payload),
+    })
+    if (!r.ok) throw new Error((await r.text()) || ('HTTP ' + r.status))
+    return r.json()
+  }
+
+  const userById = (id) => allUsers.find(u => u.id === id)
+  const planForSelect = (plan) => (['trial','solo','premium','expired'].includes(plan) ? plan : '')
+
+  // Fold the server's returned patch into the local model and re-render.
+  function applyPatchLocal(id, patch) {
+    const u = userById(id)
+    if (!u) return
+    if (patch.plan !== undefined) u.plan = patch.plan
+    if (patch.trial_end !== undefined) u.trial_end = patch.trial_end
+    rerender()
+  }
+
+  tbody.addEventListener('change', async (e) => {
+    const sel = e.target.closest('.plan-select')
+    if (!sel) return
+    const id = sel.dataset.uid
+    const u = userById(id)
+    const plan = sel.value
+    if (!plan || !u) return
+    const prev = u.plan
+    if (!confirm(`Set ${u.email} to plan "${plan}"?`)) { sel.value = planForSelect(prev); return }
+    sel.disabled = true
+    try {
+      const patch = await postAction('/api/set-plan', { userId: id, plan })
+      applyPatchLocal(id, patch)
+      toast(`${u.email} → ${plan}`, 'ok')
+    } catch (err) {
+      toast('Failed: ' + err.message, 'err')
+      sel.value = planForSelect(prev)
+      sel.disabled = false
+    }
+  })
+
+  tbody.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.reset-trial')
+    if (!btn) return
+    const id = btn.dataset.uid
+    const u = userById(id)
+    if (!u) return
+    if (!confirm(`Restart a fresh 30-day trial for ${u.email}?`)) return
+    btn.disabled = true
+    try {
+      const patch = await postAction('/api/reset-trial', { userId: id })
+      applyPatchLocal(id, patch)
+      toast(`${u.email}: trial restarted (30 days)`, 'ok')
+    } catch (err) {
+      toast('Failed: ' + err.message, 'err')
+      btn.disabled = false
+    }
+  })
 
   load()
 </script>
