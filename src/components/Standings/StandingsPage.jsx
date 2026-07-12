@@ -45,6 +45,7 @@ export default function StandingsPage({ team }) {
     const current = myTeamRow[standing.id]
     const newValue = current === teamName ? null : teamName
     setMyTeamRow(prev => ({ ...prev, [standing.id]: newValue }))
+    if (String(standing.id).startsWith('local-')) return  // demo mode — local only
     await supabase
       .from('standings')
       .update({ my_team_name: newValue })
@@ -57,10 +58,26 @@ export default function StandingsPage({ team }) {
     setError(null)
     try {
       const { data, error: fnError } = await supabase.functions.invoke('scrape-standings', {
-        body: { url: url.trim(), teamId: team.id, save: false },
+        body: { url: url.trim(), teamId: team?.id || null, save: false },
       })
       if (fnError || data?.error) throw new Error(data?.error || fnError?.message)
       if (!data?.standings?.length) throw new Error('No standings found at this URL')
+
+      // Demo mode (no team): keep the scraped table in local state only.
+      if (!team?.id) {
+        const localRow = {
+          id: `local-${Date.now()}`,
+          mode: data.platform || 'url',
+          source_url: url.trim(),
+          label: guessLabel(url.trim()),
+          table_data: data.standings,
+          updated_at: new Date().toISOString(),
+        }
+        setStandingsList(prev => [...prev, localRow])
+        setActiveId(localRow.id)
+        setUrl('')
+        return
+      }
 
       const { data: saved, error: saveError } = await supabase
         .from('standings')
@@ -91,9 +108,16 @@ export default function StandingsPage({ team }) {
     setRefreshing(prev => new Set([...prev, standing.id]))
     try {
       const { data } = await supabase.functions.invoke('scrape-standings', {
-        body: { url: standing.source_url, teamId: team.id, save: false },
+        body: { url: standing.source_url, teamId: team?.id || null, save: false },
       })
       if (!data?.standings?.length) return
+      // Demo mode (no team): update the scraped table in local state only.
+      if (String(standing.id).startsWith('local-')) {
+        setStandingsList(prev => prev.map(s => s.id === standing.id
+          ? { ...s, table_data: data.standings, updated_at: new Date().toISOString() }
+          : s))
+        return
+      }
       const { data: updated } = await supabase
         .from('standings')
         .update({ table_data: data.standings, updated_at: new Date().toISOString() })
@@ -109,7 +133,9 @@ export default function StandingsPage({ team }) {
 
   async function deleteActive() {
     if (!activeId || !confirm('Remove this standings tab?')) return
-    await supabase.from('standings').delete().eq('id', activeId)
+    if (!String(activeId).startsWith('local-')) {  // demo mode rows aren't persisted
+      await supabase.from('standings').delete().eq('id', activeId)
+    }
     const remaining = standingsList.filter(s => s.id !== activeId)
     setStandingsList(remaining)
     setActiveId(remaining[0]?.id || null)

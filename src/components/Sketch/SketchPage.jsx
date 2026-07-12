@@ -591,8 +591,18 @@ export default function SketchPage() {
 
   // ── Load sketches ──────────────────────────────────────────────
   useEffect(() => {
-    if (!team?.id) return
-    loadSketches()
+    if (team?.id) {
+      loadSketches()
+    } else {
+      // No team yet — run in local demo mode so new users can try the board.
+      // Nothing persists (all ids stay `local-`); creating a team starts fresh.
+      const initState = buildInitialState()
+      const localId = `local-${Date.now()}`
+      setSketches([{ id: localId, name: 'Sketch 1' }])
+      setSketchStates({ [localId]: initState })
+      setActiveSketchId(localId)
+      setLoading(false)
+    }
   }, [team?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadSketches() {
@@ -674,6 +684,7 @@ export default function SketchPage() {
     setSketchStates(prev => ({ ...prev, [tempId]: blank }))
     setActiveSketchId(tempId)
 
+    if (!team?.id) return  // demo mode — keep the sketch local, nothing to persist
     try {
       const { data } = await supabase.from('strategy_sketches')
         .insert({ team_id: team.id, name, ...stateToDb(blank) }).select().single()
@@ -862,15 +873,6 @@ export default function SketchPage() {
     )
   }
 
-  if (!team) {
-    return (
-      <SketchErrorBoundary>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0f0c' }}>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>Set up your team first.</p>
-        </div>
-      </SketchErrorBoundary>
-    )
-  }
 
   // While a drag is in progress the player is "picked up": hidden from its bench
   // slot / field spot and shown as a floating ghost at the cursor instead.

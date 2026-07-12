@@ -305,6 +305,17 @@ export default function PracticePage() {
   }, [])
   useEffect(() => { if (team?.division) setFilterDiv(team.division) }, [team?.division])
 
+  // No team yet — seed one local demo plan so new users can browse the drill
+  // library and build a plan. Nothing persists (id stays `local-`) until they
+  // create a team.
+  useEffect(() => {
+    if (team || !dataLoaded || plans.length > 0) return
+    const localId = `local-new-${Date.now()}`
+    setPlans([{ id: localId, name: 'Practice 1' }])
+    setActivePlanId(localId); activePlanRef.current = localId
+    setAllPlanDrills(prev => ({ ...prev, [localId]: [] }))
+  }, [team, dataLoaded, plans.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Derived ──
   const planDrills = (allPlanDrills && activePlanId) ? (allPlanDrills[activePlanId] || []) : []
   const totalMins  = useMemo(() => (planDrills || []).reduce((s, d) => s + (d?.duration_minutes || 0), 0), [planDrills])
@@ -462,7 +473,7 @@ export default function PracticePage() {
   // ── Plan mutations ──
   async function addDrillToPlan(drill) {
     const planId = activePlanRef.current
-    if (!planId || String(planId).startsWith('local-')) return
+    if (!planId) return
     const tempId   = `temp-${Date.now()}`
     const existing = allPlanDrills[planId] || []
     const newEntry = {
@@ -472,6 +483,8 @@ export default function PracticePage() {
       sort_order: existing.length, is_custom: drill.isCustom || false,
     }
     setAllPlanDrills(prev => ({ ...prev, [planId]: [...(prev[planId] || []), newEntry] }))
+    // Demo mode (no team): keep the drill in local state only, nothing to persist.
+    if (String(planId).startsWith('local-')) return
     setSaving(true)
     try {
       const { data, error } = await supabase.from('practice_plan_drills').insert({
@@ -491,6 +504,7 @@ export default function PracticePage() {
   async function handleRemoveDrill(drillId) {
     const planId = activePlanRef.current
     setAllPlanDrills(prev => ({ ...prev, [planId]: (prev[planId] || []).filter(d => d.id !== drillId) }))
+    if (String(planId).startsWith('local-')) return  // demo mode — local only
     if (!String(drillId).startsWith('temp-')) {
       supabase.from('practice_plan_drills').delete().eq('id', drillId)
     }
@@ -505,11 +519,13 @@ export default function PracticePage() {
       if (fromIdx < 0 || toIdx < 0) return prev
       const [moved] = drills.splice(fromIdx, 1)
       drills.splice(toIdx, 0, moved)
-      clearTimeout(reorderTimerRef.current)
-      reorderTimerRef.current = setTimeout(() => {
-        const real = drills.filter(d => !String(d.id).startsWith('temp-'))
-        Promise.all(real.map((d, i) => supabase.from('practice_plan_drills').update({ sort_order: i }).eq('id', d.id)))
-      }, 500)
+      if (!String(planId).startsWith('local-')) {  // demo mode — don't persist
+        clearTimeout(reorderTimerRef.current)
+        reorderTimerRef.current = setTimeout(() => {
+          const real = drills.filter(d => !String(d.id).startsWith('temp-'))
+          Promise.all(real.map((d, i) => supabase.from('practice_plan_drills').update({ sort_order: i }).eq('id', d.id)))
+        }, 500)
+      }
       return { ...prev, [planId]: drills }
     })
   }
@@ -586,6 +602,18 @@ export default function PracticePage() {
     if (!sourceDrills.length && !String(planId).startsWith('local-')) {
       const { data } = await supabase.from('practice_plan_drills').select('*').eq('plan_id', planId).order('sort_order')
       sourceDrills = data || []
+    }
+    // Demo mode (no team): duplicate entirely in local state, nothing persists.
+    if (!teamIdRef.current) {
+      const localDrills = sourceDrills.map((d, i) => ({
+        id: `temp-${Date.now()}-${i}`, plan_id: tempId,
+        drill_name: d.drill_name, drill_description: d.drill_description,
+        skill_category: d.skill_category, duration_minutes: d.duration_minutes,
+        sort_order: i, is_custom: d.is_custom || false,
+      }))
+      setAllPlanDrills(prev => ({ ...prev, [tempId]: localDrills }))
+      addToast('Plan duplicated', 'success', 1500)
+      return
     }
     const { data: newPlan } = await supabase.from('practice_plans').insert({ team_id: teamIdRef.current, name: dupName }).select().single()
     if (!newPlan) return
@@ -751,13 +779,6 @@ export default function PracticePage() {
 
   // ── Render guards ──
   if (loading) return <PracticeSkeleton />
-  if (!team) {
-    return (
-      <div className="flex flex-col items-center justify-center flex-1 px-6 text-center" style={{ background: '#0d1117' }}>
-        <p className="text-gray-400 text-lg">No team set up yet.</p>
-      </div>
-    )
-  }
 
   const ghostW = isMobile ? 160 : 180
   const ghostH = isMobile ? 56  : 64
@@ -814,7 +835,7 @@ export default function PracticePage() {
             {/* AI Suggester panel */}
             {showSuggester && (
               <SuggesterPanel
-                teamDivision={team.division}
+                teamDivision={team?.division || (filterDiv !== 'all' ? filterDiv : '10U')}
                 onGenerate={handleSetGeneratedPlan}
                 onClose={() => setShowSuggester(false)}
               />
@@ -1048,7 +1069,7 @@ export default function PracticePage() {
                   {team?.name?.charAt(0)?.toUpperCase() || '?'}
                 </div>
                 <div>
-                  <div style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>{team?.name}</div>
+                  <div style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>{team?.name || 'My Team'}</div>
                   <div style={{ color: '#00c853', fontSize: 12 }}>{activePlan?.name}</div>
                 </div>
                 <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
