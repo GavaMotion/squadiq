@@ -12,6 +12,7 @@ import PrivacyPolicy from '../Legal/PrivacyPolicy'
 import TermsOfService from '../Legal/TermsOfService'
 import { MyTeamSkeleton } from '../UI/Skeleton'
 import { APP_VERSION, SUPPORT_EMAIL } from '../../version'
+import { RosterPrintSheet, exportRosterSheet } from '../../lib/rosterSheet'
 
 const DIVISIONS = ['Futsal', '8U', '10U', '12U', '14U', '16U', '19U']
 
@@ -362,6 +363,16 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
       addToast('Roster exported as CSV', 'success')
     } catch {
       addToast('Could not export roster', 'error')
+    }
+  }
+
+  async function handleRosterSheet() {
+    if (!team?.id) { addToast('No team selected', 'warning'); return }
+    if (!players?.length) { addToast('No players to print', 'warning'); return }
+    try {
+      await exportRosterSheet(team)
+    } catch {
+      addToast('Could not create roster sheet', 'error')
     }
   }
 
@@ -852,8 +863,28 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
             </svg>
             Export roster CSV
           </button>
+          <button
+            onClick={handleRosterSheet}
+            aria-label="Print roster sheet"
+            style={{
+              flex: 1, background: 'none', border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 8, padding: '10px 8px', color: 'rgba(255,255,255,0.5)',
+              fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 6,
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9"/>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+              <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+            Roster sheet (PDF)
+          </button>
         </div>
       </div>
+
+      {/* Hidden printable line-up report — shared with Lineup */}
+      <RosterPrintSheet team={team} players={players} />
 
       {/* ── Modals ── */}
       {showModal && (
