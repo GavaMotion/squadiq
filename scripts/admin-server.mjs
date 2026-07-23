@@ -65,6 +65,21 @@ function platformOf(ua) {
   return 'Other'
 }
 
+// Phone / Tablet / Desktop from the same user-agent. Note: iPadOS 13+ Safari
+// masquerades as "Macintosh", so an iPad on the web app is indistinguishable
+// from a Mac here — only the iOS webview app reliably says "iPad".
+function deviceOf(ua) {
+  if (!ua) return ''
+  if (/iPad/i.test(ua)) return 'Tablet'
+  if (/iPhone|iPod/i.test(ua)) return 'Phone'
+  if (/Android/i.test(ua)) return /Mobile/i.test(ua) ? 'Phone' : 'Tablet'
+  if (/Windows Phone|IEMobile|BlackBerry|Opera Mini/i.test(ua)) return 'Phone'
+  if (/Tablet|Silk|Kindle|PlayBook/i.test(ua)) return 'Tablet'
+  if (/Mobile/i.test(ua)) return 'Phone'
+  if (/Windows|Macintosh|Mac OS X|Linux|X11|CrOS/i.test(ua)) return 'Desktop'
+  return ''
+}
+
 // Approximate IP → location for the dashboard. Uses ip-api.com (free, HTTP only,
 // non-commercial) and caches per IP for the server's lifetime so refreshes don't
 // re-query. To swap providers later, only this function needs changing.
@@ -153,6 +168,7 @@ async function loadUsers() {
       teams:                  userTeams.length,
       team_names:             userTeams.map(t => t.name),
       platform:               platformOf(ua),
+      device:                 deviceOf(ua),
       user_agent:             ua,
       location:               ip ? (geoCache.get(ip) || '') : '',
       ip:                     ip,

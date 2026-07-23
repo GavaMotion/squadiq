@@ -207,6 +207,7 @@
     .trial-cell { color: var(--muted); font-size: 12px; }
     .trial-cell.urgent { color: var(--warn); font-weight: 600; }
     .platform-cell { font-size: 12px; color: var(--text); cursor: default; }
+    .device-cell { font-size: 12px; color: var(--muted); cursor: default; }
     .location-cell { font-size: 12px; color: var(--muted); cursor: default; }
     .dim-dash { color: var(--dim); }
 
@@ -322,6 +323,7 @@
           <th data-sort="email">Email</th>
           <th data-sort="plan">Plan</th>
           <th data-sort="platform">Platform</th>
+          <th data-sort="device">Device</th>
           <th data-sort="location">Location</th>
           <th data-sort="signup" class="sorted desc">Signed up</th>
           <th data-sort="last_seen">Last seen</th>
@@ -394,6 +396,7 @@
         case 'email': return a.email.localeCompare(b.email) * -dir
         case 'plan':  return a.plan.localeCompare(b.plan) * -dir
         case 'platform': return (a.platform || '').localeCompare(b.platform || '') * -dir
+        case 'device': return (a.device || '').localeCompare(b.device || '') * -dir
         case 'location': return (a.location || '').localeCompare(b.location || '') * -dir
         case 'last_seen': return (new Date(b.last_seen||0) - new Date(a.last_seen||0)) * dir
         case 'teams': return (b.teams - a.teams) * dir
@@ -438,6 +441,7 @@
         <td><span class="email">${escapeHtml(u.email)}</span>${provider}</td>
         <td><span class="badge badge-${planClass}">${escapeHtml(u.plan)}</span>${override}</td>
         <td class="platform-cell" title="${escapeHtml(u.user_agent || '')}">${u.platform ? escapeHtml(u.platform) : '<span class="dim-dash">—</span>'}</td>
+        <td class="device-cell" title="${escapeHtml(u.user_agent || '')}">${u.device ? escapeHtml(u.device) : '<span class="dim-dash">—</span>'}</td>
         <td class="location-cell" title="${escapeHtml(u.ip || '')}">${u.location ? escapeHtml(u.location) : '<span class="dim-dash">—</span>'}</td>
         <td class="num">${rel(u.signup)}</td>
         <td class="num">${rel(u.last_seen)}</td>
