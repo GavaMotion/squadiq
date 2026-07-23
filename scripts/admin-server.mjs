@@ -173,12 +173,18 @@ function readJson(req) {
   })
 }
 
-// Reject browser requests coming from another origin (leave non-browser and
-// same-page requests, which either omit Origin or send a localhost one).
+// Reject browser requests coming from another origin (CSRF-lite). Non-browser
+// and same-page requests are fine: they either omit Origin, or send an Origin
+// whose host matches the Host the page was served from. Comparing against the
+// request's own Host (rather than hardcoding localhost) means the dashboard
+// also works when reached over the machine's Tailscale/LAN address, while a
+// genuine cross-site request (different host) is still rejected.
 function sameOriginOk(req) {
   const origin = req.headers.origin
   if (!origin) return true
-  return /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+  let host
+  try { host = new URL(origin).host } catch { return false }
+  return host === req.headers.host
 }
 
 // Update the user's subscription row, inserting one if they don't have it yet.
