@@ -1,0 +1,50 @@
+{
+  "packageId": "com.gavamotion.squadiq",
+  "host": "squadiq-coach.vercel.app",
+  "name": "SquadIQ",
+  "launcherName": "SquadIQ",
+  "display": "standalone",
+  "themeColor": "#00C853",
+  "themeColorDark": "#00C853",
+  "navigationColor": "#00C853",
+  "navigationColorDark": "#00C853",
+  "navigationDividerColor": "#00C853",
+  "navigationDividerColorDark": "#00C853",
+  "backgroundColor": "#0D0D1A",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://squadiq-coach.vercel.app/icons/icon-512.png",
+  "maskableIconUrl": "https://squadiq-coach.vercel.app/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./signing.keystore",
+    "alias": "squadiq-key"
+  },
+  "appVersionName": "1.0.0.1",
+  "appVersionCode": 2,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://squadiq-coach.vercel.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://squadiq-coach.vercel.app/",
+  "minSdkVersion": 23,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [
+    "window-controls-overlay",
+    "standalone"
+  ],
+  "appVersion": "1.0.0.1"
+}

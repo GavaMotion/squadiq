@@ -13,3 +13,11 @@ supabase/.env
 github_pat_*
 **/github_pat_*
 *token*.txt
+
+# Android (Bubblewrap TWA) build outputs & signing material
+android/build/
+android/.gradle/
+android/app/build/
+android/*.keystore
+android/*.jks
+android/local.properties
