@@ -20,8 +20,8 @@ The script is read-only. It uses the `SUPABASE_SERVICE_ROLE_KEY` from `.env`. Do
 
 Filters (combine freely):
 - `--plan trial,solo,premium,expired` — explicit list
-- `--paying` — on a paid plan **and actually billed**; comped accounts are excluded
-- `--comped` — paid plan granted by hand (tester, friend, AYSO contact): full access, no revenue
+- `--paying` — on a paid plan **and actually billed**; gifted accounts are excluded
+- `--gifted` — paid plan given by hand (tester, friend, AYSO contact): full access, no revenue
 - `--trial` — only trial accounts
 - `--expired` — only expired accounts
 - `--new [days]` — signed up within N days (default 7)
@@ -34,11 +34,11 @@ Output:
 - `--sort signup|last_seen|email|plan|teams` (default: signup)
 - `--desc` — reverse the default order
 - `--limit N` (default 50)
-- `--format table|json|csv` — use `json` when you need to read fields like `trial_end`, `stripe_customer_id`, `plan_override`, or `comped` to summarize further
+- `--format table|json|csv` — use `json` when you need to read fields like `trial_end`, `stripe_customer_id`, `plan_override`, or `gifted` to summarize further
 
 ## Translating questions to flags
 
-- "Who is paying?" → `--paying`. This is revenue, so it never includes comped accounts — when some exist, say so ("4 paying, plus 6 comped") rather than letting the gifts vanish from the answer.
+- "Who is paying?" → `--paying`. This is revenue, so it never includes gifted accounts — when some exist, say so ("4 paying, plus 6 gifted") rather than letting the gifts vanish from the answer.
 - "Show me users who signed up this week" → `--new 7`
 - "Who's new?" (no timeframe given) → `--new 7`
 - "Who hasn't used the app in a month?" → `--inactive 30`
@@ -52,7 +52,7 @@ If the user's question doesn't map cleanly, pick the closest filter combination 
 
 ## Response style
 
-- Lead with the headline number ("12 paying users — 8 premium, 4 solo"). Never present a comped account as revenue: the table prints `premium (comped)` and the footer prints a comped count.
+- Lead with the headline number ("12 paying users — 8 premium, 4 solo"). Never present a gifted account as revenue: the table prints `premium (gift)` and the footer prints a gifted count.
 - Then a compact table of the top 5–10 matches (whatever the script printed).
 - If the result set is large, suggest a tighter filter rather than dumping everything.
 - For trial-expiry questions, surface days-left explicitly.

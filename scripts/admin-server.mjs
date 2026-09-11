@@ -3,12 +3,17 @@
 // Run: npm run admin   (or: node --env-file=.env scripts/admin-server.mjs)
 
 import { createServer } from 'node:http'
-import { readFile } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+// Timestamp of the source this process was started from. Served at
+// /api/version so the launcher can tell a current server from a stale one.
+const SRC_MTIME = (await stat(__filename)).mtimeMs
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -162,7 +167,7 @@ async function loadUsers() {
       last_seen:              u.last_sign_in_at,
       plan:                   s?.plan || 'none',
       plan_override:          s?.plan_override || null,
-      comped:                 !!s?.comped,
+      gifted:                 !!s?.gifted,
       trial_end:              s?.trial_end || null,
       stripe_customer_id:     s?.stripe_customer_id || null,
       stripe_subscription_id: s?.stripe_subscription_id || null,
@@ -241,13 +246,21 @@ const server = createServer(async (req, res) => {
       res.end(html)
       return
     }
+    // What code is actually running? The launcher compares this against the
+    // file on disk, so an old server left listening gets restarted instead of
+    // quietly serving routes that no longer exist.
+    if (req.url === '/api/version') {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ mtime: SRC_MTIME }))
+      return
+    }
     if (req.url === '/api/users' || req.url.startsWith('/api/users?')) {
       const users = await loadUsers()
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify(users))
       return
     }
-    if (req.method === 'POST' && (req.url === '/api/set-plan' || req.url === '/api/reset-trial' || req.url === '/api/set-comped')) {
+    if (req.method === 'POST' && (req.url === '/api/set-plan' || req.url === '/api/reset-trial' || req.url === '/api/set-gifted')) {
       // Mutating endpoints. Access is already restricted to loopback/Tailscale;
       // additionally reject cross-origin browser requests (CSRF-lite): a custom
       // header forces a CORS preflight this server never approves, and any
@@ -265,11 +278,11 @@ const server = createServer(async (req, res) => {
       let patch
       if (req.url === '/api/reset-trial') {
         patch = { plan: 'trial', trial_start: nowIso, trial_end: trialEndIso, updated_at: nowIso }
-      } else if (req.url === '/api/set-comped') {
-        // Comped = the plan was given, not bought. Entitlement is untouched;
+      } else if (req.url === '/api/set-gifted') {
+        // Gifted = the plan was given, not bought. Entitlement is untouched;
         // only the paying counts change.
-        if (typeof body.comped !== 'boolean') { res.writeHead(400); res.end('bad comped'); return }
-        patch = { comped: body.comped, updated_at: nowIso }
+        if (typeof body.gifted !== 'boolean') { res.writeHead(400); res.end('bad gifted'); return }
+        patch = { gifted: body.gifted, updated_at: nowIso }
       } else {
         const plan = String(body.plan || '')
         if (!ALLOWED_PLANS.has(plan)) { res.writeHead(400); res.end('bad plan'); return }
@@ -278,7 +291,19 @@ const server = createServer(async (req, res) => {
         if (plan === 'trial') { patch.trial_start = nowIso; patch.trial_end = trialEndIso }
       }
 
-      await applySubscriptionChange(userId, patch)
+      try {
+        await applySubscriptionChange(userId, patch)
+      } catch (err) {
+        // A missing column means the migration hasn't been run — say that
+        // rather than passing PostgREST's wording to the dashboard.
+        const m = String(err?.message || err)
+        if (/gifted/.test(m) && /column|schema cache/i.test(m)) {
+          res.writeHead(400)
+          res.end("the 'gifted' column doesn't exist yet — run supabase/migrations/20260911000000_gifted_subscriptions.sql in the Supabase SQL editor")
+          return
+        }
+        throw err
+      }
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ ok: true, ...patch }))
       return
