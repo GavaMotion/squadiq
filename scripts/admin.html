@@ -303,6 +303,7 @@
 
   <div class="controls">
     <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="valid">Valid</button>
     <button class="filter-btn" data-filter="paying">Paying</button>
     <button class="filter-btn" data-filter="trial">Trial</button>
     <button class="filter-btn" data-filter="expired">Expired</button>
@@ -371,15 +372,29 @@
     if (d <= 0) return { text: 'expired', urgent: true }
     return { text: d + 'd left', urgent: d <= 3 }
   }
+  // An account reads as expired if its plan says so, or if it is still marked
+  // trial but the trial end date has passed (the row shows red "expired").
+  function isExpired(u) {
+    if (u.plan === 'expired') return true
+    return u.plan === 'trial' && !!u.trial_end && new Date(u.trial_end) <= Date.now()
+  }
+
+  // Valid = the account still has access: paying, or a trial that is running.
+  function isValid(u) {
+    if (u.plan === 'solo' || u.plan === 'premium') return true
+    return u.plan === 'trial' && !isExpired(u)
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
   }
 
   function applyFilter(users) {
     let r = users
+    if (activeFilter === 'valid')    r = r.filter(isValid)
     if (activeFilter === 'paying')   r = r.filter(u => u.plan === 'solo' || u.plan === 'premium')
-    if (activeFilter === 'trial')    r = r.filter(u => u.plan === 'trial')
-    if (activeFilter === 'expired')  r = r.filter(u => u.plan === 'expired')
+    if (activeFilter === 'trial')    r = r.filter(u => u.plan === 'trial' && !isExpired(u))
+    if (activeFilter === 'expired')  r = r.filter(isExpired)
     if (activeFilter === 'new')      { const c = Date.now() - 7*86400000; r = r.filter(u => new Date(u.signup) >= c) }
     if (activeFilter === 'inactive') { const c = Date.now() - 30*86400000; r = r.filter(u => !u.last_seen || new Date(u.last_seen) < c) }
     if (activeFilter === 'no-team')  r = r.filter(u => u.teams === 0)
@@ -410,6 +425,8 @@
     const counts = {}
     for (const u of filtered) counts[u.plan] = (counts[u.plan] || 0) + 1
     const paying = (counts.solo || 0) + (counts.premium || 0)
+    const expired = filtered.filter(isExpired).length
+    const trialing = (counts.trial || 0) - filtered.filter(u => u.plan === 'trial' && isExpired(u)).length
     const expiring = filtered.filter(u => {
       if (u.plan !== 'trial' || !u.trial_end) return false
       const d = Math.ceil((new Date(u.trial_end) - Date.now()) / 86400000)
@@ -418,9 +435,9 @@
     summary.innerHTML = `
       <div class="summary-card"><div class="summary-label">Users</div><div class="summary-value">${total}</div></div>
       <div class="summary-card"><div class="summary-label">Paying</div><div class="summary-value accent">${paying}</div></div>
-      <div class="summary-card"><div class="summary-label">Trial</div><div class="summary-value warn">${counts.trial || 0}</div></div>
+      <div class="summary-card"><div class="summary-label">Trial</div><div class="summary-value warn">${trialing}</div></div>
       <div class="summary-card"><div class="summary-label">Expiring ≤7d</div><div class="summary-value warn">${expiring}</div></div>
-      <div class="summary-card"><div class="summary-label">Expired</div><div class="summary-value danger">${counts.expired || 0}</div></div>
+      <div class="summary-card"><div class="summary-label">Expired</div><div class="summary-value danger">${expired}</div></div>
     `
   }
 
