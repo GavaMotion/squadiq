@@ -4,6 +4,7 @@ import { useApp } from '../../contexts/AppContext'
 import theme from '../../theme'
 import { FORMATIONS_BY_DIVISION, getFormationById } from '../../lib/formations'
 import { getContrastTextColor } from '../../lib/utils'
+import PlanBadge from '../UI/PlanBadge'
 
 // ── Error boundary ────────────────────────────────────────────────
 class SketchErrorBoundary extends Component {
@@ -923,68 +924,75 @@ export default function SketchPage() {
       <div style={{
         height: 32, flexShrink: 0, display: 'flex', alignItems: 'stretch',
         background: '#0d1117', borderBottom: '1px solid #1f2937',
-        overflowX: 'auto', overflowY: 'hidden', scrollbarWidth: 'none',
       }}>
-        {sketches.map(s => {
-          const isActive = s.id === activeSketchId
-          return (
-            <div key={s.id} style={{
-              position: 'relative', display: 'flex', alignItems: 'stretch',
-              flexShrink: 0, minWidth: 80, maxWidth: 160,
-              borderRight: '1px solid #1f2937',
-              borderBottom: isActive ? `2px solid ${myColor}` : '2px solid transparent',
-              background: isActive ? '#161d2a' : 'transparent',
-            }}>
-              {editingTabId === s.id ? (
-                <input
-                  autoFocus
-                  value={editingName}
-                  onChange={e => setEditingName(e.target.value)}
-                  onBlur={() => commitRename(s.id)}
-                  onKeyDown={e => { if (e.key === 'Enter') commitRename(s.id); if (e.key === 'Escape') setEditingTabId(null) }}
-                  style={{ flex: 1, minWidth: 0, padding: '0 4px 0 8px', fontSize: 11, color: '#e5e7eb', background: '#1f2937', border: 'none', outline: 'none' }}
-                />
-              ) : (
+        <div style={{
+          flex: 1, minWidth: 0, display: 'flex', alignItems: 'stretch',
+          overflowX: 'auto', overflowY: 'hidden', scrollbarWidth: 'none',
+        }}>
+          {sketches.map(s => {
+            const isActive = s.id === activeSketchId
+            return (
+              <div key={s.id} style={{
+                position: 'relative', display: 'flex', alignItems: 'stretch',
+                flexShrink: 0, minWidth: 80, maxWidth: 160,
+                borderRight: '1px solid #1f2937',
+                borderBottom: isActive ? `2px solid ${myColor}` : '2px solid transparent',
+                background: isActive ? '#161d2a' : 'transparent',
+              }}>
+                {editingTabId === s.id ? (
+                  <input
+                    autoFocus
+                    value={editingName}
+                    onChange={e => setEditingName(e.target.value)}
+                    onBlur={() => commitRename(s.id)}
+                    onKeyDown={e => { if (e.key === 'Enter') commitRename(s.id); if (e.key === 'Escape') setEditingTabId(null) }}
+                    style={{ flex: 1, minWidth: 0, padding: '0 4px 0 8px', fontSize: 11, color: '#e5e7eb', background: '#1f2937', border: 'none', outline: 'none' }}
+                  />
+                ) : (
+                  <button
+                    onClick={() => setActiveSketchId(s.id)}
+                    onDoubleClick={() => { setEditingTabId(s.id); setEditingName(s.name) }}
+                    onTouchStart={() => {
+                      const timer = setTimeout(() => {
+                        setEditingTabId(s.id);
+                        setEditingName(s.name);
+                      }, 600);
+                      s._pressTimer = timer;
+                    }}
+                    onTouchEnd={() => { if (s._pressTimer) clearTimeout(s._pressTimer); }}
+                    onTouchMove={() => { if (s._pressTimer) clearTimeout(s._pressTimer); }}
+                    style={{
+                      flex: 1, minWidth: 0, padding: '0 4px 0 8px',
+                      fontSize: 11, fontWeight: isActive ? 600 : 400,
+                      color: isActive ? '#e5e7eb' : '#9ca3af',
+                      textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      cursor: 'pointer', background: 'none', border: 'none',
+                    }}
+                    title={`${s.name} (double-click to rename)`}
+                  >
+                    {s.name}
+                  </button>
+                )}
                 <button
-                  onClick={() => setActiveSketchId(s.id)}
-                  onDoubleClick={() => { setEditingTabId(s.id); setEditingName(s.name) }}
-                  onTouchStart={() => {
-                    const timer = setTimeout(() => {
-                      setEditingTabId(s.id);
-                      setEditingName(s.name);
-                    }, 600);
-                    s._pressTimer = timer;
-                  }}
-                  onTouchEnd={() => { if (s._pressTimer) clearTimeout(s._pressTimer); }}
-                  onTouchMove={() => { if (s._pressTimer) clearTimeout(s._pressTimer); }}
-                  style={{
-                    flex: 1, minWidth: 0, padding: '0 4px 0 8px',
-                    fontSize: 11, fontWeight: isActive ? 600 : 400,
-                    color: isActive ? '#e5e7eb' : '#9ca3af',
-                    textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    cursor: 'pointer', background: 'none', border: 'none',
-                  }}
-                  title={`${s.name} (double-click to rename)`}
-                >
-                  {s.name}
-                </button>
-              )}
-              <button
-                onClick={e => { e.stopPropagation(); setConfirmDeleteId(s.id) }}
-                style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#4b5563', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}
-              >✕</button>
-            </div>
-          )
-        })}
-        <button
-          onClick={handleCreateSketch}
-          style={{ flexShrink: 0, width: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 300, color: '#6b7280', cursor: 'pointer', background: 'none', border: 'none' }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#e5e7eb')}
-          onMouseLeave={e => (e.currentTarget.style.color = '#6b7280')}
-          title="New sketch"
-        >+</button>
+                  onClick={e => { e.stopPropagation(); setConfirmDeleteId(s.id) }}
+                  style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#4b5563', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}
+                >✕</button>
+              </div>
+            )
+          })}
+          <button
+            onClick={handleCreateSketch}
+            style={{ flexShrink: 0, width: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 300, color: '#6b7280', cursor: 'pointer', background: 'none', border: 'none' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#e5e7eb')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#6b7280')}
+            title="New sketch"
+          >+</button>
+        </div>
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', paddingRight: 10, paddingLeft: 4 }}>
+          <PlanBadge size="icon" />
+        </div>
       </div>
 
       {/* Hint for renaming */}

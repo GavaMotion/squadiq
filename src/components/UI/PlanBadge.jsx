@@ -10,12 +10,23 @@ function planTier(subscription) {
   return null
 }
 
+// The gold star, drawn once and shared by the pill and the icon-only badge.
+function Star({ size, color = 'currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} aria-hidden="true" style={{ flexShrink: 0 }}>
+      <path d="M12 2.6l2.65 5.85 6.35.72-4.72 4.3 1.28 6.28L12 16.6l-5.56 3.15 1.28-6.28L3 9.17l6.35-.72L12 2.6z" />
+    </svg>
+  )
+}
+
 /**
  * The plan badge that sits next to the team name.
  *
  * size="sm" is the header pill; size="lg" is the one on the team banner in
  * My Team, which is deliberately louder — that page is where a coach looks
- * when they wonder what they are paying for.
+ * when they wonder what they are paying for. size="icon" is the bare gold
+ * star for the working tabs, where every pixel of the top bar is spoken for;
+ * it marks premium only, since a star cannot honestly say "trial".
  */
 export default function PlanBadge({ size = 'sm', style }) {
   const { subscription, daysLeftInTrial } = useApp()
@@ -24,6 +35,24 @@ export default function PlanBadge({ size = 'sm', style }) {
 
   const lg      = size === 'lg'
   const premium = tier === 'premium'
+
+  if (size === 'icon') {
+    if (!premium) return null
+    return (
+      <span
+        title="Premium account"
+        aria-label="Premium account"
+        style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, color: '#f0b83f',
+          filter: 'drop-shadow(0 0 4px rgba(240,184,63,0.45))',
+          ...style,
+        }}
+      >
+        <Star size={15} />
+      </span>
+    )
+  }
 
   const label = premium
     ? 'Premium'
@@ -66,11 +95,7 @@ export default function PlanBadge({ size = 'sm', style }) {
         ...style,
       }}
     >
-      {premium && (
-        <svg width={lg ? 12 : 9} height={lg ? 12 : 9} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
-          <path d="M12 2.6l2.65 5.85 6.35.72-4.72 4.3 1.28 6.28L12 16.6l-5.56 3.15 1.28-6.28L3 9.17l6.35-.72L12 2.6z" />
-        </svg>
-      )}
+      {premium && <Star size={lg ? 12 : 9} />}
       {label}
     </span>
   )

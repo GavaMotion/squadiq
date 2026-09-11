@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
+import PlanBadge from '../UI/PlanBadge'
 
 export default function StandingsPage({ team }) {
   const [standingsList, setStandingsList] = useState([])
@@ -160,7 +161,10 @@ export default function StandingsPage({ team }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '16px 16px 100px', overflowY: 'auto' }}>
 
-      <div style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>🏆 Standings</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>🏆 Standings</span>
+        <PlanBadge size="icon" />
+      </div>
 
       <div style={{ display: 'flex', gap: 8 }}>
         <input

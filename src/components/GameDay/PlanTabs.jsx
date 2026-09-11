@@ -218,6 +218,7 @@ export default function PlanTabs({
   plans, activePlanId, saving, compact,
   onSelect, onCreate, onDuplicate, onDelete, onRename,
   planModes = {}, onToggleMode = () => {},
+  trailing = null,
 }) {
   const tabRefs = useRef({})
 
@@ -227,15 +228,20 @@ export default function PlanTabs({
   }, [activePlanId])
 
   return (
-    <div style={{ flexShrink: 0 }}>
+    <div style={{
+      flexShrink: 0,
+      display: 'flex', alignItems: 'stretch',
+      background: 'var(--bg-primary)',
+      borderBottom: '1px solid #1f2937',
+    }}>
       {/* ── Tab row ── */}
       <div
         style={{
+          flex:       1,
+          minWidth:   0,
           display:    'flex',
           alignItems: 'stretch',
           height:     compact ? 32 : 38,
-          background: 'var(--bg-primary)',
-          borderBottom: '1px solid #1f2937',
           overflowX:  'auto',
           overflowY:  'hidden',
           scrollbarWidth: 'none',
@@ -283,6 +289,13 @@ export default function PlanTabs({
           +
         </button>
       </div>
+
+      {/* Pinned trailing slot — stays put while the tabs scroll */}
+      {trailing && (
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', paddingRight: 10, paddingLeft: 4 }}>
+          {trailing}
+        </div>
+      )}
     </div>
   )
 }

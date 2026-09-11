@@ -21,6 +21,7 @@ import PlayTimeList from './PlayTimeList'
 import ScrollRail from './ScrollRail'
 import OutPanel from './OutPanel'
 import PlanTabs from './PlanTabs'
+import PlanBadge from '../UI/PlanBadge'
 import { LineupSkeleton } from '../UI/Skeleton'
 import ConfirmDialog from '../UI/ConfirmDialog'
 import { generateAILineup } from '../../lib/aiLineup'
@@ -1223,8 +1224,9 @@ export default function GameDayPage() {
           className="flex items-center gap-2 px-3 border-b border-gray-800"
           style={{ height: 44, flexShrink: 0, background: 'var(--bg-secondary)' }}
         >
-          <span className="text-white font-semibold text-sm truncate flex-1 min-w-0">{team.name}</span>
-          <span className="text-gray-500 text-xs flex-shrink-0">{team.division}</span>
+          <span className="text-white font-semibold text-sm truncate min-w-0">{team.name}</span>
+          <PlanBadge size="icon" />
+          <span className="text-gray-500 text-xs flex-shrink-0 flex-1">{team.division}</span>
           <FormationPicker
             formations={formationList}
             selectedId={formationId}
@@ -1278,6 +1280,7 @@ export default function GameDayPage() {
             <span style={{ fontSize: 13, color: '#fff', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {team.name}
             </span>
+            <PlanBadge size="icon" />
           </div>
           <div style={{ flexShrink: 0 }}>
             <FormationPicker formations={formationList} selectedId={formationId} onChange={handleFormationChange} />

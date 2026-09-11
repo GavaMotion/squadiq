@@ -9,6 +9,7 @@ import {
   DIVISIONS_ORDER, matchesDivision,
 } from '../../lib/drills'
 import PlanTabs from '../GameDay/PlanTabs'
+import PlanBadge from '../UI/PlanBadge'
 import DrillDetailPanel from './DrillDetailPanel'
 import CustomDrillForm from './CustomDrillForm'
 import { PracticeSkeleton } from '../UI/Skeleton'
@@ -793,6 +794,7 @@ export default function PracticePage() {
         onDuplicate={handleDuplicatePlan}
         onDelete={(planId, planName) => setDeleteConfirm({ planId, planName, type: 'practice' })}
         onRename={handleRenamePlan}
+        trailing={<PlanBadge size="icon" />}
       />
 
       {/* Split content */}
