@@ -180,3 +180,11 @@ button:focus:not(:focus-visible) {
     box-shadow: 0 0 12px var(--color-green-glow), 0 0 24px var(--color-green-glow);
   }
 }
+
+/* Panes that carry their own drag rail hide the native bar — one scroll
+   affordance is enough, and on a phone the native one steals content width. */
+.rail-scrolled {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.rail-scrolled::-webkit-scrollbar { width: 0; height: 0; }

@@ -18,6 +18,7 @@ import PlayerTagGrid from './PlayerTagGrid'
 import FreeSubsBar from './FreeSubsBar'
 import ModeSwitch from './ModeSwitch'
 import PlayTimeList from './PlayTimeList'
+import ScrollRail from './ScrollRail'
 import OutPanel from './OutPanel'
 import PlanTabs from './PlanTabs'
 import { LineupSkeleton } from '../UI/Skeleton'
@@ -87,6 +88,7 @@ export default function GameDayPage() {
   const ghostRef         = useRef(null)
   const viewedQuarterRef = useRef(1)
   const handleDropRef    = useRef(null)
+  const tagPaneRef       = useRef(null)
   const triggerShakeRef  = useRef(null)
 
   useEffect(() => { planStatesRef.current = planStates }, [planStates])
@@ -1522,33 +1524,47 @@ export default function GameDayPage() {
 
         </div>
 
-        {/* ── Right pane: player tag grid ── */}
-        <div style={{
-          flex: 1, minWidth: 0,
-          display: 'flex', flexDirection: 'column',
-          // On the phone the tags can outgrow the pane — two rows on the
-          // field and two on the bench already do — so it has to scroll.
-          // minHeight:0 is what lets a flex child shrink enough to.
-          minHeight: 0,
-          overflowY: isWide ? 'visible' : 'auto',
-          WebkitOverflowScrolling: 'touch',
-          // Room for the playing-time handle on the phone's right edge.
-          paddingRight: freeMode && !isWide ? 30 : 0,
-        }}>
-          <PlayerTagGrid
-            players={players}
-            quarterPlans={quarterPlansForList}
-            viewedQuarter={viewedQuarter}
-            outAllIds={outAllIds}
-            outQIds={outQIds}
-            isMobile={!isWide}
-            fillHeight={isWide}
-            onDragStart={onDragStart}
-            draggingPlayerId={draggingPlayerId}
-            shakingPlayerId={shakingPlayerId}
-            benchIsOver={hoverDrop === 'bench'}
-            freeSubs={freeSubsForTags}
-          />
+        {/* ── Right pane: player tag grid ──
+            The rail is a sibling of the scroller, not a child: inside it, it
+            would scroll away with the tags. */}
+        <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          {/* Rail beside the scroller, not inside it — a child would scroll
+              away with the tags. */}
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'row' }}>
+            {!isWide && (
+              <ScrollRail targetRef={tagPaneRef} accent={freeMode ? theme.freeAccent : theme.brandGreen} />
+            )}
+            <div
+              ref={tagPaneRef}
+              className={isWide ? undefined : 'rail-scrolled'}
+              style={{
+                flex: 1, minWidth: 0,
+                display: 'flex', flexDirection: 'column',
+                // On the phone the tags outgrow the pane — two rows on the
+                // field and two on the bench already do — so it has to
+                // scroll, and minHeight:0 lets a flex child shrink enough to.
+                minHeight: 0,
+                overflowY: isWide ? 'visible' : 'auto',
+                // Room for the playing-time handle on the phone's right edge.
+                paddingRight: freeMode && !isWide ? 30 : 0,
+              }}
+            >
+              <PlayerTagGrid
+                players={players}
+                quarterPlans={quarterPlansForList}
+                viewedQuarter={viewedQuarter}
+                outAllIds={outAllIds}
+                outQIds={outQIds}
+                isMobile={!isWide}
+                fillHeight={isWide}
+                onDragStart={onDragStart}
+                draggingPlayerId={draggingPlayerId}
+                shakingPlayerId={shakingPlayerId}
+                benchIsOver={hoverDrop === 'bench'}
+                freeSubs={freeSubsForTags}
+              />
+            </div>
+          </div>
           {freeMode && isWide && (
             <PlayTimeList
               players={availableForFreeList}
