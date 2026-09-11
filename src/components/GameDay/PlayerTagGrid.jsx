@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import theme from '../../theme'
 import { playtimeLevel } from '../../lib/playtime'
 import PlayTimeBar from './PlayTimeBar'
@@ -22,8 +22,46 @@ function QDot({ state }) {
   )
 }
 
+// How long a finger must rest on a tag before it becomes a drag rather than
+// a scroll, and how far it may stray in that window before the drag is off.
+const HOLD_MS   = 170
+const SLOP_PX   = 8
+
 // ── Single draggable player tag ───────────────────────────────────
 function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile, dimmed, onDragStart, isDragging, isShaking, freeSubs }) {
+  const holdRef = useRef(null)
+
+  function cancelHold() {
+    if (holdRef.current?.timer) clearTimeout(holdRef.current.timer)
+    holdRef.current = null
+  }
+
+  function handlePointerDown(e) {
+    // A mouse has no scrolling to compete with, so it drags on contact.
+    if (e.pointerType !== 'touch') {
+      onDragStart(e, player.id, 'bench', null)
+      return
+    }
+    // Touch has to share: grabbing on contact would make the bench
+    // impossible to scroll, because every tag would swallow the gesture.
+    const el = e.currentTarget
+    const { clientX, clientY } = e
+    const timer = setTimeout(() => {
+      if (holdRef.current) holdRef.current.timer = null
+      onDragStart(
+        { preventDefault() {}, currentTarget: el, clientX, clientY },
+        player.id, 'bench', null,
+      )
+    }, HOLD_MS)
+    holdRef.current = { timer, x: clientX, y: clientY }
+  }
+
+  function handlePointerMove(e) {
+    const h = holdRef.current
+    if (!h?.timer) return
+    // Moved before the hold elapsed — they are scrolling, not dragging.
+    if (Math.abs(e.clientX - h.x) > SLOP_PX || Math.abs(e.clientY - h.y) > SLOP_PX) cancelHold()
+  }
   // Free subs has no three-quarter rule to warn about, so the outline just
   // says whether this player is on the field right now.
   const borderColor = freeSubs
@@ -35,7 +73,10 @@ function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile
 
   return (
     <div
-      onPointerDown={e => onDragStart(e, player.id, 'bench', null)}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={cancelHold}
+      onPointerCancel={cancelHold}
       className={isShaking ? 'shake' : undefined}
       style={{
         width:          w,
@@ -53,7 +94,9 @@ function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile
         borderRadius:   8,
         opacity:        isDragging ? 0.3 : dimmed ? 0.85 : 1,
         cursor:         'grab',
-        touchAction:    'none',
+        // pan-y, not none: the bench scrolls, and the hold above is what
+        // separates a drag from a scroll.
+        touchAction:    'pan-y',
         userSelect:     'none',
         flexShrink:     0,
         boxShadow:      isOnFieldNow

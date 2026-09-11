@@ -229,11 +229,20 @@ export default function GameDayPage() {
       else            triggerShakeRef.current?.(ds.playerId)
     }
 
+    // Bench tags allow vertical panning so the bench can be scrolled, which
+    // means the browser would happily scroll underneath an active drag. While
+    // one is running, the drag owns the gesture.
+    function onTouchMove(e) {
+      if (dragRef.current) e.preventDefault()
+    }
+
     window.addEventListener('pointermove', onMove, { passive: true })
     window.addEventListener('pointerup', onUp)
+    window.addEventListener('touchmove', onTouchMove, { passive: false })
     return () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('touchmove', onTouchMove)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1517,6 +1526,12 @@ export default function GameDayPage() {
         <div style={{
           flex: 1, minWidth: 0,
           display: 'flex', flexDirection: 'column',
+          // On the phone the tags can outgrow the pane — two rows on the
+          // field and two on the bench already do — so it has to scroll.
+          // minHeight:0 is what lets a flex child shrink enough to.
+          minHeight: 0,
+          overflowY: isWide ? 'visible' : 'auto',
+          WebkitOverflowScrolling: 'touch',
           // Room for the playing-time handle on the phone's right edge.
           paddingRight: freeMode && !isWide ? 30 : 0,
         }}>
