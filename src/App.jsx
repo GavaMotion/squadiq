@@ -17,6 +17,7 @@ import SketchPage from './components/Sketch/SketchPage'
 import PracticePage from './components/Practice/PracticePage'
 import StandingsPage from './components/Standings/StandingsPage'
 import TeamBadge from './components/Team/TeamBadge'
+import PlanBadge from './components/UI/PlanBadge'
 import BrandingFields from './components/Team/BrandingFields'
 
 // ── Splash screen ────────────────────────────────────────────────
@@ -237,7 +238,7 @@ function TeamSwitcher() {
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setOpen(o => !o)}
-          className="flex items-center gap-2 px-2.5 py-1 rounded-lg text-sm font-medium text-white transition max-w-[180px]"
+          className="flex items-center gap-2 px-2.5 py-1 rounded-lg text-sm font-medium text-white transition max-w-[260px]"
           style={{ border: '1px solid var(--border-purple)' }}
           onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'none')}
@@ -250,7 +251,8 @@ function TeamSwitcher() {
             }}>
               {team?.name?.charAt(0).toUpperCase() || '?'}
             </div>
-          <span className="truncate" style={{ maxWidth: 110 }}>{team?.name || 'Select team'}</span>
+          <span className="truncate" style={{ maxWidth: 110, minWidth: 0 }}>{team?.name || 'Select team'}</span>
+          <PlanBadge />
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
             style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
             <path d="M2 3.5l3 3 3-3" />

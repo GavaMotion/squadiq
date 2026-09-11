@@ -11,6 +11,7 @@ import BrandingFields from './BrandingFields'
 import PrivacyPolicy from '../Legal/PrivacyPolicy'
 import TermsOfService from '../Legal/TermsOfService'
 import { MyTeamSkeleton } from '../UI/Skeleton'
+import PlanBadge from '../UI/PlanBadge'
 import { APP_VERSION, SUPPORT_EMAIL } from '../../version'
 import { RosterPrintSheet, exportRosterSheet } from '../../lib/rosterSheet'
 
@@ -452,7 +453,10 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
 
         {/* My Team header with + New team button */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>My Team</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <span style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>My Team</span>
+            <PlanBadge />
+          </div>
           <button
             onClick={onCreateTeam}
             style={{
@@ -575,7 +579,13 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
                   <p className="text-green-200 text-xs font-medium uppercase tracking-widest mb-1">
                     {team.division} Division
                   </p>
-                  <h2 className="text-2xl font-bold text-white text-center">{team.name}</h2>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexWrap: 'wrap', gap: 8,
+                  }}>
+                    <h2 className="text-2xl font-bold text-white text-center">{team.name}</h2>
+                    <PlanBadge size="lg" />
+                  </div>
                   <p className="text-green-300 text-sm mt-1">
                     {players.length} player{players.length !== 1 ? 's' : ''}
                   </p>
