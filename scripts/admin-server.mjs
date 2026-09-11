@@ -168,6 +168,7 @@ async function loadUsers() {
       plan:                   s?.plan || 'none',
       plan_override:          s?.plan_override || null,
       gifted:                 !!s?.gifted,
+      apple_environment:      s?.apple_environment || null,
       trial_end:              s?.trial_end || null,
       stripe_customer_id:     s?.stripe_customer_id || null,
       stripe_subscription_id: s?.stripe_subscription_id || null,

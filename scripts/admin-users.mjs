@@ -93,6 +93,7 @@ let rows = users.map(u => {
     plan:                   s?.plan || 'none',
     plan_override:          s?.plan_override || null,
     gifted:                 !!s?.gifted,
+    apple_environment:      s?.apple_environment || null,
     trial_end:              s?.trial_end || null,
     stripe_customer_id:     s?.stripe_customer_id || null,
     stripe_subscription_id: s?.stripe_subscription_id || null,
@@ -109,8 +110,9 @@ if (hasFlag('trial'))   planSet = new Set(['trial'])
 if (hasFlag('expired')) planSet = new Set(['expired'])
 if (planSet) rows = rows.filter(r => planSet.has(r.plan))
 // Gifted accounts (testers, friends, AYSO contacts) have full access and no
-// revenue. --paying means billed, so they are excluded from it.
-if (hasFlag('paying')) rows = rows.filter(r => !r.gifted)
+// revenue, and an Apple sandbox receipt is a test purchase. --paying means
+// billed, so both are excluded from it.
+if (hasFlag('paying')) rows = rows.filter(r => !r.gifted && r.apple_environment !== 'Sandbox')
 if (hasFlag('gifted')) rows = rows.filter(r => r.gifted)
 
 function daysFlag(name, def) {
@@ -181,6 +183,16 @@ function trialLeft(r) {
   return d > 0 ? `${d}d left` : 'expired'
 }
 
+// plan + everything that qualifies it, so an override never hides a gift:
+// "premium (unlimited, gift)".
+function planLabel(r) {
+  const notes = []
+  if (r.plan_override) notes.push(r.plan_override)
+  if (r.apple_environment === 'Sandbox') notes.push('sandbox')
+  if (r.gifted) notes.push('gift')
+  return notes.length ? `${r.plan} (${notes.join(', ')})` : r.plan
+}
+
 if (format === 'json') {
   console.log(JSON.stringify(shown, null, 2))
 } else if (format === 'csv') {
@@ -191,7 +203,7 @@ if (format === 'json') {
   const headers = ['Email', 'Plan', 'Signed up', 'Last seen', 'Teams', 'Trial']
   const data = shown.map(r => [
     r.email,
-    r.plan_override ? `${r.plan}(${r.plan_override})` : r.gifted ? `${r.plan} (gift)` : r.plan,
+    planLabel(r),
     relTime(r.signup),
     relTime(r.last_seen),
     String(r.teams),

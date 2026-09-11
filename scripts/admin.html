@@ -409,10 +409,16 @@
     if (u.plan === 'solo' || u.plan === 'premium') return true
     return u.plan === 'trial' && !isExpired(u)
   }
+  // An Apple sandbox purchase is a test: a real receipt, no money. Excluded
+  // automatically, because every TestFlight run would otherwise arrive as a
+  // new paying customer.
+  function isSandbox(u) {
+    return u.apple_environment === 'Sandbox'
+  }
   // Paying = on a paid plan and actually billed for it. A gifted account
   // (tester, friend, AYSO contact) must never read as revenue.
   function isPaying(u) {
-    return (u.plan === 'solo' || u.plan === 'premium') && !u.gifted
+    return (u.plan === 'solo' || u.plan === 'premium') && !u.gifted && !isSandbox(u)
   }
   function isGifted(u) {
     return !!u.gifted && (u.plan === 'solo' || u.plan === 'premium')
@@ -490,10 +496,11 @@
       const planClass = ['trial','solo','premium','expired'].includes(u.plan) ? u.plan : 'none'
       const override = u.plan_override ? `<span class="override">${escapeHtml(u.plan_override)}</span>` : ''
       const gift = u.gifted ? '<span class="gift-tag" title="Given by hand — not counted as paying">gift</span>' : ''
+      const sandbox = isSandbox(u) ? '<span class="gift-tag" title="Apple sandbox purchase — a test receipt, never revenue">sandbox</span>' : ''
       const provider = u.provider && u.provider !== 'email' && u.provider !== '?' ? `<span class="provider">${escapeHtml(u.provider)}</span>` : ''
       return `<tr class="row">
         <td><span class="email">${escapeHtml(u.email)}</span>${provider}</td>
-        <td><span class="badge badge-${planClass}">${escapeHtml(u.plan)}</span>${override}${gift}</td>
+        <td><span class="badge badge-${planClass}">${escapeHtml(u.plan)}</span>${override}${gift}${sandbox}</td>
         <td class="platform-cell" title="${escapeHtml(u.user_agent || '')}">${u.platform ? escapeHtml(u.platform) : '<span class="dim-dash">—</span>'}</td>
         <td class="device-cell" title="${escapeHtml(u.user_agent || '')}">${u.device ? escapeHtml(u.device) : '<span class="dim-dash">—</span>'}</td>
         <td class="location-cell" title="${escapeHtml(u.ip || '')}">${u.location ? escapeHtml(u.location) : '<span class="dim-dash">—</span>'}</td>
