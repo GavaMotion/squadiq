@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import { useToast } from './components/UI/Toast'
 import theme from './theme'
@@ -484,6 +484,9 @@ const TAB_COLORS = {
   standings: '#F5C842',
 }
 
+// Tabs that may be restored on reload — anything else falls back to My Team.
+const TAB_IDS = new Set(['team', 'lineup', 'sketch', 'practice', 'standings'])
+
 // ── Bottom tab bar ───────────────────────────────────────────────
 function TabBar({ active, onChange, compact }) {
   // The phone needs the vertical space more than it needs big chrome.
@@ -859,7 +862,19 @@ export default function App() {
 
   const { session, signOut } = useAuth()
   const { addToast } = useToast()
-  const [tab, setTab] = useState('team')
+  // Remember which tab was open. A reload — an accidental one mid-game, or
+  // the phone killing a backgrounded tab — should not land the coach back on
+  // My Team while the game is running.
+  const [tab, setTabRaw] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('activeTab')
+      return TAB_IDS.has(saved) ? saved : 'team'
+    } catch { return 'team' }
+  })
+  const setTab = useCallback(next => {
+    setTabRaw(next)
+    try { sessionStorage.setItem('activeTab', next) } catch { /* private mode */ }
+  }, [])
   const [showSplash, setShowSplash] = useState(() => {
     const seen = sessionStorage.getItem('splashShown')
     if (!seen) { sessionStorage.setItem('splashShown', 'true'); return true }

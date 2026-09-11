@@ -96,12 +96,16 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    /* No pull-to-refresh. A downward drag on empty space during a game was
+       reloading the app, which throws away where the coach was. */
+    overscroll-behavior-y: contain;
   }
 
   body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    overscroll-behavior-y: contain;
   }
 
   * {
@@ -186,5 +190,7 @@ button:focus:not(:focus-visible) {
 .rail-scrolled {
   scrollbar-width: none;
   -ms-overflow-style: none;
+  /* Scrolling past the end of the bench must not become a page pull. */
+  overscroll-behavior: contain;
 }
 .rail-scrolled::-webkit-scrollbar { width: 0; height: 0; }
