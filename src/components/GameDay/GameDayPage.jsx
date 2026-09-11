@@ -172,27 +172,6 @@ export default function GameDayPage() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Saves are debounced by 1.2s, and a phone can kill a backgrounded tab
-  // without warning — which during a live game would drop the very sub that
-  // was just made. Flush the moment the page hides instead of waiting.
-  useEffect(() => {
-    function flush() {
-      const planId = activePlanRef.current
-      if (planId && saveTimersRef.current[planId]) {
-        clearTimeout(saveTimersRef.current[planId])
-        delete saveTimersRef.current[planId]
-        doSavePlan(planId)
-      }
-    }
-    function onVisibility() { if (document.visibilityState === 'hidden') flush() }
-    document.addEventListener('visibilitychange', onVisibility)
-    window.addEventListener('pagehide', flush)
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility)
-      window.removeEventListener('pagehide', flush)
-    }
-  }, [doSavePlan])
-
   useEffect(() => {
     function onResize() {
       const w = window.innerWidth
@@ -515,6 +494,27 @@ export default function GameDayPage() {
       setSaving(false)
     }
   }, [plans, addToast, saveWithOfflineSupport, teamIdRef, teamRef])
+
+  // Saves are debounced by 1.2s, and a phone can kill a backgrounded tab
+  // without warning — which during a live game would drop the very sub that
+  // was just made. Flush the moment the page hides instead of waiting.
+  useEffect(() => {
+    function flush() {
+      const planId = activePlanRef.current
+      if (planId && saveTimersRef.current[planId]) {
+        clearTimeout(saveTimersRef.current[planId])
+        delete saveTimersRef.current[planId]
+        doSavePlan(planId)
+      }
+    }
+    function onVisibility() { if (document.visibilityState === 'hidden') flush() }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', flush)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', flush)
+    }
+  }, [doSavePlan])
 
   // ─── Switch plan ──────────────────────────────────────────────
   function switchPlan(planId) {
