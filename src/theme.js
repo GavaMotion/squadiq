@@ -70,6 +70,18 @@ const theme = {
   atRiskRowBg:        'linear-gradient(90deg, #200939 0%, #4e1e78 100%)',
   atRiskRowText:       '#ffffff',
 
+  // ─── Free Subs mode — cyan chrome ────────────────────────
+  // One accent owns the whole mode so it reads as a different place in the
+  // app without leaving the dark shell. Green stays "assigned", amber/red
+  // stay the three-quarter-rule scale; cyan means "clock is tracking this".
+  freeAccent:        '#00b8d4',
+  freeAccentBright:  '#22d3ee',
+  freeAccentDim:     'rgba(0,184,212,0.14)',
+  freeAccentGlow:    'rgba(0,184,212,0.32)',
+  freeBarTrack:      'rgba(255,255,255,0.07)',
+  freeBarFill:       'linear-gradient(90deg, #0891b2 0%, #22d3ee 100%)',
+  freePanelBg:       '#0b1418',
+
   // ─── Game Day — absent row ───────────────────────────────
   absentRowBg:         'transparent',
   absentRowText:       'rgba(255,255,255,0.5)',

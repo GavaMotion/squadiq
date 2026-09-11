@@ -1,5 +1,8 @@
 import { useMemo } from 'react'
+import theme from '../../theme'
 import { playtimeLevel } from '../../lib/playtime'
+import PlayTimeBar from './PlayTimeBar'
+import { fmtMs, isOnField, playedMsFor } from '../../lib/freeSubs'
 
 // ── Quarter dot ───────────────────────────────────────────────────
 function QDot({ state }) {
@@ -20,11 +23,15 @@ function QDot({ state }) {
 }
 
 // ── Single draggable player tag ───────────────────────────────────
-function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile, dimmed, onDragStart, isDragging, isShaking }) {
-  const borderColor = { ok: '#00c853', near: '#EF9F27', short: '#ef4444' }[playtimeLevel(totalPlanned)]
+function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile, dimmed, onDragStart, isDragging, isShaking, freeSubs }) {
+  // Free subs has no three-quarter rule to warn about, so the outline just
+  // says whether this player is on the field right now.
+  const borderColor = freeSubs
+    ? (isOnFieldNow ? theme.freeAccent : 'rgba(255,255,255,0.14)')
+    : { ok: '#00c853', near: '#EF9F27', short: '#ef4444' }[playtimeLevel(totalPlanned)]
 
   const w = isMobile ? 75 : 84
-  const h = isMobile ? 62 : 70
+  const h = freeSubs ? (isMobile ? 74 : 82) : (isMobile ? 62 : 70)
 
   return (
     <div
@@ -39,7 +46,9 @@ function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile
         justifyContent: 'center',
         gap:            3,
         padding:        '3px 4px',
-        background:     isOnFieldNow ? 'rgba(0,200,83,0.15)' : 'rgba(255,255,255,0.07)',
+        background:     isOnFieldNow
+          ? (freeSubs ? theme.freeAccentDim : 'rgba(0,200,83,0.15)')
+          : 'rgba(255,255,255,0.07)',
         border:         `2px solid ${borderColor}`,
         borderRadius:   8,
         opacity:        isDragging ? 0.3 : dimmed ? 0.85 : 1,
@@ -47,7 +56,9 @@ function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile
         touchAction:    'none',
         userSelect:     'none',
         flexShrink:     0,
-        boxShadow:      isOnFieldNow ? '0 0 8px rgba(0,200,83,0.25)' : 'none',
+        boxShadow:      isOnFieldNow
+          ? (freeSubs ? `0 0 10px ${theme.freeAccentGlow}` : '0 0 8px rgba(0,200,83,0.25)')
+          : 'none',
         transition:     'border-color 0.15s, background 0.15s, box-shadow 0.15s, opacity 0.1s',
       }}
     >
@@ -55,7 +66,7 @@ function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile
         {player.jersey_number}
       </span>
       <span style={{
-        fontSize:     12,
+        fontSize:     freeSubs ? 11 : 12,
         color:        '#d1d5db',
         lineHeight:   1.2,
         maxWidth:     '90%',
@@ -66,15 +77,35 @@ function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile
       }}>
         {player.name.split(' ')[0]}
       </span>
-      <div style={{ display: 'flex', gap: 2 }}>
-        {quarterStates.map((st, i) => <QDot key={i} state={st} />)}
-      </div>
+      {freeSubs ? (
+        <div style={{ width: '86%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <PlayTimeBar
+            stints={freeSubs.stints}
+            playerId={player.id}
+            nowMs={freeSubs.nowMs}
+            totalMs={freeSubs.totalMs}
+            height={5}
+            live={isOnFieldNow}
+          />
+          <span style={{
+            fontSize: isMobile ? 15 : 16, fontWeight: 700, lineHeight: 1.05,
+            fontVariantNumeric: 'tabular-nums',
+            color: isOnFieldNow ? theme.freeAccentBright : 'rgba(255,255,255,0.72)',
+          }}>
+            {fmtMs(playedMsFor(freeSubs.stints, player.id, freeSubs.nowMs))}
+          </span>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 2 }}>
+          {quarterStates.map((st, i) => <QDot key={i} state={st} />)}
+        </div>
+      )}
     </div>
   )
 }
 
 // ── Tag wrap row ──────────────────────────────────────────────────
-function TagRow({ players, getQStates, getTotalPlanned, onFieldSet, isMobile, dimmed, onDragStart, draggingPlayerId, shakingPlayerId }) {
+function TagRow({ players, getQStates, getTotalPlanned, onFieldSet, isMobile, dimmed, onDragStart, draggingPlayerId, shakingPlayerId, freeSubs }) {
   return (
     <div style={{
       display:      'flex',
@@ -96,6 +127,7 @@ function TagRow({ players, getQStates, getTotalPlanned, onFieldSet, isMobile, di
           onDragStart={onDragStart}
           isDragging={draggingPlayerId === player.id}
           isShaking={shakingPlayerId === player.id}
+          freeSubs={freeSubs}
         />
       ))}
     </div>
@@ -115,6 +147,7 @@ export default function PlayerTagGrid({
   draggingPlayerId,
   shakingPlayerId,
   benchIsOver,
+  freeSubs,
 }) {
   function getQuarterStates(pid) {
     return [1, 2, 3, 4].map(q => {
@@ -144,7 +177,11 @@ export default function PlayerTagGrid({
 
   function sortPlayers(list) {
     return [...list].sort((a, b) => {
-      const diff = getTotalPlanned(a.id) - getTotalPlanned(b.id)
+      // Both modes put whoever is furthest behind first, so the next player to
+      // send on is always the leftmost tag: fewest quarters, or fewest minutes.
+      const diff = freeSubs
+        ? playedMsFor(freeSubs.stints, a.id, freeSubs.nowMs) - playedMsFor(freeSubs.stints, b.id, freeSubs.nowMs)
+        : getTotalPlanned(a.id) - getTotalPlanned(b.id)
       return diff !== 0 ? diff : (a.jersey_number ?? 0) - (b.jersey_number ?? 0)
     })
   }
@@ -159,7 +196,9 @@ export default function PlayerTagGrid({
         minWidth:      0,
         display:       'flex',
         flexDirection: 'column',
-        background:    benchIsOver ? 'rgba(0,200,83,0.04)' : '#0d1117',
+        background:    benchIsOver
+          ? (freeSubs ? 'rgba(0,184,212,0.05)' : 'rgba(0,200,83,0.04)')
+          : (freeSubs ? theme.freePanelBg : '#0d1117'),
         borderTop:     '1px solid rgba(255,255,255,0.06)',
         transition:    'background 0.15s',
         ...(fillHeight ? { flex: 1, minHeight: 0 } : {}),
@@ -179,10 +218,10 @@ export default function PlayerTagGrid({
               fontWeight:    700,
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
-              color:         'rgba(0,200,83,0.5)',
+              color:         freeSubs ? theme.freeAccentBright : 'rgba(0,200,83,0.5)',
               flexShrink:    0,
             }}>
-              Q{viewedQuarter} FIELD · {activePlayers.length}
+              {freeSubs ? 'ON FIELD' : `Q${viewedQuarter} FIELD`} · {activePlayers.length}
             </div>
             <TagRow
               players={activePlayers}
@@ -194,6 +233,7 @@ export default function PlayerTagGrid({
               onDragStart={onDragStart}
               draggingPlayerId={draggingPlayerId}
               shakingPlayerId={shakingPlayerId}
+              freeSubs={freeSubs}
             />
           </>
         )}
@@ -216,7 +256,7 @@ export default function PlayerTagGrid({
             transition:    'color 0.15s',
             flexShrink:    0,
           }}>
-            BENCH Q{viewedQuarter} · {benchPlayers.length}
+            {freeSubs ? 'BENCH' : `BENCH Q${viewedQuarter}`} · {benchPlayers.length}
           </div>
           {/* Spacer pushes bench tags to the bottom edge of the pane */}
           {fillHeight && <div style={{ flex: 1, minHeight: 0 }} />}
@@ -242,6 +282,7 @@ export default function PlayerTagGrid({
               onDragStart={onDragStart}
               draggingPlayerId={draggingPlayerId}
               shakingPlayerId={shakingPlayerId}
+              freeSubs={freeSubs}
             />
           )}
         </div>

@@ -127,6 +127,7 @@ export default function OutPanel({
   draggingPlayerId,
   outAllIsOver,
   outQIsOver,
+  freeMode,      // free subs has no quarters, so no per-quarter OUT bucket
 }) {
   const outAllPlayers = players.filter(p => outAllIds.has(p.id))
   const outQPlayers   = players.filter(
@@ -157,7 +158,8 @@ export default function OutPanel({
         draggingPlayerId={draggingPlayerId}
       />
 
-      {/* Divider */}
+      {/* Divider — only when there is a second bucket below it */}
+      {!freeMode && (<>
       <div style={{
         height:     1,
         background: 'rgba(220,50,50,0.15)',
@@ -191,6 +193,7 @@ export default function OutPanel({
         onDragStart={onDragStart}
         draggingPlayerId={draggingPlayerId}
       />
+      </>)}
     </div>
   )
 }

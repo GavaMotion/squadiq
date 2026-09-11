@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { getDefaultFormation, getFormationById } from '../lib/formations'
+import { getDefaultFormation, getFormationById, getGameLengthMin } from '../lib/formations'
+import { createFreeSubs, parseFreeSubs, serializeFreeSubs } from '../lib/freeSubs'
 import { getContrastTextColor } from '../lib/utils'
 import { PLANS } from '../version'
 
@@ -32,6 +33,10 @@ export function planStateToQuarterData(state) {
   for (const q of [1, 2, 3, 4]) {
     qd.out_q[q] = [...(state.outQIds?.[q] || new Set())]
   }
+  // Free Subs mode rides along in the same JSONB column — no schema change.
+  // A quarters plan writes mode:'quarters' and no free_subs payload.
+  qd.mode = state.mode === 'free' ? 'free' : 'quarters'
+  if (state.freeSubs) qd.free_subs = serializeFreeSubs(state.freeSubs)
   return qd
 }
 
@@ -46,6 +51,8 @@ export function buildBlankPlanState(formation) {
     },
     outAllIds: new Set(),
     outQIds:   { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set() },
+    mode:      'quarters',
+    freeSubs:  null,
   }
 }
 
@@ -79,7 +86,11 @@ export function buildPlanState(plan, validIds, teamDivision) {
     }
   }
 
-  return { quarters, outAllIds, outQIds }
+  const mode     = qd.mode === 'free' ? 'free' : 'quarters'
+  const freeSubs = parseFreeSubs(qd.free_subs, getGameLengthMin(teamDivision || ''), validIds)
+    || (mode === 'free' ? createFreeSubs(getGameLengthMin(teamDivision || '')) : null)
+
+  return { quarters, outAllIds, outQIds, mode, freeSubs }
 }
 
 // ── CSS custom properties for team branding ───────────────────────

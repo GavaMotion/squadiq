@@ -9,15 +9,25 @@ import {
   FORMATIONS_BY_DIVISION,
   getDefaultFormation,
   getFormationById,
+  getGameLengthMin,
 } from '../../lib/formations'
 import GameField from './GameField'
 import FormationPicker from './FormationPicker'
 import SavePlanModal from './SavePlanModal'
 import PlayerTagGrid from './PlayerTagGrid'
+import FreeSubsBar from './FreeSubsBar'
+import ModeSwitch from './ModeSwitch'
+import PlayTimeList from './PlayTimeList'
 import OutPanel from './OutPanel'
 import PlanTabs from './PlanTabs'
 import { LineupSkeleton } from '../UI/Skeleton'
 import { generateAILineup } from '../../lib/aiLineup'
+import {
+  createFreeSubs, endGame, fmtMs, gameMs, isRunning, pauseAt, pauseClock,
+  playedMsFor, reconcileStints, resetClock, resumeGame, startClock,
+  totalMs as freeTotalMs,
+} from '../../lib/freeSubs'
+import { PlayTimeSheet, exportPlayTimeSheet } from '../../lib/playTimeSheet'
 import { RosterPrintSheet, exportRosterSheet } from '../../lib/rosterSheet'
 
 // ─── Pure local helpers ────────────────────────────────────────────
@@ -162,6 +172,27 @@ export default function GameDayPage() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Saves are debounced by 1.2s, and a phone can kill a backgrounded tab
+  // without warning — which during a live game would drop the very sub that
+  // was just made. Flush the moment the page hides instead of waiting.
+  useEffect(() => {
+    function flush() {
+      const planId = activePlanRef.current
+      if (planId && saveTimersRef.current[planId]) {
+        clearTimeout(saveTimersRef.current[planId])
+        delete saveTimersRef.current[planId]
+        doSavePlan(planId)
+      }
+    }
+    function onVisibility() { if (document.visibilityState === 'hidden') flush() }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', flush)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', flush)
+    }
+  }, [doSavePlan])
+
   useEffect(() => {
     function onResize() {
       const w = window.innerWidth
@@ -237,6 +268,158 @@ export default function GameDayPage() {
   const outQIds                = activePlanState?.outQIds                || { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set() }
   const outOfPositionByQuarter = activePlanState?.outOfPositionByQuarter || {}
 
+  // ── Free Subs mode ────────────────────────────────────────────
+  // A free-subs plan has no quarters: it keeps one lineup (stored in the Q1
+  // slot map so the field, drag-and-drop and OUT panel work unchanged) plus a
+  // clock and a list of stints.
+  const planMode  = activePlanState?.mode === 'free' ? 'free' : 'quarters'
+  const freeMode  = planMode === 'free'
+  const freeSubs  = activePlanState?.freeSubs || null
+
+  // Repaint the clock while it runs. One timer for the whole page.
+  const [clockNow, setClockNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!freeMode || !isRunning(freeSubs)) return
+    setClockNow(Date.now())
+    const id = setInterval(() => setClockNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [freeMode, freeSubs?.runningSince, freeSubs?.ended])
+
+  const freeNowMs   = freeMode ? gameMs(freeSubs, clockNow) : 0
+  const freeTotal   = freeMode ? freeTotalMs(freeSubs) : 1
+  const freeOnField = useMemo(() => {
+    if (!freeMode) return new Set()
+    return new Set(Object.values(quarters?.[1]?.slots || {}).filter(Boolean))
+  }, [freeMode, quarters])
+
+  // Stints are derived from the lineup rather than recorded by each handler,
+  // so every way a player can leave the field — drag, OUT, clear, formation
+  // change — is stamped without the handlers knowing about the clock.
+  const onFieldKey = useMemo(() => [...freeOnField].sort().join(','), [freeOnField])
+  useEffect(() => {
+    if (!freeMode || !freeSubs?.kickedOff || freeSubs.ended) return
+    const at   = gameMs(freeSubs, Date.now())
+    const next = reconcileStints(freeSubs, freeOnField, at)
+    if (next.length === freeSubs.stints.length &&
+        next.every((s, i) => s.out === freeSubs.stints[i].out && s.playerId === freeSubs.stints[i].playerId)) return
+    updateActivePlanState(state => ({ ...state, freeSubs: { ...state.freeSubs, stints: next } }))
+    scheduleSave()
+  }, [onFieldKey, freeMode, freeSubs?.kickedOff, freeSubs?.ended, freeSubs?.runningSince]) // eslint-disable-line
+
+  // A running clock keeps counting while the app is closed, which is right
+  // during a game and wrong the morning after one. If a plan comes back with
+  // the clock miles past full time, ask instead of silently believing it.
+  const [staleClock,  setStaleClock]  = useState(null)
+  const staleAskedRef = useRef(new Set())
+  useEffect(() => {
+    if (!freeMode || !freeSubs || !isRunning(freeSubs)) return
+    const planId = activePlanId
+    if (!planId || staleAskedRef.current.has(planId)) return
+    const elapsed = gameMs(freeSubs, Date.now())
+    // Twice the game length — a coach who never pauses at half-time still
+    // lands well inside that, so this only fires on a genuine runaway.
+    if (elapsed <= freeTotalMs(freeSubs) * 2) return
+    staleAskedRef.current.add(planId)
+    setStaleClock({ planId, elapsed })
+  }, [freeMode, freeSubs, activePlanId])
+
+  function handleStaleFullTime() {
+    updateFreeSubs(fs => pauseAt(fs, freeTotalMs(fs)))
+    setStaleClock(null)
+    addToast('Clock stopped at full time', 'info', 3000)
+  }
+
+  function updateFreeSubs(fn, { save = true } = {}) {
+    updateActivePlanState(state => {
+      const current = state.freeSubs || createFreeSubs(getGameLengthMin(teamRef.current?.division || ''))
+      return { ...state, mode: 'free', freeSubs: fn(current) }
+    })
+    if (save) scheduleSave()
+  }
+
+  function handleFreeStart() {
+    const now = Date.now()
+    updateFreeSubs(fs => {
+      const started = startClock(fs, now)
+      // Whoever is already arranged on the field starts their stint now.
+      return { ...started, stints: reconcileStints(started, freeOnField, gameMs(started, now)) }
+    })
+    setClockNow(now)
+  }
+  function handleFreePause() { updateFreeSubs(fs => pauseClock(fs, Date.now())) }
+  function handleFreeEnd() {
+    if (!window.confirm('End the game? The clock stops and every stint is closed.')) return
+    updateFreeSubs(fs => endGame(fs, Date.now()))
+    addToast('Game ended — playing time is final', 'info', 3000)
+  }
+  function handleFreeResume() {
+    updateFreeSubs(fs => resumeGame(fs))
+    addToast('Game resumed — clock is paused where it stopped', 'info', 3000)
+  }
+  function handleFreeReset() {
+    if (!window.confirm('Reset the clock and erase all recorded playing time for this plan?')) return
+    updateFreeSubs(fs => resetClock(fs))
+    addToast('Clock reset', 'info', 2000)
+  }
+  function handleFreeLength(min) { updateFreeSubs(fs => ({ ...fs, gameLengthMin: min })) }
+
+  function enterFreeMode(planId = activePlanId) {
+    const mins = getGameLengthMin(teamRef.current?.division || '')
+    updatePlanStateById(planId, state => ({
+      ...state,
+      mode:     'free',
+      freeSubs: state.freeSubs || createFreeSubs(mins),
+    }))
+    if (planId === activePlanId) setViewedQuarterRaw(1)
+    scheduleSave(planId)
+    addToast(`Free subs on — ${mins} min game, sub whenever you like`, 'info', 3500)
+  }
+  function exitFreeMode(planId = activePlanId) {
+    if (!window.confirm('Switch this plan back to quarter planning? Recorded playing time is kept, but the clock stops.')) return
+    updatePlanStateById(planId, state => ({
+      ...state,
+      mode:     'quarters',
+      freeSubs: state.freeSubs ? pauseClock(state.freeSubs, Date.now()) : null,
+    }))
+    scheduleSave(planId)
+  }
+
+  // A plan's mode is a property of the plan, so it is toggled from that
+  // plan's tab menu — including one that is not currently open.
+  function handleModeChange(next) {
+    if (next === 'free') enterFreeMode()
+    else exitFreeMode()
+  }
+
+  function handleToggleMode(planId) {
+    const isFree = planStates[planId]?.mode === 'free'
+    if (planId !== activePlanId) switchPlan(planId)
+    if (isFree) exitFreeMode(planId)
+    else enterFreeMode(planId)
+  }
+
+  const planModes = useMemo(() => {
+    const out = {}
+    for (const [id, st] of Object.entries(planStates || {})) out[id] = st?.mode === 'free' ? 'free' : 'quarters'
+    return out
+  }, [planStates])
+
+  // The ranking covers everyone who could still play, plus anyone already
+  // holding minutes. A player pulled OUT after twenty minutes keeps those
+  // twenty minutes on the record; only someone OUT who never played drops off.
+  const availableForFreeList = useMemo(() => {
+    const stints = freeSubs?.stints || []
+    return (players || []).filter(p =>
+      !outAllIds.has(p.id) || playedMsFor(stints, p.id, freeNowMs) > 0
+    )
+  }, [players, outAllIds, freeSubs, freeNowMs])
+
+  const freeSubsForTags = useMemo(() => (
+    freeMode && freeSubs
+      ? { stints: freeSubs.stints, nowMs: freeNowMs, totalMs: freeTotal }
+      : null
+  ), [freeMode, freeSubs, freeNowMs, freeTotal])
+
   const playerMap     = useMemo(() => Object.fromEntries((players || []).map(p => [p.id, p])), [players])
   const formationList = team ? (FORMATIONS_BY_DIVISION[team.division] || []) : []
 
@@ -272,6 +455,17 @@ export default function GameDayPage() {
   // ─── Mutate active plan state ─────────────────────────────────
   function updateActivePlanState(updater) {
     const planId = activePlanRef.current
+    if (!planId) return
+    setPlanStates(prev => ({
+      ...prev,
+      [planId]: updater(prev[planId] || buildBlankPlanState(
+        getFormationById(prev[planId]?.quarters?.[1]?.formationId)
+          || getDefaultFormation(teamRef.current?.division || '')
+      )),
+    }))
+  }
+
+  function updatePlanStateById(planId, updater) {
     if (!planId) return
     setPlanStates(prev => ({
       ...prev,
@@ -391,6 +585,8 @@ export default function GameDayPage() {
     const dupState = srcState
       ? {
           ...srcState,
+          // A copy is a different game: keep free-subs mode, drop its clock.
+          freeSubs:  srcState.freeSubs ? resetClock(srcState.freeSubs) : null,
           outAllIds: new Set(srcState.outAllIds),
           outQIds:   {
             1: new Set(srcState.outQIds?.[1]),
@@ -803,6 +999,16 @@ export default function GameDayPage() {
     finally { setIsExporting(false) }
   }
 
+  // Printable playing-time report for the free-subs game.
+  async function sharePlayTimeSheet() {
+    setShowShareSheet(false)
+    setIsExporting(true)
+    try {
+      await exportPlayTimeSheet(team)
+    } catch (err) { console.error('Playing time sheet export error:', err) }
+    finally { setIsExporting(false) }
+  }
+
   // Printable line-up report — shared with My Team (see lib/rosterSheet).
   async function shareRosterSheet() {
     setShowShareSheet(false)
@@ -977,15 +1183,17 @@ export default function GameDayPage() {
             onChange={handleFormationChange}
           />
           {saving && <span className="text-green-700 text-xs flex-shrink-0" title="Saving…">●</span>}
-          <button
-            onClick={openAILineup}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8,
-              background: 'linear-gradient(135deg, #7b3fa8, #00c853)', color: '#fff',
-              border: 'none', cursor: 'pointer', flexShrink: 0, fontSize: 13, fontWeight: 600 }}
-            aria-label="AI Lineup"
-          >
-            ✨ AI Lineup
-          </button>
+          {!freeMode && (
+            <button
+              onClick={openAILineup}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8,
+                background: 'linear-gradient(135deg, #7b3fa8, #00c853)', color: '#fff',
+                border: 'none', cursor: 'pointer', flexShrink: 0, fontSize: 13, fontWeight: 600 }}
+              aria-label="AI Lineup"
+            >
+              ✨ AI Lineup
+            </button>
+          )}
           <button
             onClick={() => setShowShareSheet(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
@@ -1027,15 +1235,17 @@ export default function GameDayPage() {
             <FormationPicker formations={formationList} selectedId={formationId} onChange={handleFormationChange} />
           </div>
           {saving && <span style={{ fontSize: 9, color: '#00c853', flexShrink: 0 }}>●</span>}
-          <button
-            onClick={openAILineup}
-            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 8,
-              background: 'linear-gradient(135deg, #7b3fa8, #00c853)', color: '#fff',
-              border: 'none', cursor: 'pointer', flexShrink: 0, fontSize: 12, fontWeight: 600 }}
-            aria-label="AI Lineup"
-          >
-            ✨ AI
-          </button>
+          {!freeMode && (
+            <button
+              onClick={openAILineup}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 8,
+                background: 'linear-gradient(135deg, #7b3fa8, #00c853)', color: '#fff',
+                border: 'none', cursor: 'pointer', flexShrink: 0, fontSize: 12, fontWeight: 600 }}
+              aria-label="AI Lineup"
+            >
+              ✨ AI
+            </button>
+          )}
           <button
             onClick={() => setShowShareSheet(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
@@ -1062,14 +1272,45 @@ export default function GameDayPage() {
         onDuplicate={handleDuplicatePlan}
         onDelete={(planId, planName) => setDeleteConfirm({ planId, planName, type: 'game' })}
         onRename={handleRenamePlan}
+        planModes={planModes}
+        onToggleMode={handleToggleMode}
       />
 
-      {/* ══ Row 3: Quarter tabs + field controls (desktop only) ══ */}
-      {isWide && (
+      {/* ══ Row 3: Free Subs clock, or quarter tabs + field controls ══ */}
+      {freeMode && (
+        <FreeSubsBar
+          freeSubs={freeSubs}
+          now={clockNow}
+          isMobile={!isWide}
+          onStart={handleFreeStart}
+          onPause={handleFreePause}
+          onEnd={handleFreeEnd}
+          onReset={handleFreeReset}
+          onLengthChange={handleFreeLength}
+          onExitMode={() => exitFreeMode()}
+          onResumeGame={handleFreeResume}
+        />
+      )}
+      {!freeMode && !isWide && (
+        <div
+          className="flex items-center px-3 border-b border-gray-800"
+          style={{ height: 34, flexShrink: 0, background: '#0d1117', gap: 8 }}
+        >
+          <ModeSwitch mode="quarters" onChange={handleModeChange} compact />
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+            planning by quarter
+          </span>
+        </div>
+      )}
+      {!freeMode && isWide && (
         <div
           className="flex items-stretch border-b border-gray-800"
           style={{ height: 48, flexShrink: 0, background: '#0d1117' }}
         >
+          <div className="flex items-center px-2 flex-shrink-0">
+            <ModeSwitch mode="quarters" onChange={handleModeChange} />
+          </div>
+          <div style={{ width: 1, background: '#1f2937', flexShrink: 0, margin: '10px 0' }} />
           {[1, 2, 3, 4].map(q => (
             <button
               key={q}
@@ -1127,6 +1368,7 @@ export default function GameDayPage() {
         display:       'flex',
         flexDirection: isWide ? 'row' : 'column',
         overflow:      'clip',
+        position:      'relative',
       }}>
 
         {/* ── Field pane ──
@@ -1148,8 +1390,8 @@ export default function GameDayPage() {
           overflow:       'hidden',
           position:       'relative',
         }}>
-          {/* Vertical quarter strip — mobile only */}
-          {!isWide && (
+          {/* Vertical quarter strip — mobile only, and only for quarter plans */}
+          {!isWide && !freeMode && (
             <div style={{ width: 28, display: 'flex', flexDirection: 'column', flexShrink: 0, zIndex: 2 }}>
               {[1, 2, 3, 4].map(q => {
                 const active   = q === viewedQuarter
@@ -1229,6 +1471,7 @@ export default function GameDayPage() {
             draggingPlayerId={draggingPlayerId}
             outAllIsOver={hoverDrop === 'out-all'}
             outQIsOver={hoverDrop === 'out-quarter'}
+            freeMode={freeMode}
           />
 
         </div>
@@ -1250,8 +1493,33 @@ export default function GameDayPage() {
             draggingPlayerId={draggingPlayerId}
             shakingPlayerId={shakingPlayerId}
             benchIsOver={hoverDrop === 'bench'}
+            freeSubs={freeSubsForTags}
           />
+          {freeMode && isWide && (
+            <PlayTimeList
+              players={availableForFreeList}
+              freeSubs={freeSubs}
+              nowMs={freeNowMs}
+              totalMs={freeTotal}
+              isMobile={false}
+              outIds={outAllIds}
+            />
+          )}
         </div>
+
+        {/* Phone: the ranking pulls up over the field instead of sitting
+            below the bench, where it would be off-screen all game. */}
+        {freeMode && !isWide && (
+          <PlayTimeList
+            players={availableForFreeList}
+            freeSubs={freeSubs}
+            nowMs={freeNowMs}
+            totalMs={freeTotal}
+            isMobile
+            sheet
+            outIds={outAllIds}
+          />
+        )}
       </div>
 
       {/* Toast notification */}
@@ -1309,6 +1577,47 @@ export default function GameDayPage() {
         />
       )}
 
+      {/* Runaway-clock recovery */}
+      {staleClock && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setStaleClock(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#101a1e', border: `1px solid ${theme.freeAccent}`, borderRadius: 14,
+              padding: 20, width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 12 }}
+          >
+            <div style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>
+              This clock has been running for {fmtMs(staleClock.elapsed)}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.5 }}>
+              The clock keeps running while the app is closed, so it looks like this game
+              never ended. Still playing?
+            </div>
+            <button
+              onClick={handleStaleFullTime}
+              style={{ padding: '12px 16px', borderRadius: 10, background: theme.freeAccent,
+                border: 'none', color: '#04222a', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+            >
+              Stop at full time ({freeSubs?.gameLengthMin ?? 0}:00)
+              <span style={{ display: 'block', fontSize: 11, fontWeight: 500, opacity: 0.75, marginTop: 2 }}>
+                Everything played before full time is kept
+              </span>
+            </button>
+            <button
+              onClick={() => setStaleClock(null)}
+              style={{ padding: '10px 16px', borderRadius: 10, background: 'none',
+                border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.6)',
+                fontSize: 13, cursor: 'pointer' }}
+            >
+              Still playing — keep it running
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Share action sheet */}
       {showShareSheet && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9998, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
@@ -1322,6 +1631,14 @@ export default function GameDayPage() {
             <button onClick={() => shareGameDay('pdf')} style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
               📄 Export as PDF
             </button>
+            {freeMode && (
+              <button onClick={() => sharePlayTimeSheet()} style={{ padding: '12px 16px', borderRadius: 10, background: theme.freeAccentDim, border: `1px solid ${theme.freeAccent}`, color: theme.freeAccentBright, fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
+                ⏱ Playing time sheet (PDF)
+                <span style={{ display: 'block', fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
+                  Minutes, share of the game and every stint, per player
+                </span>
+              </button>
+            )}
             <button onClick={() => shareRosterSheet()} style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(245,200,66,0.12)', border: '1px solid rgba(245,200,66,0.35)', color: '#F5C842', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
               🖨️ Roster sheet (print &amp; PDF)
               <span style={{ display: 'block', fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
@@ -1586,8 +1903,8 @@ export default function GameDayPage() {
                 )
               })}
             </div>
-            {/* AYSO warning */}
-            {atRisk.length > 0 && (
+            {/* AYSO warning — the three-quarter rule does not apply in free subs */}
+            {!freeMode && atRisk.length > 0 && (
               <div style={{ marginTop: 16, padding: '10px 14px', background: 'rgba(133,79,11,0.2)', border: '1px solid rgba(239,159,39,0.3)', borderRadius: 8, fontSize: 12, color: '#EF9F27' }}>
                 ⚠ Under 3 quarters: {atRisk.map(p => p.name).join(', ')}
               </div>
@@ -1599,6 +1916,14 @@ export default function GameDayPage() {
 
       {/* Hidden printable line-up report — white background, ink-friendly */}
       <RosterPrintSheet team={team} players={players} />
+      {freeMode && (
+        <PlayTimeSheet
+          team={team}
+          players={availableForFreeList}
+          freeSubs={freeSubs}
+          nowMs={freeNowMs}
+        />
+      )}
 
       {/* Delete confirmation dialog */}
       {deleteConfirm && (

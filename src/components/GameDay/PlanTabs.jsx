@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import theme from '../../theme'
 
 // ── Single tab ────────────────────────────────────────────────────
-function PlanTab({ plan, isActive, isSaving, compact, onSelect, onDuplicate, onRename, onDelete, tabRef }) {
+function PlanTab({ plan, isActive, isSaving, compact, mode, onSelect, onDuplicate, onRename, onDelete, onToggleMode, tabRef }) {
+  const isFree = mode === 'free'
   const [menuOpen, setMenuOpen]   = useState(false)
   const [editing, setEditing]     = useState(false)
   const [editName, setEditName]   = useState(plan.name)
@@ -91,7 +92,9 @@ function PlanTab({ plan, isActive, isSaving, compact, onSelect, onDuplicate, onR
             fontWeight:   isActive ? 600 : 400,
             color:        isActive ? '#e5e7eb' : '#9ca3af',
             background:   isActive ? 'var(--bg-secondary)' : 'transparent',
-            borderBottom: isActive ? `2px solid ${theme.brandGreen}` : '2px solid transparent',
+            borderBottom: isActive
+              ? `2px solid ${isFree ? theme.freeAccent : theme.brandGreen}`
+              : '2px solid transparent',
             whiteSpace:   'nowrap',
             overflow:     'hidden',
             textOverflow: 'ellipsis',
@@ -100,6 +103,15 @@ function PlanTab({ plan, isActive, isSaving, compact, onSelect, onDuplicate, onR
           }}
           title={`${plan.name} (double-click to rename)`}
         >
+          {isFree && (
+            <span
+              title="Free subs plan"
+              style={{
+                display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+                background: theme.freeAccentBright, marginRight: 6, verticalAlign: 'middle',
+              }}
+            />
+          )}
           {plan.name}
           {isActive && isSaving && (
             <span style={{ color: 'var(--color-green, #00c853)', marginLeft: 4, fontSize: 9 }}>●</span>
@@ -167,11 +179,16 @@ function PlanTab({ plan, isActive, isSaving, compact, onSelect, onDuplicate, onR
             {[
               { label: 'Rename',    action: startEdit },
               { label: 'Duplicate', action: () => { onDuplicate(plan.id); setMenuOpen(false) } },
-            ].map(({ label, action }) => (
+              {
+                label:  isFree ? 'Quarter mode' : 'Free subs mode',
+                action: () => { onToggleMode(plan.id); setMenuOpen(false) },
+                accent: !isFree,
+              },
+            ].map(({ label, action, accent }) => (
               <button
                 key={label}
                 onClick={action}
-                style={{ display:'block', width:'100%', padding:'8px 14px', textAlign:'left', fontSize:13, color:'#d1d5db', background:'none', cursor:'pointer' }}
+                style={{ display:'block', width:'100%', padding:'8px 14px', textAlign:'left', fontSize:13, color: accent ? theme.freeAccentBright : '#d1d5db', background:'none', cursor:'pointer' }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#374151')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'none')}
               >
@@ -200,6 +217,7 @@ function PlanTab({ plan, isActive, isSaving, compact, onSelect, onDuplicate, onR
 export default function PlanTabs({
   plans, activePlanId, saving, compact,
   onSelect, onCreate, onDuplicate, onDelete, onRename,
+  planModes = {}, onToggleMode = () => {},
 }) {
   const tabRefs = useRef({})
 
@@ -235,6 +253,8 @@ export default function PlanTabs({
             onDuplicate={onDuplicate}
             onRename={onRename}
             onDelete={onDelete}
+            mode={planModes[plan.id]}
+            onToggleMode={onToggleMode}
             tabRef={el => { tabRefs.current[plan.id] = el }}
           />
         ))}

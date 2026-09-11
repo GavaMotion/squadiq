@@ -355,6 +355,12 @@ export function getQuarterLengthMin(division) {
   return (HALF_LENGTHS[division] ?? 45) / 2
 }
 
+// Full regulation game = two halves. Used as the default game length in
+// Free Subs mode, where playing time is measured against the whole game.
+export function getGameLengthMin(division) {
+  return (HALF_LENGTHS[division] ?? 45) * 2
+}
+
 // Backward-compat
 export function getFormation(division) {
   return getDefaultFormation(division)
