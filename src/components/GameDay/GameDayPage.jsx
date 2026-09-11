@@ -1480,6 +1480,8 @@ export default function GameDayPage() {
         <div style={{
           flex: 1, minWidth: 0,
           display: 'flex', flexDirection: 'column',
+          // Room for the playing-time handle on the phone's right edge.
+          paddingRight: freeMode && !isWide ? 30 : 0,
         }}>
           <PlayerTagGrid
             players={players}
@@ -1507,8 +1509,9 @@ export default function GameDayPage() {
           )}
         </div>
 
-        {/* Phone: the ranking pulls up over the field instead of sitting
-            below the bench, where it would be off-screen all game. */}
+        {/* Phone: the ranking opens from the right edge. Anchored to the
+            bottom it covered the bench tags, which is what a coach reaches
+            for mid-game. */}
         {freeMode && !isWide && (
           <PlayTimeList
             players={availableForFreeList}
@@ -1516,7 +1519,7 @@ export default function GameDayPage() {
             nowMs={freeNowMs}
             totalMs={freeTotal}
             isMobile
-            sheet
+            drawer
             outIds={outAllIds}
           />
         )}

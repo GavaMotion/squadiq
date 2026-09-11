@@ -485,12 +485,14 @@ const TAB_COLORS = {
 }
 
 // ── Bottom tab bar ───────────────────────────────────────────────
-function TabBar({ active, onChange }) {
+function TabBar({ active, onChange, compact }) {
+  // The phone needs the vertical space more than it needs big chrome.
+  const ic = compact ? 17 : 20
   const tabs = [
     {
       id: 'team', label: 'My Team',
       renderIcon: (color) => (
-        <svg width="20" height="20" fill="none" stroke={color} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg width={ic} height={ic} fill="none" stroke={color} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
@@ -499,7 +501,7 @@ function TabBar({ active, onChange }) {
     {
       id: 'lineup', label: 'Lineup',
       renderIcon: (color) => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <svg width={ic} height={ic} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="6" r="2.5" />
           <path d="M12 9.5v5" />
           <path d="M9 12l3 1.5 3-1.5" />
@@ -512,7 +514,7 @@ function TabBar({ active, onChange }) {
     {
       id: 'sketch', label: 'Sketch',
       renderIcon: (color) => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <svg width={ic} height={ic} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
           <rect x="2" y="3" width="20" height="16" rx="2" />
           <line x1="7" y1="8" x2="10" y2="11" />
           <line x1="10" y1="8" x2="7" y2="11" />
@@ -525,7 +527,7 @@ function TabBar({ active, onChange }) {
     {
       id: 'practice', label: 'Practice',
       renderIcon: (color) => (
-        <svg width="20" height="20" fill="none" stroke={color} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg width={ic} height={ic} fill="none" stroke={color} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
         </svg>
@@ -534,7 +536,7 @@ function TabBar({ active, onChange }) {
     {
       id: 'standings', label: 'Standings',
       renderIcon: (color) => (
-        <svg width="20" height="20" fill="none" stroke={color} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg width={ic} height={ic} fill="none" stroke={color} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M5 3v18M5 7h6a3 3 0 010 6H5M19 14v7M19 14h-4a3 3 0 010-6h4" />
         </svg>
@@ -559,19 +561,19 @@ function TabBar({ active, onChange }) {
             style={{
               flex: 1, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
-              gap: 2, padding: '8px 0',
+              gap: compact ? 1 : 2, padding: compact ? '4px 0 3px' : '8px 0',
               background: 'none', border: 'none', cursor: 'pointer',
             }}
           >
             <span style={{ color: tabColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {tab.renderIcon(tabColor)}
             </span>
-            <span style={{ color: tabColor, fontSize: 11, fontWeight: 500, lineHeight: 1 }}>
+            <span style={{ color: tabColor, fontSize: compact ? 9.5 : 11, fontWeight: 500, lineHeight: 1 }}>
               {tab.label}
             </span>
             {isActive && (
               <span style={{
-                display: 'block', width: 16, height: 2, borderRadius: 2,
+                display: 'block', width: compact ? 12 : 16, height: 2, borderRadius: 2,
                 backgroundColor: tabColor,
               }} />
             )}
@@ -762,7 +764,7 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
         {tab === 'practice'  && <PracticePage />}
         {tab === 'standings' && <StandingsPage team={team} />}
       </div>
-      <TabBar active={tab} onChange={setTab} />
+      <TabBar active={tab} onChange={setTab} compact={!isWide} />
 
       {/* Install banner — shows once for 6s */}
       {showInstallBanner && (
