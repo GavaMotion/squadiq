@@ -156,7 +156,10 @@
       background: var(--surface-grad);
       border: 1px solid var(--border);
       border-radius: 16px;
-      overflow: hidden;
+      /* Scroll rather than clip: the actions column grew and a hidden overflow
+         put the trial button out of reach on a narrow window. */
+      overflow-x: auto;
+      overflow-y: hidden;
       box-shadow: 0 24px 60px rgba(0,0,0,0.35);
     }
     table { width: 100%; border-collapse: collapse; }
@@ -203,6 +206,11 @@
     .badge-expired { background: rgba(226,75,74,0.15); color: var(--danger); }
     .badge-none { background: rgba(255,255,255,0.05); color: var(--dim); }
     .override { color: var(--info); font-size: 10px; margin-left: 4px; font-weight: 600; }
+    .comp-tag {
+      display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 10px;
+      background: rgba(136,136,168,0.16); color: var(--muted);
+      font-size: 10px; font-weight: 700; letter-spacing: 0.2px;
+    }
 
     .trial-cell { color: var(--muted); font-size: 12px; }
     .trial-cell.urgent { color: var(--warn); font-weight: 600; }
@@ -240,6 +248,9 @@
     }
     .mini-btn:hover { border-color: var(--warn); color: var(--warn); }
     .mini-btn:disabled { opacity: 0.5; cursor: wait; }
+    .mini-btn.on { border-color: var(--muted); color: var(--text); background: rgba(136,136,168,0.14); }
+    .mini-btn.comp { padding: 5px 8px; margin-left: 5px; }
+    .mini-btn.comp:hover { border-color: var(--info); color: var(--info); }
 
     .toast {
       position: fixed;
@@ -305,6 +316,7 @@
     <button class="filter-btn active" data-filter="all">All</button>
     <button class="filter-btn" data-filter="valid">Valid</button>
     <button class="filter-btn" data-filter="paying">Paying</button>
+    <button class="filter-btn" data-filter="comped">Comped</button>
     <button class="filter-btn" data-filter="trial">Trial</button>
     <button class="filter-btn" data-filter="expired">Expired</button>
     <button class="filter-btn" data-filter="new">New (7d)</button>
@@ -379,10 +391,19 @@
     return u.plan === 'trial' && !!u.trial_end && new Date(u.trial_end) <= Date.now()
   }
 
-  // Valid = the account still has access: paying, or a trial that is running.
+  // Valid = the account still has access: paying, comped, or a trial that is
+  // running. Comping changes the books, never the entitlement.
   function isValid(u) {
     if (u.plan === 'solo' || u.plan === 'premium') return true
     return u.plan === 'trial' && !isExpired(u)
+  }
+  // Paying = on a paid plan and actually billed for it. A comped account is a
+  // gift (tester, friend, AYSO contact) and must never read as revenue.
+  function isPaying(u) {
+    return (u.plan === 'solo' || u.plan === 'premium') && !u.comped
+  }
+  function isComped(u) {
+    return !!u.comped && (u.plan === 'solo' || u.plan === 'premium')
   }
 
   function escapeHtml(s) {
@@ -392,7 +413,8 @@
   function applyFilter(users) {
     let r = users
     if (activeFilter === 'valid')    r = r.filter(isValid)
-    if (activeFilter === 'paying')   r = r.filter(u => u.plan === 'solo' || u.plan === 'premium')
+    if (activeFilter === 'paying')   r = r.filter(isPaying)
+    if (activeFilter === 'comped')   r = r.filter(isComped)
     if (activeFilter === 'trial')    r = r.filter(u => u.plan === 'trial' && !isExpired(u))
     if (activeFilter === 'expired')  r = r.filter(isExpired)
     if (activeFilter === 'new')      { const c = Date.now() - 7*86400000; r = r.filter(u => new Date(u.signup) >= c) }
@@ -424,7 +446,8 @@
     const total = filtered.length
     const counts = {}
     for (const u of filtered) counts[u.plan] = (counts[u.plan] || 0) + 1
-    const paying = (counts.solo || 0) + (counts.premium || 0)
+    const paying = filtered.filter(isPaying).length
+    const comped = filtered.filter(isComped).length
     const expired = filtered.filter(isExpired).length
     const trialing = (counts.trial || 0) - filtered.filter(u => u.plan === 'trial' && isExpired(u)).length
     const expiring = filtered.filter(u => {
@@ -435,6 +458,7 @@
     summary.innerHTML = `
       <div class="summary-card"><div class="summary-label">Users</div><div class="summary-value">${total}</div></div>
       <div class="summary-card"><div class="summary-label">Paying</div><div class="summary-value accent">${paying}</div></div>
+      <div class="summary-card"><div class="summary-label">Comped</div><div class="summary-value">${comped}</div></div>
       <div class="summary-card"><div class="summary-label">Trial</div><div class="summary-value warn">${trialing}</div></div>
       <div class="summary-card"><div class="summary-label">Expiring ≤7d</div><div class="summary-value warn">${expiring}</div></div>
       <div class="summary-card"><div class="summary-label">Expired</div><div class="summary-value danger">${expired}</div></div>
@@ -453,10 +477,11 @@
       const tl = trialLeft(u)
       const planClass = ['trial','solo','premium','expired'].includes(u.plan) ? u.plan : 'none'
       const override = u.plan_override ? `<span class="override">${escapeHtml(u.plan_override)}</span>` : ''
+      const comp = u.comped ? '<span class="comp-tag" title="Granted by hand — not counted as paying">comped</span>' : ''
       const provider = u.provider && u.provider !== 'email' && u.provider !== '?' ? `<span class="provider">${escapeHtml(u.provider)}</span>` : ''
       return `<tr class="row">
         <td><span class="email">${escapeHtml(u.email)}</span>${provider}</td>
-        <td><span class="badge badge-${planClass}">${escapeHtml(u.plan)}</span>${override}</td>
+        <td><span class="badge badge-${planClass}">${escapeHtml(u.plan)}</span>${override}${comp}</td>
         <td class="platform-cell" title="${escapeHtml(u.user_agent || '')}">${u.platform ? escapeHtml(u.platform) : '<span class="dim-dash">—</span>'}</td>
         <td class="device-cell" title="${escapeHtml(u.user_agent || '')}">${u.device ? escapeHtml(u.device) : '<span class="dim-dash">—</span>'}</td>
         <td class="location-cell" title="${escapeHtml(u.ip || '')}">${u.location ? escapeHtml(u.location) : '<span class="dim-dash">—</span>'}</td>
@@ -470,6 +495,8 @@
               `<option value="${p}" ${u.plan === p ? 'selected' : ''}>${p}</option>`).join('')}
             ${['trial','solo','premium','expired'].includes(u.plan) ? '' : `<option value="" selected disabled>${escapeHtml(u.plan)}</option>`}
           </select>
+          <button class="mini-btn comp${u.comped ? ' on' : ''}" data-uid="${escapeHtml(u.id)}"
+            title="${u.comped ? 'Counted as a gift — click to count as paying' : 'Mark as given, not bought — keeps access, drops out of Paying'}">${u.comped ? '✓ Comp' : 'Comp'}</button>
           <button class="mini-btn reset-trial" data-uid="${escapeHtml(u.id)}" title="Restart a fresh 30-day trial">↻ Trial</button>
         </td>
       </tr>`
@@ -562,6 +589,7 @@
     if (!u) return
     if (patch.plan !== undefined) u.plan = patch.plan
     if (patch.trial_end !== undefined) u.trial_end = patch.trial_end
+    if (patch.comped !== undefined) u.comped = patch.comped
     rerender()
   }
 
@@ -587,6 +615,27 @@
   })
 
   tbody.addEventListener('click', async (e) => {
+    const comp = e.target.closest('.mini-btn.comp')
+    if (comp) {
+      const id = comp.dataset.uid
+      const u = userById(id)
+      if (!u) return
+      const next = !u.comped
+      const q = next
+        ? `Mark ${u.email} as comped? They keep their ${u.plan} access; they stop counting as paying.`
+        : `Count ${u.email} as paying again?`
+      if (!confirm(q)) return
+      comp.disabled = true
+      try {
+        const patch = await postAction('/api/set-comped', { userId: id, comped: next })
+        applyPatchLocal(id, patch)
+        toast(`${u.email} → ${next ? 'comped' : 'paying'}`, 'ok')
+      } catch (err) {
+        toast('Failed: ' + err.message, 'err')
+        comp.disabled = false
+      }
+      return
+    }
     const btn = e.target.closest('.reset-trial')
     if (!btn) return
     const id = btn.dataset.uid

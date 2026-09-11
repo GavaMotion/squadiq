@@ -162,6 +162,7 @@ async function loadUsers() {
       last_seen:              u.last_sign_in_at,
       plan:                   s?.plan || 'none',
       plan_override:          s?.plan_override || null,
+      comped:                 !!s?.comped,
       trial_end:              s?.trial_end || null,
       stripe_customer_id:     s?.stripe_customer_id || null,
       stripe_subscription_id: s?.stripe_subscription_id || null,
@@ -246,7 +247,7 @@ const server = createServer(async (req, res) => {
       res.end(JSON.stringify(users))
       return
     }
-    if (req.method === 'POST' && (req.url === '/api/set-plan' || req.url === '/api/reset-trial')) {
+    if (req.method === 'POST' && (req.url === '/api/set-plan' || req.url === '/api/reset-trial' || req.url === '/api/set-comped')) {
       // Mutating endpoints. Access is already restricted to loopback/Tailscale;
       // additionally reject cross-origin browser requests (CSRF-lite): a custom
       // header forces a CORS preflight this server never approves, and any
@@ -264,6 +265,11 @@ const server = createServer(async (req, res) => {
       let patch
       if (req.url === '/api/reset-trial') {
         patch = { plan: 'trial', trial_start: nowIso, trial_end: trialEndIso, updated_at: nowIso }
+      } else if (req.url === '/api/set-comped') {
+        // Comped = the plan was given, not bought. Entitlement is untouched;
+        // only the paying counts change.
+        if (typeof body.comped !== 'boolean') { res.writeHead(400); res.end('bad comped'); return }
+        patch = { comped: body.comped, updated_at: nowIso }
       } else {
         const plan = String(body.plan || '')
         if (!ALLOWED_PLANS.has(plan)) { res.writeHead(400); res.end('bad plan'); return }

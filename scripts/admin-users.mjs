@@ -20,7 +20,8 @@ if (hasFlag('help') || hasFlag('h')) {
 
 Filters:
   --plan <list>       Comma list of: trial,solo,premium,expired
-  --paying            Shortcut for --plan solo,premium
+  --paying            On a paid plan and actually billed (excludes comped)
+  --comped            Paid plan granted by hand — access, but not revenue
   --trial             Shortcut for --plan trial
   --expired           Shortcut for --plan expired
   --new [days]        Signed up within N days (default 7)
@@ -91,6 +92,7 @@ let rows = users.map(u => {
     last_seen:              u.last_sign_in_at,
     plan:                   s?.plan || 'none',
     plan_override:          s?.plan_override || null,
+    comped:                 !!s?.comped,
     trial_end:              s?.trial_end || null,
     stripe_customer_id:     s?.stripe_customer_id || null,
     stripe_subscription_id: s?.stripe_subscription_id || null,
@@ -106,6 +108,10 @@ if (hasFlag('paying'))  planSet = new Set(['solo', 'premium'])
 if (hasFlag('trial'))   planSet = new Set(['trial'])
 if (hasFlag('expired')) planSet = new Set(['expired'])
 if (planSet) rows = rows.filter(r => planSet.has(r.plan))
+// Comped accounts are gifts (testers, friends, AYSO contacts): full access,
+// no revenue. --paying means billed, so they are excluded from it.
+if (hasFlag('paying')) rows = rows.filter(r => !r.comped)
+if (hasFlag('comped')) rows = rows.filter(r => r.comped)
 
 function daysFlag(name, def) {
   const v = flagValue(name)
@@ -178,14 +184,14 @@ function trialLeft(r) {
 if (format === 'json') {
   console.log(JSON.stringify(shown, null, 2))
 } else if (format === 'csv') {
-  const cols = ['email','plan','plan_override','signup','last_seen','teams','trial_end','stripe_customer_id']
+  const cols = ['email','plan','plan_override','comped','signup','last_seen','teams','trial_end','stripe_customer_id']
   console.log(cols.join(','))
   for (const r of shown) console.log(cols.map(c => JSON.stringify(r[c] ?? '')).join(','))
 } else {
   const headers = ['Email', 'Plan', 'Signed up', 'Last seen', 'Teams', 'Trial']
   const data = shown.map(r => [
     r.email,
-    r.plan_override ? `${r.plan}(${r.plan_override})` : r.plan,
+    r.plan_override ? `${r.plan}(${r.plan_override})` : r.comped ? `${r.plan} (comped)` : r.plan,
     relTime(r.signup),
     relTime(r.last_seen),
     String(r.teams),
@@ -205,4 +211,7 @@ if (format === 'json') {
   for (const r of rows) planCounts[r.plan] = (planCounts[r.plan] || 0) + 1
   const summary = Object.entries(planCounts).map(([p, n]) => `${p}: ${n}`).join(', ')
   if (summary) console.log(`Plans: ${summary}`)
+  // Say it out loud: a comped row looks exactly like a sale in the plan counts.
+  const comped = rows.filter(r => r.comped).length
+  if (comped) console.log(`Comped: ${comped} (full access, not revenue)`)
 }
