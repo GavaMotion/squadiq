@@ -4,7 +4,8 @@
  * • Green cell  = player is assigned to that quarter (quarterRoster)
  * • Gray cell   = not assigned
  * • Locked col  = completed quarter (read-only, historical)
- * • Amber row   = total quarters planned < 3 (AYSO ¾ rule at risk)
+ * • Amber row   = exactly 2 quarters planned (AYSO ¾ rule at risk)
+ * • Red row     = fewer than 2 quarters planned
  * • Absent row  = player marked absent (excluded from planning, shown below)
  *
  * Props:
@@ -17,6 +18,8 @@
  *   onToggle          (playerId, quarter) => void
  *   onToggleAbsent    (playerId) => void
  */
+import { playtimeLevel } from '../../lib/playtime'
+
 export default function QuarterPlanGrid({
   players,
   quarterRoster,
@@ -56,9 +59,13 @@ export default function QuarterPlanGrid({
               {label}
             </span>
           ))}
-          <span className="flex items-center gap-1 text-xs text-amber-500">
+          <span className="flex items-center gap-1 text-xs" style={{ color: '#f59e0b' }}>
             <span className="inline-block w-3 h-3 rounded" style={{ background: '#f59e0b' }} />
-            &lt;3 planned
+            2 planned
+          </span>
+          <span className="flex items-center gap-1 text-xs" style={{ color: '#ef4444' }}>
+            <span className="inline-block w-3 h-3 rounded" style={{ background: '#ef4444' }} />
+            &lt;2 planned
           </span>
         </div>
       </div>
@@ -96,7 +103,9 @@ export default function QuarterPlanGrid({
           const pid          = player.id
           const played       = completedQuarters.filter(q => (quarterRoster[q]||[]).includes(pid)).length
           const totalPlanned = [1,2,3,4].filter(q => (quarterRoster[q]||[]).includes(pid)).length
-          const needsMore    = totalPlanned < 3
+          const level        = playtimeLevel(totalPlanned)
+          const needsMore    = level !== 'ok'
+          const riskColor   = level === 'short' ? '#ef4444' : '#f59e0b'
 
           return (
             <div
@@ -104,8 +113,10 @@ export default function QuarterPlanGrid({
               className="grid border-b border-gray-800/60 last:border-0 hover:bg-gray-900/30 transition"
               style={{
                 gridTemplateColumns: '1fr 44px 44px 44px 44px 36px 32px',
-                background:  needsMore ? 'rgba(245,158,11,0.05)' : 'transparent',
-                borderLeft:  needsMore ? '2px solid #f59e0b' : '2px solid transparent',
+                background:  needsMore
+                  ? (level === 'short' ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.05)')
+                  : 'transparent',
+                borderLeft:  needsMore ? `2px solid ${riskColor}` : '2px solid transparent',
               }}
             >
               {/* Player name */}
@@ -118,7 +129,7 @@ export default function QuarterPlanGrid({
                 </div>
                 <span className="text-white text-sm truncate">{player.name}</span>
                 {needsMore && (
-                  <span className="flex-shrink-0 text-amber-400 ml-0.5" title="Fewer than 3 quarters planned" style={{ fontSize: 10 }}>⚠</span>
+                  <span className="flex-shrink-0 ml-0.5" title="Fewer than 3 quarters planned" style={{ fontSize: 10, color: riskColor }}>⚠</span>
                 )}
               </div>
 
@@ -171,7 +182,7 @@ export default function QuarterPlanGrid({
               <div className="flex items-center justify-center py-2">
                 <span
                   className="text-xs font-bold tabular-nums"
-                  style={{ color: needsMore ? '#f59e0b' : played >= 3 ? '#22c55e' : '#9ca3af' }}
+                  style={{ color: needsMore ? riskColor : played >= 3 ? '#22c55e' : '#9ca3af' }}
                 >
                   {played}/{totalPlanned}
                 </span>

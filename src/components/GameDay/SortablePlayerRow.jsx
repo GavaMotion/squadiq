@@ -1,5 +1,6 @@
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
+import { playtimeLevel } from '../../lib/playtime'
 
 /**
  * A single row in the bench/sub-queue panel.
@@ -10,7 +11,7 @@ import { CSS } from '@dnd-kit/utilities'
  *   quarterDots       Array of 4 statuses: 'played' | 'planned' | 'none'
  *                     Index 0 = Q1, index 3 = Q4
  *   quartersPlayed    Number of completed quarters this player has played
- *   totalPlanned      Total quarters planned (played + future); amber highlight if < 3
+ *   totalPlanned      Total quarters planned (played + future); amber at 2, red under 2
  *   isFirst           Whether this is the top of the bench queue (most needs playing time)
  *   onToggleAbsent    (playerId) => void
  */
@@ -28,7 +29,9 @@ export default function SortablePlayerRow({
       data: { playerId: player.id, fromSlot: 'bench' },
     })
 
-  const needsMore = totalPlanned !== undefined && totalPlanned < 3
+  const level      = totalPlanned === undefined ? 'ok' : playtimeLevel(totalPlanned)
+  const needsMore  = level !== 'ok'
+  const riskColor = level === 'short' ? '#ef4444' : '#f59e0b'
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -43,10 +46,10 @@ export default function SortablePlayerRow({
       style={{
         ...style,
         background: needsMore
-          ? 'rgba(245,158,11,0.05)'
+          ? (level === 'short' ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.05)')
           : isFirst ? 'rgba(26,92,46,0.18)' : 'transparent',
         borderLeft: needsMore
-          ? '3px solid #f59e0b'
+          ? `3px solid ${riskColor}`
           : isFirst ? '3px solid var(--team-primary, #1a5c2e)' : '3px solid transparent',
       }}
     >
@@ -84,7 +87,7 @@ export default function SortablePlayerRow({
           </span>
           <span
             className="text-xs ml-2 flex-shrink-0 tabular-nums"
-            style={{ color: needsMore ? '#f59e0b' : '#6b7280' }}
+            style={{ color: needsMore ? riskColor : '#6b7280' }}
           >
             {quartersPlayed}/{totalPlanned ?? 4} Q
             {needsMore && <span className="ml-0.5">⚠</span>}

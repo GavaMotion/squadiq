@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { playtimeLevel } from '../../lib/playtime'
 
 // ── Quarter dot ───────────────────────────────────────────────────
 function QDot({ state }) {
@@ -20,10 +21,7 @@ function QDot({ state }) {
 
 // ── Single draggable player tag ───────────────────────────────────
 function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile, dimmed, onDragStart, isDragging, isShaking }) {
-  let borderColor
-  if (totalPlanned >= 3)      borderColor = '#00c853'
-  else if (totalPlanned > 0)  borderColor = '#EF9F27'
-  else                         borderColor = 'rgba(255,255,255,0.18)'
+  const borderColor = { ok: '#00c853', near: '#EF9F27', short: '#ef4444' }[playtimeLevel(totalPlanned)]
 
   const w = isMobile ? 75 : 84
   const h = isMobile ? 62 : 70

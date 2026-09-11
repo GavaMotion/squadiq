@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, useRef } from 'react'
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import theme from '../../theme'
+import { playtimeLevel } from '../../lib/playtime'
 
 function useMobile() {
   const [m, setM] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768)
@@ -49,7 +50,9 @@ function PlayerRow({ player, quarterAssigned, totalPlanned, isAbsent, isOnField,
     disabled: isAbsent,
   })
 
-  const needsMore = !isAbsent && !isOnField && totalPlanned < 3
+  const level     = playtimeLevel(totalPlanned)
+  const needsMore = !isAbsent && !isOnField && level !== 'ok'
+  const isShort   = needsMore && level === 'short'
 
   // ── Row coloring ─────────────────────────────────────────────────
   let rowBg, rowBorderLeft, isGreenRow
@@ -64,7 +67,7 @@ function PlayerRow({ player, quarterAssigned, totalPlanned, isAbsent, isOnField,
     isGreenRow    = true
   } else if (needsMore) {
     rowBg         = theme.atRiskRowBg
-    rowBorderLeft = '3px solid #5a3407'
+    rowBorderLeft = `3px solid ${isShort ? '#ef4444' : '#5a3407'}`
     isGreenRow    = false
   } else {
     rowBg         = theme.playerRowBg
@@ -116,7 +119,7 @@ function PlayerRow({ player, quarterAssigned, totalPlanned, isAbsent, isOnField,
       onMouseEnter={e => {
         if (!isGreenRow && !isAbsent && !isDragging) {
           e.currentTarget.style.background = needsMore
-            ? '#9b5e0f'
+            ? (isShort ? '#8f2222' : '#9b5e0f')
             : theme.playerRowHover
         }
       }}
@@ -165,7 +168,7 @@ function PlayerRow({ player, quarterAssigned, totalPlanned, isAbsent, isOnField,
           <span style={{ flexShrink:0, fontSize:10, color:'rgba(255,255,255,0.55)' }}>absent</span>
         )}
         {needsMore && (
-          <span style={{ flexShrink:0, fontWeight:600, fontSize:10, color:'#fbbf24' }}>⚠ &lt;3Q</span>
+          <span style={{ flexShrink:0, fontWeight:600, fontSize:10, color: isShort ? '#f87171' : '#fbbf24' }}>⚠ &lt;3Q</span>
         )}
       </div>
 
@@ -331,7 +334,11 @@ export default function PlayerRosterList({
           </span>
           <span style={{ display:'flex', alignItems:'center', gap:4 }}>
             <span style={{ display:'inline-block', width:7, height:7, borderRadius:'50%', background:'#a0620d' }} />
-            &lt;3 qtrs
+            2 qtrs
+          </span>
+          <span style={{ display:'flex', alignItems:'center', gap:4 }}>
+            <span style={{ display:'inline-block', width:7, height:7, borderRadius:'50%', background:'#ef4444' }} />
+            &lt;2 qtrs
           </span>
           <span style={{ display:'flex', alignItems:'center', gap:8 }}>
             {[1,2,3,4].map(q => (
