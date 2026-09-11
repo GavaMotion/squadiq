@@ -21,3 +21,19 @@ export function getContrastTextColor(bg, darkColor = '#0a0a0f', lightColor = '#f
   const yiq = (r * 299 + g * 587 + b * 114) / 1000
   return yiq >= 128 ? darkColor : lightColor
 }
+
+// ── One-a-day prompts ─────────────────────────────────────────────
+// Some confirmations are worth showing the first time and merely annoying
+// every time after. These remember the acknowledgement for the calendar day,
+// so a coach sees the explanation once and is left alone during the game.
+export function ackedToday(key) {
+  try {
+    return localStorage.getItem(key) === new Date().toDateString()
+  } catch { return false }
+}
+
+export function ackToday(key) {
+  try { localStorage.setItem(key, new Date().toDateString()) } catch { /* private mode */ }
+}
+
+export const MODE_SWITCH_ACK = 'sq_ack_mode_switch'

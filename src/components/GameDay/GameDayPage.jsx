@@ -4,7 +4,7 @@ import theme from '../../theme'
 import { supabase } from '../../lib/supabase'
 import { useApp, emptyPlan, buildBlankPlanState, planStateToQuarterData } from '../../contexts/AppContext'
 import { useToast } from '../UI/Toast'
-import { getContrastTextColor } from '../../lib/utils'
+import { getContrastTextColor, ackToday, ackedToday, MODE_SWITCH_ACK } from '../../lib/utils'
 import {
   FORMATIONS_BY_DIVISION,
   getDefaultFormation,
@@ -21,6 +21,7 @@ import PlayTimeList from './PlayTimeList'
 import OutPanel from './OutPanel'
 import PlanTabs from './PlanTabs'
 import { LineupSkeleton } from '../UI/Skeleton'
+import ConfirmDialog from '../UI/ConfirmDialog'
 import { generateAILineup } from '../../lib/aiLineup'
 import {
   createFreeSubs, endGame, fmtMs, gameMs, isRunning, pauseAt, pauseClock,
@@ -288,6 +289,7 @@ export default function GameDayPage() {
   // A running clock keeps counting while the app is closed, which is right
   // during a game and wrong the morning after one. If a plan comes back with
   // the clock miles past full time, ask instead of silently believing it.
+  const [confirm,     setConfirm]     = useState(null)
   const [staleClock,  setStaleClock]  = useState(null)
   const staleAskedRef = useRef(new Set())
   useEffect(() => {
@@ -327,18 +329,33 @@ export default function GameDayPage() {
   }
   function handleFreePause() { updateFreeSubs(fs => pauseClock(fs, Date.now())) }
   function handleFreeEnd() {
-    if (!window.confirm('End the game? The clock stops and every stint is closed.')) return
-    updateFreeSubs(fs => endGame(fs, Date.now()))
-    addToast('Game ended — playing time is final', 'info', 3000)
+    setConfirm({
+      icon: '🏁',
+      title: 'End the game?',
+      message: 'The clock stops and every stint is closed. You can undo this straight after with Resume game.',
+      confirmLabel: 'End game',
+      onConfirm: () => {
+        updateFreeSubs(fs => endGame(fs, Date.now()))
+        addToast('Game ended — playing time is final', 'info', 3000)
+      },
+    })
   }
   function handleFreeResume() {
     updateFreeSubs(fs => resumeGame(fs))
     addToast('Game resumed — clock is paused where it stopped', 'info', 3000)
   }
   function handleFreeReset() {
-    if (!window.confirm('Reset the clock and erase all recorded playing time for this plan?')) return
-    updateFreeSubs(fs => resetClock(fs))
-    addToast('Clock reset', 'info', 2000)
+    setConfirm({
+      icon: '⟲',
+      title: 'Reset the clock?',
+      message: 'Every minute recorded for this plan is erased and the clock goes back to 0:00. This cannot be undone.',
+      confirmLabel: 'Reset',
+      tone: 'danger',
+      onConfirm: () => {
+        updateFreeSubs(fs => resetClock(fs))
+        addToast('Clock reset', 'info', 2000)
+      },
+    })
   }
   function handleFreeLength(min) { updateFreeSubs(fs => ({ ...fs, gameLengthMin: min })) }
 
@@ -354,13 +371,23 @@ export default function GameDayPage() {
     addToast(`Free subs on — ${mins} min game, sub whenever you like`, 'info', 3500)
   }
   function exitFreeMode(planId = activePlanId) {
-    if (!window.confirm('Switch this plan back to quarter planning? Recorded playing time is kept, but the clock stops.')) return
-    updatePlanStateById(planId, state => ({
-      ...state,
-      mode:     'quarters',
-      freeSubs: state.freeSubs ? pauseClock(state.freeSubs, Date.now()) : null,
-    }))
-    scheduleSave(planId)
+    const apply = () => {
+      updatePlanStateById(planId, state => ({
+        ...state,
+        mode:     'quarters',
+        freeSubs: state.freeSubs ? pauseClock(state.freeSubs, Date.now()) : null,
+      }))
+      scheduleSave(planId)
+    }
+    // Explaining the switch is worth one interruption, not one per switch.
+    if (ackedToday(MODE_SWITCH_ACK)) { apply(); return }
+    setConfirm({
+      icon: '↔',
+      title: 'Back to quarter planning?',
+      message: 'Recorded playing time is kept, but the clock stops. You can switch back to free subs at any time.',
+      confirmLabel: 'Switch',
+      onConfirm: () => { ackToday(MODE_SWITCH_ACK); apply() },
+    })
   }
 
   // A plan's mode is a property of the plan, so it is toggled from that
@@ -773,7 +800,17 @@ export default function GameDayPage() {
   }
 
   function handleClearAll() {
-    if (!window.confirm('Clear all 4 quarters and reset OUT buckets?')) return
+    setConfirm({
+      icon: '🧹',
+      title: 'Clear every quarter?',
+      message: 'All four quarters are emptied and the OUT buckets are reset. This cannot be undone.',
+      confirmLabel: 'Clear all',
+      tone: 'danger',
+      onConfirm: doClearAll,
+    })
+  }
+
+  function doClearAll() {
     setPlanStates(prev => {
       const current = prev[activePlanId] || {}
       const clearedQuarters = {}
@@ -1577,6 +1614,15 @@ export default function GameDayPage() {
         <SavePlanModal
           onSave={handleCreatePlan}
           onCancel={() => setShowNewPlanModal(false)}
+        />
+      )}
+
+      {/* Confirmations — in-app so the title says SquadIQ, not the URL */}
+      {confirm && (
+        <ConfirmDialog
+          {...confirm}
+          onConfirm={() => { confirm.onConfirm?.(); setConfirm(null) }}
+          onCancel={() => setConfirm(null)}
         />
       )}
 
