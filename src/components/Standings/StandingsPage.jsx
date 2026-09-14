@@ -11,6 +11,7 @@ export default function StandingsPage({ team }) {
   const [error, setError] = useState(null)
   const [refreshing, setRefreshing] = useState(new Set())
   const [myTeamRow, setMyTeamRow] = useState({})
+  const [divisionChoices, setDivisionChoices] = useState(null)
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -60,46 +61,88 @@ export default function StandingsPage({ team }) {
     if (!url.trim() || loading) return
     setLoading(true)
     setError(null)
+    setDivisionChoices(null)
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('scrape-standings', {
-        body: { url: url.trim(), teamId: team?.id || null, save: false },
-      })
-      if (fnError || data?.error) throw new Error(data?.error || fnError?.message)
-      if (!data?.standings?.length) throw new Error('No standings found at this URL')
+      await addFromUrl(url.trim())
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-      // Demo mode (no team): keep the scraped table in local state only.
-      if (!team?.id) {
-        const localRow = {
-          id: `local-${Date.now()}`,
-          mode: data.platform || 'url',
-          source_url: url.trim(),
-          label: guessLabel(url.trim()),
-          table_data: data.standings,
-          updated_at: new Date().toISOString(),
-        }
-        setStandingsList(prev => [...prev, localRow])
-        setActiveId(localRow.id)
-        setUrl('')
-        return
+  // Shared by the paste box and the division picker.
+  async function addFromUrl(target) {
+    const { data, error: fnError } = await supabase.functions.invoke('scrape-standings', {
+      body: { url: target, teamId: team?.id || null, save: false },
+    })
+    if (fnError || data?.error) throw new Error(data?.error || fnError?.message)
+
+    // A league homepage covers every division at once, so the scraper answers
+    // with the list instead of a table. Without this the response fell through
+    // to "No standings found at this URL" and the picker was unreachable.
+    if (data?.needsDivisionPick && data?.divisions?.length) {
+      setDivisionChoices(data.divisions)
+      return
+    }
+    if (!data?.standings?.length) throw new Error('No standings found at this URL')
+
+    // A team page resolves to its own division, so store the division link it
+    // resolved to — that is what a later refresh should re-fetch.
+    const sourceUrl = data.sourceUrl || target
+    const label = data.label || guessLabel(sourceUrl)
+    // Some leagues label teams in the standings by head coach. Only trust the
+    // name the scraper found if it actually appears in this table.
+    const myTeamName = data.myTeamName && data.standings.some(r => r.team === data.myTeamName)
+      ? data.myTeamName
+      : null
+
+    // Demo mode (no team): keep the scraped table in local state only.
+    if (!team?.id) {
+      const localRow = {
+        id: `local-${Date.now()}`,
+        mode: data.platform || 'url',
+        source_url: sourceUrl,
+        label,
+        table_data: data.standings,
+        my_team_name: myTeamName,
+        updated_at: new Date().toISOString(),
       }
-
-      const { data: saved, error: saveError } = await supabase
-        .from('standings')
-        .insert({
-          team_id: team.id,
-          mode: data.platform || 'url',
-          source_url: url.trim(),
-          label: guessLabel(url.trim()),
-          table_data: data.standings,
-          updated_at: new Date().toISOString(),
-        })
-        .select()
-        .single()
-
-      if (saveError) throw saveError
-      setStandingsList(prev => [...prev, saved])
-      setActiveId(saved.id)
+      setStandingsList(prev => [...prev, localRow])
+      setActiveId(localRow.id)
+      if (myTeamName) setMyTeamRow(prev => ({ ...prev, [localRow.id]: myTeamName }))
       setUrl('')
+      setDivisionChoices(null)
+      return
+    }
+
+    const { data: saved, error: saveError } = await supabase
+      .from('standings')
+      .insert({
+        team_id: team.id,
+        mode: data.platform || 'url',
+        source_url: sourceUrl,
+        label,
+        table_data: data.standings,
+        my_team_name: myTeamName,
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+
+    if (saveError) throw saveError
+    setStandingsList(prev => [...prev, saved])
+    setActiveId(saved.id)
+    if (myTeamName) setMyTeamRow(prev => ({ ...prev, [saved.id]: myTeamName }))
+    setUrl('')
+    setDivisionChoices(null)
+  }
+
+  async function pickDivision(division) {
+    setLoading(true)
+    setError(null)
+    try {
+      await addFromUrl(division.url)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -206,6 +249,46 @@ export default function StandingsPage({ team }) {
       {error && (
         <div style={{ color: '#E24B4A', fontSize: 12, padding: '6px 10px', background: 'rgba(220,50,50,0.08)', borderRadius: 8 }}>
           ⚠ {error}
+        </div>
+      )}
+
+      {divisionChoices && (
+        <div style={{
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 10, padding: 12,
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
+          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
+            That link covers the whole league — pick your division:
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {divisionChoices.map(d => (
+              <button
+                key={d.id}
+                onClick={() => pickDivision(d)}
+                disabled={loading}
+                style={{
+                  padding: '8px 14px', borderRadius: 20,
+                  border: '1px solid rgba(245,200,66,0.4)',
+                  background: 'rgba(245,200,66,0.12)',
+                  color: '#F5C842', fontSize: 12, fontWeight: 600,
+                  cursor: loading ? 'default' : 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setDivisionChoices(null)}
+            style={{
+              alignSelf: 'flex-start', background: 'none', border: 'none',
+              color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer', padding: 0,
+            }}
+          >
+            Cancel
+          </button>
         </div>
       )}
 

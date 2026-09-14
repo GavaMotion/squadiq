@@ -8,6 +8,11 @@ const corsHeaders = {
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36';
 
+function num(v: string | undefined): number | null {
+  const n = parseInt(v ?? '', 10);
+  return Number.isNaN(n) ? null : n;
+}
+
 // ─── MatchTrak ───────────────────────────────────────────────
 function parseMatchTrakHTML(html: string) {
   let cleaned = html;
@@ -113,10 +118,12 @@ function parseMatchTrakHTML(html: string) {
       t = parseInt(row[colMap.t ?? -1]) || 0;
     }
 
-    const gf = colMap.gf !== undefined ? parseInt(row[colMap.gf]) || null : null;
-    const ga = colMap.ga !== undefined ? parseInt(row[colMap.ga]) || null : null;
-    const pts = colMap.pts !== undefined ? parseInt(row[colMap.pts]) || (w * 3 + t) : (w * 3 + t);
-    const gp = colMap.gp !== undefined ? parseInt(row[colMap.gp]) || (w + l + t) : (w + l + t);
+    // `parseInt(x) || null` throws away a legitimate 0 — a clean sheet was
+    // showing as a blank goals-against and no goal difference at all.
+    const gf = colMap.gf !== undefined ? num(row[colMap.gf]) : null;
+    const ga = colMap.ga !== undefined ? num(row[colMap.ga]) : null;
+    const pts = (colMap.pts !== undefined ? num(row[colMap.pts]) : null) ?? (w * 3 + t);
+    const gp = (colMap.gp !== undefined ? num(row[colMap.gp]) : null) ?? (w + l + t);
 
     if (w === 0 && l === 0 && t === 0 && pts === 0 && gp === 0) continue;
 
@@ -124,6 +131,61 @@ function parseMatchTrakHTML(html: string) {
   }
 
   return rows.length > 0 ? rows : null;
+}
+
+// A MatchTrak *team* page — .../open-team-open/<id>?opendocument — is the URL
+// a coach actually has: it is what the league hands out and what gets
+// bookmarked. It holds no standings table itself, so it used to fall through
+// to the division picker and surface as "No standings found at this URL".
+// It does name the team's division, so resolve it to that division's
+// standings and pick up the coach's name on the way (this league labels teams
+// in the standings by head coach, so it lets us highlight their row).
+async function resolveMatchTrakTeamPage(url: string) {
+  const res = await fetch(url, { headers: { 'User-Agent': UA, 'Accept': 'text/html' } });
+  if (!res.ok) throw new Error(`MatchTrak returned ${res.status}`);
+  const html = await res.text();
+
+  // Titles read "MatchTrak - BU14 Q57-Cruttenden_C".
+  const title = /<title>[^<]*?MatchTrak\s*[-–]\s*([BG]U?\d{1,2})\b\s*([^<]*)<\/title>/i.exec(html);
+  let division = title?.[1]?.toLowerCase() || null;
+  const teamKey = title?.[2]?.trim() || null;
+
+  // Fall back to a team key: S11Q-26-Fall-Q57-Cruttenden_C-BU14.
+  if (!division) {
+    for (const m of html.matchAll(/open-team-open\/([A-Za-z0-9_-]+)/g)) {
+      const last = m[1].split('-').pop() || '';
+      if (/^[bg]u?\d{1,2}$/i.test(last)) { division = last.toLowerCase(); break; }
+    }
+  }
+  if (!division) return null;
+
+  // The page links every division's standings — take ours rather than
+  // rebuilding the category id from the subdomain by hand.
+  const cats = [...new Set([...html.matchAll(/RestrictToCategory=([a-z0-9-]+)/gi)].map(m => m[1]))];
+  const category = cats.find(c => c.toLowerCase().endsWith('-' + division));
+  if (!category) return null;
+
+  const coach = /Head Coach<\/font>[\s\S]{0,400}?<font[^>]*>([^<]+)<\/font>/i.exec(html);
+  const base = new URL(url).origin;
+
+  return {
+    division,
+    teamKey,
+    myTeamName: coach?.[1]?.trim() || null,
+    label: divisionLabel(division),
+    url: `${base}/11/main.nsf/standings-circuit?openview&count=1000&ExpandView&RestrictToCategory=${category}`,
+  };
+}
+
+function divisionLabel(divPart: string) {
+  const gender = divPart.startsWith('b') ? 'Boys' : divPart.startsWith('g') ? 'Girls' : '';
+  const age = divPart.replace(/[a-z]/gi, '').trim();
+  return gender && age ? `${gender} U${age}` : divPart.toUpperCase();
+}
+
+function isMatchTrakTeamPage(url: string) {
+  const u = url.toLowerCase();
+  return u.includes('open-team-open') || u.includes('open-team');
 }
 
 async function fetchMatchTrak(url: string) {
@@ -288,6 +350,10 @@ async function fetchMatchTrakDivisions(url: string) {
 
     const parts = categoryId.split('-');
     const divPart = parts[parts.length - 1];
+    // The circuit itself ("s11q-26-fall") and the empty category are linked
+    // from the same page but are not divisions — offering them as choices
+    // just gives the coach a dead end.
+    if (!/^[bg]u?\d{1,2}$/i.test(divPart)) continue;
     const gender = divPart.startsWith('b') ? 'Boys' : divPart.startsWith('g') ? 'Girls' : '';
     const age = divPart.replace(/[a-z]/g, '').trim();
     const label = gender && age ? `${gender} U${age}` : divPart.toUpperCase();
@@ -319,6 +385,30 @@ serve(async (req) => {
     const platform = detectPlatform(url);
 
     if (platform === 'matchtrak') {
+      // The link a coach has is their own team page. Resolve it to that
+      // team's division rather than sending them to a division picker.
+      if (!url.includes('RestrictToCategory') && isMatchTrakTeamPage(url)) {
+        const resolved = await resolveMatchTrakTeamPage(url);
+        if (!resolved) {
+          throw new Error('Could not work out the division for this team page. Paste the division standings link instead.');
+        }
+        console.log('Resolved team page to division:', resolved.division, resolved.url);
+        const teamStandings = await fetchMatchTrak(resolved.url);
+        if (!teamStandings || teamStandings.length === 0) {
+          throw new Error('No standings published for this division yet');
+        }
+        return new Response(
+          JSON.stringify({
+            standings: teamStandings,
+            platform,
+            label: resolved.label,
+            myTeamName: resolved.myTeamName,
+            sourceUrl: resolved.url,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const isHomepage = !url.includes('RestrictToCategory');
 
       if (isHomepage) {
