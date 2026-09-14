@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useApp } from '../../contexts/AppContext'
+import TeamSharing from './TeamSharing'
+import JoinTeamModal from './JoinTeamModal'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../UI/Toast'
 import { getContrastTextColor } from '../../lib/utils'
@@ -122,6 +124,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
     switchTeam,
     updateTeamBranding,
     saveWithOfflineSupport,
+    isAssistant,
   } = useApp()
   const { addToast } = useToast()
   const { session } = useAuth()
@@ -143,6 +146,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
   const [editingPlayer, setEditingPlayer] = useState(null)
 
   const [error, setError] = useState('')
+  const [showJoin, setShowJoin] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showTerms,   setShowTerms]   = useState(false)
 
@@ -609,6 +613,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
 
                 {/* Edit + Delete buttons row */}
                 <div style={{ display: 'flex', gap: 0, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
+                  {!isAssistant && (
                   <button
                     onClick={openEditTeam}
                     style={{
@@ -626,7 +631,8 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
                     </svg>
                     Edit Team
                   </button>
-                  {teams.length > 0 && (
+                  )}
+                  {!isAssistant && teams.length > 0 && (
                     <button
                       onClick={() => setShowDelete(true)}
                       style={{
@@ -689,6 +695,8 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
                     ))}
                   </div>
                 )}
+
+                <TeamSharing team={team} />
               </div>
             )}
           </>
@@ -824,6 +832,24 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
         >
           View intro again
         </span>
+
+        <span
+          onClick={() => setShowJoin(true)}
+          style={{
+            color: 'rgba(255,255,255,0.5)', fontSize: 11, cursor: 'pointer',
+            textDecoration: 'underline', display: 'block', textAlign: 'center',
+            marginBottom: 8,
+          }}
+        >
+          Join a team with an invite code
+        </span>
+
+        {showJoin && (
+          <JoinTeamModal
+            onClose={() => setShowJoin(false)}
+            onJoined={() => window.location.reload()}
+          />
+        )}
 
         <div style={{ textAlign: 'center', marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 8 }}>
           <button

@@ -10,6 +10,7 @@ import { getContrastTextColor } from './lib/utils'
 import AuthPage from './components/Auth/AuthPage'
 import SubscriptionPage from './components/Subscription/SubscriptionPage'
 import Onboarding from './components/Onboarding/Onboarding'
+import JoinTeamModal from './components/Team/JoinTeamModal'
 import PrivacyPolicy from './components/Legal/PrivacyPolicy'
 import TermsOfService from './components/Legal/TermsOfService'
 import MyTeamPage from './components/Team/MyTeamPage'
@@ -199,7 +200,7 @@ function NewTeamModal({ onSave, onCancel }) {
 
 // ── Team switcher dropdown (used inside AppHeader) ───────────────
 function TeamSwitcher() {
-  const { teams, activeTeamId, team, switchTeam, createTeam, maxTeams, isTrialExpired } = useApp()
+  const { teams, ownedTeams, activeTeamId, team, switchTeam, createTeam, maxTeams, isTrialExpired, teamRole } = useApp()
   const { addToast } = useToast()
   const [open,        setOpen]        = useState(false)
   const [showNewTeam, setShowNewTeam] = useState(false)
@@ -313,7 +314,18 @@ function TeamSwitcher() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ color: '#fff', fontSize: 15, fontWeight: isActive ? 700 : 400 }}>{t.name}</div>
-                      <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>{t.division}</div>
+                      <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
+                        {t.division}
+                        {teamRole(t) === 'assistant' && (
+                          <span style={{
+                            marginLeft: 6, fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+                            border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4,
+                            padding: '1px 4px',
+                          }}>
+                            ASSISTANT
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {isActive && (
                       <div style={{ width: 10, height: 10, borderRadius: '50%', background: t.color_primary || '#00c853' }} />
@@ -325,7 +337,7 @@ function TeamSwitcher() {
                 <button
                   onClick={() => {
                     setOpen(false);
-                    if (teams.length >= maxTeams) {
+                    if (ownedTeams.length >= maxTeams) {
                       addToast(`Your plan allows up to ${maxTeams} team${maxTeams === 1 ? '' : 's'}`, 'warning', 4000);
                       return;
                     }
@@ -394,7 +406,7 @@ function TeamSwitcher() {
               <button
                 onClick={() => {
                   setOpen(false)
-                  if (teams.length >= maxTeams) {
+                  if (ownedTeams.length >= maxTeams) {
                     addToast(isTrialExpired
                       ? 'Your trial has expired — upgrade to add teams'
                       : `Your plan allows up to ${maxTeams} team${maxTeams === 1 ? '' : 's'} — upgrade to add more`,
@@ -407,7 +419,7 @@ function TeamSwitcher() {
                   e.preventDefault()
                   e.stopPropagation()
                   setOpen(false)
-                  if (teams.length >= maxTeams) {
+                  if (ownedTeams.length >= maxTeams) {
                     addToast(isTrialExpired
                       ? 'Your trial has expired — upgrade to add teams'
                       : `Your plan allows up to ${maxTeams} team${maxTeams === 1 ? '' : 's'} — upgrade to add more`,
@@ -596,7 +608,7 @@ const isInStandalone = window.matchMedia('(display-mode: standalone)').matches
 
 // ── Inner content (rendered inside AppProvider) ──────────────────
 function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
-  const { createTeam, syncPendingChanges, activeTeamId, team, teams, maxTeams, isTrialExpired, daysLeftInTrial, subscription, setSubscription } = useApp()
+  const { createTeam, syncPendingChanges, activeTeamId, team, teams, ownedTeams, maxTeams, isTrialExpired, daysLeftInTrial, subscription, setSubscription } = useApp()
   const { session } = useAuth()
   const user = session?.user
   const { addToast } = useToast()
@@ -660,7 +672,7 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleCreateTeam(name, division, branding) {
-    if (teams.length >= maxTeams) {
+    if (ownedTeams.length >= maxTeams) {
       addToast(isTrialExpired
         ? 'Your trial has expired — upgrade to add teams'
         : `Your plan allows up to ${maxTeams} team${maxTeams === 1 ? '' : 's'} — upgrade to add more`,
@@ -889,6 +901,7 @@ export default function App() {
   const [passwordError,     setPasswordError]     = useState('')
   const [showOnboarding,    setShowOnboarding]    = useState(false)
   const [showSessionExpired, setShowSessionExpired] = useState(false)
+  const [joinCode, setJoinCode] = useState(null)
 
   // Refs to distinguish manual sign-out from session expiry
   const isManualSignOutRef   = useRef(false)
@@ -983,6 +996,29 @@ export default function App() {
       setShowResetPassword(true)
     }
   }, [])
+
+  // An assistant-coach invite arrives as ?join=CODE — from a scanned QR, or a
+  // link sent over WhatsApp. Hold on to it if they are signed out, so the code
+  // survives the trip through sign-up and still works on the other side, and
+  // clear it from the address bar either way so a reload doesn't re-prompt.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const fromUrl = params.get('join')
+    if (fromUrl) {
+      try { localStorage.setItem('pending_join_code', fromUrl.toUpperCase()) } catch { /* private mode */ }
+      params.delete('join')
+      const qs = params.toString()
+      window.history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : ''))
+    }
+    let stored = null
+    try { stored = localStorage.getItem('pending_join_code') } catch { /* private mode */ }
+    if (stored) setJoinCode(stored)
+  }, [])
+
+  function dismissJoin() {
+    setJoinCode(null)
+    try { localStorage.removeItem('pending_join_code') } catch { /* private mode */ }
+  }
 
   useEffect(() => {
     if (!session?.user) return
@@ -1105,6 +1141,20 @@ export default function App() {
 
           {!showSplash && showOnboarding && (
             <Onboarding onComplete={() => setShowOnboarding(false)} />
+          )}
+
+          {!showSplash && joinCode && (
+            <JoinTeamModal
+              code={joinCode}
+              onClose={dismissJoin}
+              onJoined={() => {
+                dismissJoin()
+                // Reload rather than patch state in place: the whole provider
+                // is keyed on which teams this coach can reach, and a fresh
+                // boot is the honest way to pick up a brand-new one.
+                window.location.reload()
+              }}
+            />
           )}
 
           {showResetPassword && (

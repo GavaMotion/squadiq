@@ -249,7 +249,19 @@ export function AppProvider({ userId, children }) {
     : subscription?.plan === 'premium' ? 4
     : subscription?.plan === 'solo'    ? 1
     : 1
-  const isTrialExpired = subscription?.plan === 'expired'
+  // How many assistants this coach may invite per team.
+  const maxAssistants = subscription?.plan_override === 'unlimited'
+    ? 99
+    : subscription?.plan === 'premium' ? 3
+    : subscription?.plan === 'expired' ? 0
+    : 1
+  // A team you assist on is paid for by its owner, and the server only returns
+  // it while that plan is live. So an assistant whose own trial has lapsed must
+  // not be locked out of someone else's team — only out of their own.
+  const activeTeamIsShared = !!(activeTeamId && teams.find(
+    t => t.id === activeTeamId && t.user_id && t.user_id !== userId
+  ))
+  const isTrialExpired = subscription?.plan === 'expired' && !activeTeamIsShared
   const daysLeftInTrial = subscription?.plan === 'trial'
     ? Math.max(0, Math.ceil((new Date(subscription.trial_end) - new Date()) / (1000 * 60 * 60 * 24)))
     : null
@@ -404,11 +416,14 @@ export function AppProvider({ userId, children }) {
         // not throw — so the error has to be handled here, not in the catch.
         // Missing that is what made an offline launch look like an account with
         // no teams at all. readCached answers from localStorage instead.
+        // No user_id filter any more: row-level security returns the teams
+        // this coach owns *and* the ones they assist on, so filtering here
+        // would hide every shared team. user_id still comes back, which is
+        // what tells the two apart.
         const { data: allTeams, error } = await readCached(
           `cache_teams_${userId}`,
           () => supabase.from('teams')
-            .select('id, name, division, color_primary, color_secondary, color_accent, created_at')
-            .eq('user_id', userId)
+            .select('id, user_id, name, division, color_primary, color_secondary, color_accent, created_at')
             .order('created_at', { ascending: true }),
           [],
         )
@@ -444,6 +459,66 @@ export function AppProvider({ userId, children }) {
 
     loadTeams()
   }, [userId, loadTeamData])
+
+  // ── Owner or assistant? ───────────────────────────────────────
+  // A team the coach does not own is one they were invited onto. Everything
+  // that is not coaching — billing, branding, deleting, inviting — stays with
+  // the owner.
+  const teamRole = (t) => (!t ? null : t.user_id && t.user_id !== userId ? 'assistant' : 'owner')
+  const isAssistant = teamRole(team) === 'assistant'
+  const ownedTeams = teams.filter(t => teamRole(t) === 'owner')
+
+  // ── Assistant-coach sharing ───────────────────────────────────
+  async function loadTeamSharing(teamId) {
+    const [invite, members] = await Promise.all([
+      supabase.from('team_invites')
+        .select('id, code, expires_at, created_at')
+        .eq('team_id', teamId).is('revoked_at', null)
+        .order('created_at', { ascending: false }).limit(1),
+      supabase.from('team_members')
+        .select('id, user_id, user_email, role, seat_rank, joined_at')
+        .eq('team_id', teamId)
+        .order('seat_rank', { ascending: true }).order('joined_at', { ascending: true }),
+    ])
+    return {
+      invite: invite.data?.[0] || null,
+      members: members.data || [],
+      error: invite.error || members.error || null,
+    }
+  }
+
+  // kick = the "this code got out" button: the old code stops working and
+  // everyone who joined on it is removed.
+  async function rotateTeamInvite(teamId, kick = false) {
+    const { data, error } = await supabase.rpc('rotate_team_invite', {
+      tid: teamId, kick_existing: kick,
+    })
+    if (error) return { ok: false, error: error.message }
+    return data
+  }
+
+  async function removeTeamMember(memberId) {
+    const { error } = await supabase.from('team_members').delete().eq('id', memberId)
+    return { ok: !error, error: error?.message }
+  }
+
+  async function promoteTeamMember(memberId) {
+    const { data, error } = await supabase.rpc('promote_team_member', { member_id: memberId })
+    if (error) return { ok: false, error: error.message }
+    return data
+  }
+
+  async function peekInvite(code) {
+    const { data, error } = await supabase.rpc('peek_team_invite', { invite_code: code })
+    if (error) return { ok: false, error: error.message }
+    return data
+  }
+
+  async function acceptInvite(code) {
+    const { data, error } = await supabase.rpc('accept_team_invite', { invite_code: code })
+    if (error) return { ok: false, error: error.message }
+    return data
+  }
 
   // ── Normalize a DB custom drill row into library-drill shape ─
   function normalizeCustomDrill(db) {
@@ -527,7 +602,7 @@ export function AppProvider({ userId, children }) {
   // ── Create a new team and switch to it ────────────────────────
   async function createTeam(name, division, branding = {}) {
     // Enforce team limit
-    if (teams.length >= maxTeams) {
+    if (ownedTeams.length >= maxTeams) {
       throw new Error(`Your plan allows up to ${maxTeams} team${maxTeams === 1 ? '' : 's'}. Upgrade to add more.`)
     }
 
@@ -709,6 +784,17 @@ export function AppProvider({ userId, children }) {
     deleteTeam,
     updateTeamBranding,
 
+    // Sharing
+    teamRole,
+    isAssistant,
+    ownedTeams,
+    loadTeamSharing,
+    rotateTeamInvite,
+    removeTeamMember,
+    promoteTeamMember,
+    peekInvite,
+    acceptInvite,
+
     // Favorites
     favoriteDrillNames,
     toggleFavorite,
@@ -744,7 +830,7 @@ export function AppProvider({ userId, children }) {
 
     // Subscription
     subscription, subscriptionLoading,
-    maxTeams, isTrialExpired, daysLeftInTrial,
+    maxTeams, maxAssistants, isTrialExpired, daysLeftInTrial,
     setSubscription, refreshSubscription,
   }
 

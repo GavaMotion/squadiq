@@ -3,6 +3,7 @@ import html2canvas from 'html2canvas'
 import theme from '../../theme'
 import { supabase } from '../../lib/supabase'
 import { isOffline } from '../../lib/offline'
+import { useTeamPresence } from '../../hooks/useTeamPresence'
 import { useApp, emptyPlan, buildBlankPlanState, planStateToQuarterData } from '../../contexts/AppContext'
 import { useToast } from '../UI/Toast'
 import { getContrastTextColor, ackToday, ackedToday, MODE_SWITCH_ACK } from '../../lib/utils'
@@ -54,6 +55,10 @@ export default function GameDayPage() {
     saveWithOfflineSupport,
   } = useApp()
   const { addToast } = useToast()
+
+  // Both coaches keep working; this only makes it visible that they are both
+  // in here, so a sub doesn't vanish without either of them knowing why.
+  const otherCoaches = useTeamPresence(teamIdRef?.current)
 
   const loading = !dataLoaded
   const error   = loadError
@@ -1351,6 +1356,27 @@ export default function GameDayPage() {
             </svg>
             Share
           </button>
+        </div>
+      )}
+
+      {otherCoaches.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          padding: '4px 10px', margin: '0 8px 2px',
+          background: 'rgba(245,200,66,0.12)',
+          border: '1px solid rgba(245,200,66,0.3)',
+          borderRadius: 8,
+          fontSize: 11, color: '#F5C842',
+        }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: '#F5C842', display: 'inline-block', flexShrink: 0,
+          }} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {otherCoaches.length === 1
+              ? `${otherCoaches[0].name} is also on this lineup`
+              : `${otherCoaches.length} other coaches are on this lineup`}
+          </span>
         </div>
       )}
 
