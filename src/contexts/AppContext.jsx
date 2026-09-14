@@ -4,6 +4,10 @@ import { getDefaultFormation, getFormationById, getGameLengthMin } from '../lib/
 import { createFreeSubs, parseFreeSubs, serializeFreeSubs } from '../lib/freeSubs'
 import { getContrastTextColor } from '../lib/utils'
 import { PLANS } from '../version'
+import {
+  isOffline, cacheData, getCachedData, getCachedAge, readCached,
+  readPendingChanges, writePendingChanges, applyPendingChanges, isNetworkError,
+} from '../lib/offline'
 
 // ── Game Day helpers — exported so GameDayPage can import them ───
 export function emptyPlan(formation) {
@@ -119,28 +123,20 @@ export function applyTeamCSSVars(teamData) {
   document.documentElement.style.setProperty('--team-primary-text', getContrastTextColor(primary))
 }
 
-// ── localStorage cache helpers ────────────────────────────────────
-function cacheData(key, data) {
-  try { localStorage.setItem(key, JSON.stringify({ data, ts: Date.now() })) } catch { /* storage full */ }
+// A lapsed trial keeps plan = 'trial' in the database; 'expired' is computed
+// from trial_end. Recompute it on cached rows so an offline coach sees the same
+// entitlement they would online.
+function withComputedExpiry(sub) {
+  if (!sub) return sub
+  if (sub.plan === 'trial' && new Date(sub.trial_end) < new Date()) {
+    return { ...sub, plan: 'expired' }
+  }
+  return sub
 }
-function getCachedData(key) {
-  try {
-    const raw = localStorage.getItem(key)
-    if (!raw) return null
-    return JSON.parse(raw).data
-  } catch { return null }
-}
-export function getCachedAge(key) {
-  try {
-    const raw = localStorage.getItem(key)
-    if (!raw) return null
-    const mins = Math.round((Date.now() - JSON.parse(raw).ts) / 60000)
-    if (mins < 1) return 'just now'
-    if (mins < 60) return `${mins} min${mins === 1 ? '' : 's'} ago`
-    const hrs = Math.round(mins / 60)
-    return `${hrs} hour${hrs === 1 ? '' : 's'} ago`
-  } catch { return null }
-}
+
+// Cache helpers live in lib/offline.js; re-exported so existing importers of
+// getCachedAge from this module keep working.
+export { getCachedAge }
 
 // ── Context ──────────────────────────────────────────────────────
 const AppContext = createContext(null)
@@ -173,10 +169,7 @@ export function AppProvider({ userId, children }) {
 
   // Load pending changes from localStorage on mount
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('pending_changes')
-      if (raw) pendingChangesRef.current = JSON.parse(raw)
-    } catch { pendingChangesRef.current = [] }
+    pendingChangesRef.current = readPendingChanges()
   }, [])
 
   // ── Game Day persistent state ─────────────────────────────────
@@ -199,9 +192,27 @@ export function AppProvider({ userId, children }) {
   const refreshSubscription = useCallback(async () => {
     if (!userId) { setSubscription(null); setSubscriptionLoading(false); return null }
     setSubscriptionLoading(true)
+    const cacheKey = `cache_subscription_${userId}`
     try {
+      // Offline, entitlement comes from the last copy we saw. Without this a
+      // paying coach is treated as having no subscription on the sideline.
+      if (isOffline()) {
+        const cached = withComputedExpiry(getCachedData(cacheKey))
+        setSubscription(cached)
+        return cached
+      }
+
       let { data, error } = await supabase
         .from('subscriptions').select('*').eq('user_id', userId).single()
+
+      // Only "no row" justifies opening a trial. A network failure must not —
+      // it would hand a paying account a fresh trial row.
+      if (isNetworkError(error)) {
+        const cached = withComputedExpiry(getCachedData(cacheKey))
+        setSubscription(cached)
+        return cached
+      }
+
       if (error || !data) {
         const { data: newSub } = await supabase
           .from('subscriptions')
@@ -218,10 +229,13 @@ export function AppProvider({ userId, children }) {
         data = { ...data, plan: 'expired' }
         await supabase.from('subscriptions').update({ plan: 'expired' }).eq('user_id', userId)
       }
+      if (data) cacheData(cacheKey, data)
       setSubscription(data)
       return data
     } catch (err) {
       console.error('Failed to fetch subscription:', err)
+      const cached = withComputedExpiry(getCachedData(cacheKey))
+      if (cached) { setSubscription(cached); return cached }
       return null
     } finally {
       setSubscriptionLoading(false)
@@ -252,36 +266,31 @@ export function AppProvider({ userId, children }) {
       applyTeamCSSVars(teamData)
 
       // ── Players ─────────────────────────────────────────────
-      const { data: playersData, error: playersErr } = await supabase
-        .from('players').select('*').eq('team_id', teamData.id).order('jersey_number')
-      let allPlayers = playersData || []
-      if (!playersErr) {
-        cacheData(`cache_players_${teamData.id}`, allPlayers)
-      } else {
-        allPlayers = getCachedData(`cache_players_${teamData.id}`) || []
-      }
+      const { data: cachedPlayers } = await readCached(
+        `cache_players_${teamData.id}`,
+        () => supabase.from('players').select('*').eq('team_id', teamData.id).order('jersey_number'),
+        [],
+      )
+      const allPlayers = applyPendingChanges('players', cachedPlayers)
+        .sort((a, b) => (a.jersey_number ?? 0) - (b.jersey_number ?? 0))
       setPlayers(allPlayers)
       setPlayerCount(allPlayers.length)
       const vids = new Set(allPlayers.map(p => p.id))
       validIdsRef.current = vids
 
       // ── Game Day plans ───────────────────────────────────────
-      let gdAllPlans = []
-      try {
-        const { data: saved, error: err } = await supabase
-          .from('saved_game_plans').select('*')
-          .eq('team_id', teamData.id).order('created_at', { ascending: true })
-        if (!err) {
-          gdAllPlans = saved || []
-          if (gdAllPlans.length > 0) cacheData(`cache_gameplans_${teamData.id}`, gdAllPlans)
-        } else {
-          gdAllPlans = getCachedData(`cache_gameplans_${teamData.id}`) || []
-        }
-      } catch {
-        gdAllPlans = getCachedData(`cache_gameplans_${teamData.id}`) || []
-      }
+      const { data: savedPlans } = await readCached(
+        `cache_gameplans_${teamData.id}`,
+        () => supabase.from('saved_game_plans').select('*')
+          .eq('team_id', teamData.id).order('created_at', { ascending: true }),
+        [],
+      )
+      // Edits made offline live in the pending queue, not in the cached rows.
+      // Replay them so reopening the app on the sideline shows the subs the
+      // coach just made rather than the last state that reached the server.
+      let gdAllPlans = applyPendingChanges('saved_game_plans', savedPlans)
 
-      if (gdAllPlans.length === 0) {
+      if (gdAllPlans.length === 0 && !isOffline()) {
         const baseForm = getDefaultFormation(teamData.division)
         const blankState = buildBlankPlanState(baseForm)
         try {
@@ -324,21 +333,17 @@ export function AppProvider({ userId, children }) {
 
       // ── Practice plans ───────────────────────────────────────
       let allPracticePlans = []
-      try {
-        const { data: saved, error: err } = await supabase
-          .from('practice_plans').select('*')
-          .eq('team_id', teamData.id).order('created_at', { ascending: true })
-        if (!err) {
-          allPracticePlans = saved || []
-          if (allPracticePlans.length > 0) cacheData(`cache_practiceplans_${teamData.id}`, allPracticePlans)
-        } else {
-          allPracticePlans = getCachedData(`cache_practiceplans_${teamData.id}`) || []
-        }
-      } catch {
-        allPracticePlans = getCachedData(`cache_practiceplans_${teamData.id}`) || []
+      {
+        const { data: savedPractice } = await readCached(
+          `cache_practiceplans_${teamData.id}`,
+          () => supabase.from('practice_plans').select('*')
+            .eq('team_id', teamData.id).order('created_at', { ascending: true }),
+          [],
+        )
+        allPracticePlans = applyPendingChanges('practice_plans', savedPractice)
       }
 
-      if (allPracticePlans.length === 0) {
+      if (allPracticePlans.length === 0 && !isOffline()) {
         try {
           const { data: newPlan } = await supabase
             .from('practice_plans')
@@ -366,23 +371,18 @@ export function AppProvider({ userId, children }) {
       const grouped = {}
       allPracticePlans.forEach(p => { grouped[p.id] = [] })
       if (practicePlanIds.length > 0) {
-        const { data: allDrills, error: drillsErr } = await supabase
-          .from('practice_plan_drills').select('*')
-          .in('plan_id', practicePlanIds).order('sort_order', { ascending: true })
-        if (!drillsErr) {
-          const drills = allDrills || []
-          drills.forEach(d => {
-            if (!grouped[d.plan_id]) grouped[d.plan_id] = []
-            grouped[d.plan_id].push(d)
-          })
-          cacheData(`cache_practicedrills_${teamData.id}`, drills)
-        } else {
-          const cached = getCachedData(`cache_practicedrills_${teamData.id}`) || []
-          cached.forEach(d => {
-            if (!grouped[d.plan_id]) grouped[d.plan_id] = []
-            grouped[d.plan_id].push(d)
-          })
-        }
+        const { data: cachedDrills } = await readCached(
+          `cache_practicedrills_${teamData.id}`,
+          () => supabase.from('practice_plan_drills').select('*')
+            .in('plan_id', practicePlanIds).order('sort_order', { ascending: true }),
+          [],
+        )
+        const allDrills = applyPendingChanges('practice_plan_drills', cachedDrills)
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        allDrills.forEach(d => {
+          if (!grouped[d.plan_id]) grouped[d.plan_id] = []
+          grouped[d.plan_id].push(d)
+        })
       }
       setAllPlanDrills(grouped)
 
@@ -400,19 +400,31 @@ export function AppProvider({ userId, children }) {
 
     async function loadTeams() {
       try {
-        const { data: allTeams } = await supabase
-          .from('teams')
-          .select('id, name, division, color_primary, color_secondary, color_accent, created_at')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: true })
+        // supabase-js reports a dead network as { data: null, error } — it does
+        // not throw — so the error has to be handled here, not in the catch.
+        // Missing that is what made an offline launch look like an account with
+        // no teams at all. readCached answers from localStorage instead.
+        const { data: allTeams, error } = await readCached(
+          `cache_teams_${userId}`,
+          () => supabase.from('teams')
+            .select('id, name, division, color_primary, color_secondary, color_accent, created_at')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: true }),
+          [],
+        )
 
-        if (!allTeams || allTeams.length === 0) {
+        if (error) {
+          setLoadError(error.message || 'Failed to load teams')
+          setDataLoaded(true)
+          return
+        }
+
+        if (allTeams.length === 0) {
           setTeams([])
           setDataLoaded(true)
           return
         }
 
-        cacheData(`cache_teams_${userId}`, allTeams)
         setTeams(allTeams)
 
         const storedId = (() => {
@@ -425,17 +437,8 @@ export function AppProvider({ userId, children }) {
         await loadTeamData(activeTeam)
       } catch (err) {
         console.error('[AppContext] loadTeams error:', err)
-        const cachedTeams = getCachedData(`cache_teams_${userId}`)
-        if (cachedTeams && cachedTeams.length > 0) {
-          setTeams(cachedTeams)
-          const storedId = (() => { try { return localStorage.getItem(`active-team-${userId}`) } catch { return null } })()
-          const activeTeam = cachedTeams.find(t => t.id === storedId) || cachedTeams[0]
-          setActiveTeamId(activeTeam.id)
-          await loadTeamData(activeTeam)
-        } else {
-          setLoadError(err.message || 'Failed to load teams')
-          setDataLoaded(true)
-        }
+        setLoadError(err.message || 'Failed to load teams')
+        setDataLoaded(true)
       }
     }
 
@@ -465,19 +468,21 @@ export function AppProvider({ userId, children }) {
     if (!userId) return
     async function loadUserData() {
       // Favorites
-      try {
-        const { data } = await supabase
-          .from('drill_favorites').select('drill_name').eq('user_id', userId)
-        setFavoriteDrillNames(new Set((data || []).map(r => r.drill_name)))
-      } catch { /* table may not exist yet */ }
+      const { data: favs } = await readCached(
+        `cache_favorites_${userId}`,
+        () => supabase.from('drill_favorites').select('drill_name').eq('user_id', userId),
+        [],
+      )
+      setFavoriteDrillNames(new Set(favs.map(r => r.drill_name)))
 
       // Custom drills
-      try {
-        const { data } = await supabase
-          .from('custom_drills').select('*').eq('user_id', userId)
-          .order('created_at', { ascending: false })
-        setCustomDrills((data || []).map(normalizeCustomDrill))
-      } catch { /* table may not exist yet */ }
+      const { data: custom } = await readCached(
+        `cache_customdrills_${userId}`,
+        () => supabase.from('custom_drills').select('*').eq('user_id', userId)
+          .order('created_at', { ascending: false }),
+        [],
+      )
+      setCustomDrills(custom.map(normalizeCustomDrill))
     }
     loadUserData()
   }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -580,17 +585,36 @@ export function AppProvider({ userId, children }) {
 
   // ── Offline queue ─────────────────────────────────────────────
   function queueChange(table, operation, data, matchField, matchValue) {
-    if (operation === 'update' && matchField && matchValue !== undefined) {
-      pendingChangesRef.current = pendingChangesRef.current.filter(
-        c => !(c.table === table && c.operation === 'update' && c.matchField === matchField && c.matchValue === matchValue)
-      )
+    // A game plan is saved on every sub, so a quarter spent offline would
+    // otherwise pile up dozens of writes for the same row. Collapse them.
+    const keyed = operation !== 'insert' && matchField && matchValue !== undefined
+    const prior = keyed && pendingChangesRef.current.find(
+      c => c.table === table && c.operation !== 'insert' &&
+           c.matchField === matchField && c.matchValue === matchValue
+    )
+
+    if (prior) {
+      if (operation === 'delete' || prior.operation === 'delete') {
+        // A delete supersedes whatever was queued for that row, and a write
+        // after a delete starts over. Either way the newer one wins outright.
+        pendingChangesRef.current = pendingChangesRef.current.filter(c => c !== prior)
+      } else {
+        // Merge instead of replace. A row created offline exists only in this
+        // queue, so letting a later partial update (a rename, a reorder) take
+        // its place would send the server an UPDATE with no row to apply it
+        // to — and the change would be lost on sync.
+        prior.data = { ...prior.data, ...data }
+        writePendingChanges(pendingChangesRef.current)
+        return
+      }
     }
+
     pendingChangesRef.current.push({ id: crypto.randomUUID(), table, operation, data, matchField, matchValue })
-    try { localStorage.setItem('pending_changes', JSON.stringify(pendingChangesRef.current)) } catch { /* full */ }
+    writePendingChanges(pendingChangesRef.current)
   }
 
   async function saveWithOfflineSupport(table, operation, data, matchField, matchValue) {
-    if (!navigator.onLine) {
+    if (isOffline()) {
       queueChange(table, operation, data, matchField, matchValue)
       return { ok: true, queued: true }
     }
@@ -600,14 +624,27 @@ export function AppProvider({ userId, children }) {
       if (operation === 'update')      ({ data: result, error } = await q.update(data).eq(matchField, matchValue).select())
       else if (operation === 'insert') ({ data: result, error } = await q.insert(data).select())
       else if (operation === 'upsert') ({ data: result, error } = await q.upsert(data, { onConflict: 'id' }).select())
+      else if (operation === 'delete') ({ data: result, error } = await q.delete().eq(matchField, matchValue))
       if (error) throw error
       return { ok: true, queued: false }
-    } catch {
+    } catch (err) {
+      // Reported online but the request still failed. A flaky sideline signal
+      // looks exactly like this, so queue it rather than lose the change — but
+      // only when it really was the network. A rejection from the server would
+      // fail again on every retry.
+      if (isNetworkError(err)) {
+        queueChange(table, operation, data, matchField, matchValue)
+        return { ok: true, queued: true }
+      }
       return { ok: false, queued: false }
     }
   }
 
-  async function syncPendingChanges() {
+  const syncPendingChanges = useCallback(async () => {
+    if (isOffline()) return { synced: 0, failed: 0 }
+    // Re-read from storage: another tab (or a previous run of the app) may have
+    // queued writes this instance never saw.
+    pendingChangesRef.current = readPendingChanges()
     const changes = [...pendingChangesRef.current]
     if (changes.length === 0) return { synced: 0, failed: 0 }
     let synced = 0, failed = 0
@@ -617,22 +654,35 @@ export function AppProvider({ userId, children }) {
         const q = supabase.from(change.table)
         if (change.operation === 'update')      ({ error } = await q.update(change.data).eq(change.matchField, change.matchValue))
         else if (change.operation === 'insert') ({ error } = await q.insert(change.data))
-        else if (change.operation === 'upsert') ({ error } = await q.upsert(change.data))
+        else if (change.operation === 'upsert') ({ error } = await q.upsert(change.data, { onConflict: 'id' }))
+        else if (change.operation === 'delete') ({ error } = await q.delete().eq(change.matchField, change.matchValue))
         if (error) throw error
         synced++
         pendingChangesRef.current = pendingChangesRef.current.filter(c => c.id !== change.id)
       } catch { failed++ }
     }
-    try { localStorage.setItem('pending_changes', JSON.stringify(pendingChangesRef.current)) } catch { /* full */ }
+    writePendingChanges(pendingChangesRef.current)
     return { synced, failed }
-  }
+  }, [])
+
+  // Sync on startup too. The 'online' event only fires on a live transition —
+  // a coach who closes the app on the field and reopens it at home would
+  // otherwise never flush the queue.
+  useEffect(() => {
+    if (!userId || isOffline()) return
+    syncPendingChanges()
+  }, [userId, syncPendingChanges])
 
   // ── Refresh players after roster changes ──────────────────────
   async function refreshPlayers() {
     if (!teamIdRef.current) return
-    const { data } = await supabase
-      .from('players').select('*').eq('team_id', teamIdRef.current).order('jersey_number')
-    const allPlayers = data || []
+    const { data } = await readCached(
+      `cache_players_${teamIdRef.current}`,
+      () => supabase.from('players').select('*').eq('team_id', teamIdRef.current).order('jersey_number'),
+      [],
+    )
+    const allPlayers = applyPendingChanges('players', data)
+      .sort((a, b) => (a.jersey_number ?? 0) - (b.jersey_number ?? 0))
     setPlayers(allPlayers)
     setPlayerCount(allPlayers.length)
     validIdsRef.current = new Set(allPlayers.map(p => p.id))

@@ -1,5 +1,6 @@
 import { Component, useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
+import { isOffline, readCached } from '../../lib/offline'
 import { useApp } from '../../contexts/AppContext'
 import theme from '../../theme'
 import { FORMATIONS_BY_DIVISION, getFormationById } from '../../lib/formations'
@@ -609,16 +610,23 @@ export default function SketchPage() {
   async function loadSketches() {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('strategy_sketches').select('*')
-        .eq('team_id', team.id).order('created_at', { ascending: true })
+      const { data, error } = await readCached(
+        `cache_sketches_${team.id}`,
+        () => supabase.from('strategy_sketches').select('*')
+          .eq('team_id', team.id).order('created_at', { ascending: true }),
+        [],
+      )
 
       if (error) throw error
 
       // Pre-populate my formation from GD Q1 plan
       const gdQ1FormId = gdPlanStates?.[gdActivePlanId]?.quarters?.[1]?.formation?.id || null
 
-      if (!data || data.length === 0) {
+      // With no signal the insert below can't come back with a row, so leave
+      // the empty state alone rather than showing a sketch that isn't saved.
+      if ((!data || data.length === 0) && isOffline()) {
+        setSketches([])
+      } else if (!data || data.length === 0) {
         const initState = buildInitialState()
         const { data: newSketch } = await supabase.from('strategy_sketches')
           .insert({ team_id: team.id, name: 'Sketch 1', ...stateToDb(initState) })

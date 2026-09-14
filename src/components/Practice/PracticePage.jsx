@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import html2canvas from 'html2canvas'
 import { supabase } from '../../lib/supabase'
+import { isOffline } from '../../lib/offline'
 import { useApp } from '../../contexts/AppContext'
 import { useToast } from '../UI/Toast'
 import { getContrastTextColor } from '../../lib/utils'
@@ -258,6 +259,7 @@ export default function PracticePage() {
     allPlanDrills, setAllPlanDrills,
     customDrills, addCustomDrill, updateCustomDrill, deleteCustomDrill,
     favoriteDrillNames, toggleFavorite,
+    saveWithOfflineSupport,
   } = useApp()
   const { addToast } = useToast()
 
@@ -452,21 +454,11 @@ export default function PracticePage() {
       ...prev,
       [activePlanId]: [...(prev[activePlanId] || []), newDrill],
     }))
+    // The row already carries a client-minted uuid, so send it: the drill keeps
+    // one id whether it is written now or queued until the signal comes back.
     if (activePlanId && !String(activePlanId).startsWith('local-') && !String(activePlanId).startsWith('temp-')) {
-      const localId = newDrill.id
-      supabase.from('practice_plan_drills').insert({
-        plan_id: newDrill.plan_id, drill_name: newDrill.drill_name,
-        drill_description: newDrill.drill_description,
-        skill_category: newDrill.skill_category, duration_minutes: newDrill.duration_minutes,
-        sort_order: newDrill.sort_order, is_custom: newDrill.is_custom,
-      }).select().single()
-        .then(({ data, error }) => {
-          if (error) { console.error('Drill save error:', error); addToast('Could not save drill', 'error'); return }
-          if (data) setAllPlanDrills(prev => ({
-            ...prev,
-            [activePlanId]: (prev[activePlanId] || []).map(d => d.id === localId ? data : d),
-          }))
-        })
+      saveWithOfflineSupport('practice_plan_drills', 'upsert', newDrill, 'id', newDrill.id)
+        .then(({ ok }) => { if (!ok) addToast('Could not save drill', 'error') })
     }
     isOverPlanRef.current = false
   }
@@ -475,7 +467,7 @@ export default function PracticePage() {
   async function addDrillToPlan(drill) {
     const planId = activePlanRef.current
     if (!planId) return
-    const tempId   = `temp-${Date.now()}`
+    const tempId   = crypto.randomUUID()
     const existing = allPlanDrills[planId] || []
     const newEntry = {
       id: tempId, plan_id: planId,
@@ -488,15 +480,8 @@ export default function PracticePage() {
     if (String(planId).startsWith('local-')) return
     setSaving(true)
     try {
-      const { data, error } = await supabase.from('practice_plan_drills').insert({
-        plan_id: planId, drill_name: drill.name, drill_description: null,
-        skill_category: drill.category, duration_minutes: drill.duration,
-        sort_order: existing.length, is_custom: drill.isCustom || false,
-      }).select().single()
-      if (error) throw error
-      if (data) setAllPlanDrills(prev => ({
-        ...prev, [planId]: (prev[planId] || []).map(d => d.id === tempId ? data : d),
-      }))
+      const { ok } = await saveWithOfflineSupport('practice_plan_drills', 'upsert', newEntry, 'id', tempId)
+      if (!ok) throw new Error('save failed')
     } catch {
       addToast('Could not add drill', 'error')
     } finally { setSaving(false) }
@@ -507,7 +492,7 @@ export default function PracticePage() {
     setAllPlanDrills(prev => ({ ...prev, [planId]: (prev[planId] || []).filter(d => d.id !== drillId) }))
     if (String(planId).startsWith('local-')) return  // demo mode — local only
     if (!String(drillId).startsWith('temp-')) {
-      supabase.from('practice_plan_drills').delete().eq('id', drillId)
+      saveWithOfflineSupport('practice_plan_drills', 'delete', null, 'id', drillId)
     }
   }
 
@@ -524,7 +509,8 @@ export default function PracticePage() {
         clearTimeout(reorderTimerRef.current)
         reorderTimerRef.current = setTimeout(() => {
           const real = drills.filter(d => !String(d.id).startsWith('temp-'))
-          Promise.all(real.map((d, i) => supabase.from('practice_plan_drills').update({ sort_order: i }).eq('id', d.id)))
+          Promise.all(real.map((d, i) =>
+            saveWithOfflineSupport('practice_plan_drills', 'update', { sort_order: i }, 'id', d.id)))
         }, 500)
       }
       return { ...prev, [planId]: drills }
@@ -542,10 +528,19 @@ export default function PracticePage() {
 
   async function handleCreatePlan(name) {
     setShowNewPlanModal(false)
-    const tempId = `local-new-${Date.now()}`
+    // Offline the insert can't hand back an id, and a plan stuck on a `local-`
+    // id accepts no drills — mint a real uuid and queue the row instead.
+    const offline = isOffline()
+    const tempId = offline ? crypto.randomUUID() : `local-new-${Date.now()}`
     setPlans(prev => [...prev, { id: tempId, name }])
     setActivePlanId(tempId); activePlanRef.current = tempId
     setAllPlanDrills(prev => ({ ...prev, [tempId]: [] }))
+    if (offline) {
+      try { localStorage.setItem(`practice-active-${teamIdRef.current}`, tempId) } catch {}
+      await saveWithOfflineSupport('practice_plans', 'upsert',
+        { id: tempId, team_id: teamIdRef.current, name }, 'id', tempId)
+      return
+    }
     try {
       const { data } = await supabase.from('practice_plans').insert({ team_id: teamIdRef.current, name }).select().single()
       if (data) {
@@ -560,17 +555,29 @@ export default function PracticePage() {
 
   function handleRenamePlan(planId, newName) {
     setPlans(prev => prev.map(p => p.id === planId ? { ...p, name: newName } : p))
-    if (!String(planId).startsWith('local-')) supabase.from('practice_plans').update({ name: newName }).eq('id', planId)
+    if (!String(planId).startsWith('local-')) {
+      saveWithOfflineSupport('practice_plans', 'update', { name: newName }, 'id', planId)
+    }
   }
 
   async function handleDeletePlan(planId) {
     const remaining = plans.filter(p => p.id !== planId)
     setAllPlanDrills(prev => { const n = { ...prev }; delete n[planId]; return n })
     if (remaining.length === 0) {
-      const tempId = `local-new-${Date.now()}`
+      const tempId = isOffline() ? crypto.randomUUID() : `local-new-${Date.now()}`
       setPlans([{ id: tempId, name: 'Practice 1' }])
       setActivePlanId(tempId); activePlanRef.current = tempId
       setAllPlanDrills(prev => ({ ...prev, [tempId]: [] }))
+      if (isOffline()) {
+        try { localStorage.setItem(`practice-active-${teamIdRef.current}`, tempId) } catch {}
+        await saveWithOfflineSupport('practice_plans', 'upsert',
+          { id: tempId, team_id: teamIdRef.current, name: 'Practice 1' }, 'id', tempId)
+        if (!String(planId).startsWith('local-')) {
+          saveWithOfflineSupport('practice_plans', 'delete', null, 'id', planId)
+        }
+        addToast('Plan deleted', 'success', 2000)
+        return
+      }
       try {
         const { data } = await supabase.from('practice_plans').insert({ team_id: teamIdRef.current, name: 'Practice 1' }).select().single()
         if (data) {
@@ -579,7 +586,9 @@ export default function PracticePage() {
           setAllPlanDrills(prev => { const n = { ...prev }; n[data.id] = n[tempId] || []; delete n[tempId]; return n })
         }
       } catch { /* silent */ }
-      if (!String(planId).startsWith('local-')) supabase.from('practice_plans').delete().eq('id', planId)
+      if (!String(planId).startsWith('local-')) {
+        saveWithOfflineSupport('practice_plans', 'delete', null, 'id', planId)
+      }
       addToast('Plan deleted', 'success', 2000)
       return
     }
@@ -588,14 +597,17 @@ export default function PracticePage() {
       const next = remaining[0]; setActivePlanId(next.id); activePlanRef.current = next.id
       try { localStorage.setItem(`practice-active-${teamIdRef.current}`, next.id) } catch {}
     }
-    if (!String(planId).startsWith('local-')) supabase.from('practice_plans').delete().eq('id', planId)
+    if (!String(planId).startsWith('local-')) {
+      saveWithOfflineSupport('practice_plans', 'delete', null, 'id', planId)
+    }
     addToast('Plan deleted', 'success', 2000)
   }
 
   async function handleDuplicatePlan(planId) {
     const orig    = plans.find(p => p.id === planId)
     const dupName = `Copy of ${orig?.name || 'Plan'}`
-    const tempId  = `local-dup-${Date.now()}`
+    const offline = isOffline()
+    const tempId  = offline ? crypto.randomUUID() : `local-dup-${Date.now()}`
     setPlans(prev => [...prev, { id: tempId, name: dupName }])
     setActivePlanId(tempId); activePlanRef.current = tempId
     setAllPlanDrills(prev => ({ ...prev, [tempId]: [] }))
@@ -616,6 +628,24 @@ export default function PracticePage() {
       addToast('Plan duplicated', 'success', 1500)
       return
     }
+    if (offline) {
+      const copies = sourceDrills.map((d, i) => ({
+        id: crypto.randomUUID(), plan_id: tempId,
+        drill_name: d.drill_name, drill_description: d.drill_description,
+        skill_category: d.skill_category, duration_minutes: d.duration_minutes,
+        sort_order: i, is_custom: d.is_custom || false,
+      }))
+      setAllPlanDrills(prev => ({ ...prev, [tempId]: copies }))
+      try { localStorage.setItem(`practice-active-${teamIdRef.current}`, tempId) } catch {}
+      await saveWithOfflineSupport('practice_plans', 'upsert',
+        { id: tempId, team_id: teamIdRef.current, name: dupName }, 'id', tempId)
+      for (const c of copies) {
+        await saveWithOfflineSupport('practice_plan_drills', 'upsert', c, 'id', c.id)
+      }
+      addToast('Plan duplicated', 'success', 1500)
+      return
+    }
+
     const { data: newPlan } = await supabase.from('practice_plans').insert({ team_id: teamIdRef.current, name: dupName }).select().single()
     if (!newPlan) return
     setPlans(prev => prev.map(p => p.id === tempId ? newPlan : p))
@@ -651,8 +681,14 @@ export default function PracticePage() {
     if (String(planId).startsWith('local-')) return
     setSaving(true)
     try {
-      await supabase.from('practice_plan_drills').delete().eq('plan_id', planId)
-      await supabase.from('practice_plan_drills').insert(drillsToSave.map(({ id: _id, ...rest }) => rest))
+      // Drop what was there, then write the new set one row at a time so each
+      // can be queued individually when there is no signal.
+      const previous = allPlanDrills[planId] || []
+      await Promise.all(previous
+        .filter(d => !String(d.id).startsWith('temp-'))
+        .map(d => saveWithOfflineSupport('practice_plan_drills', 'delete', null, 'id', d.id)))
+      await Promise.all(drillsToSave
+        .map(d => saveWithOfflineSupport('practice_plan_drills', 'upsert', d, 'id', d.id)))
     } catch {
       addToast('Could not save practice plan', 'error')
     } finally { setSaving(false) }
@@ -692,12 +728,7 @@ export default function PracticePage() {
       [activePlanId]: [...(prev[activePlanId] || []), newDrill],
     }))
     if (activePlanId && !String(activePlanId).startsWith('local-') && !String(activePlanId).startsWith('temp-')) {
-      supabase.from('practice_plan_drills').insert({
-        plan_id: newDrill.plan_id, drill_name: newDrill.drill_name,
-        drill_description: newDrill.drill_description,
-        skill_category: newDrill.skill_category, duration_minutes: newDrill.duration_minutes,
-        sort_order: newDrill.sort_order, is_custom: newDrill.is_custom,
-      }).then(({ error }) => { if (error) console.error('Supabase save error:', error) })
+      saveWithOfflineSupport('practice_plan_drills', 'upsert', newDrill, 'id', newDrill.id)
     }
   }
 

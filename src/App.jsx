@@ -4,6 +4,7 @@ import { useToast } from './components/UI/Toast'
 import theme from './theme'
 import { AppProvider, useApp, getCachedAge } from './contexts/AppContext'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
+import { isOffline } from './lib/offline'
 import { supabase } from './lib/supabase'
 import { getContrastTextColor } from './lib/utils'
 import AuthPage from './components/Auth/AuthPage'
@@ -904,7 +905,7 @@ export default function App() {
   // Secondary auth-state listener — detect unexpected sign-outs
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT' && wasAuthenticatedRef.current && !isManualSignOutRef.current) {
+      if (event === 'SIGNED_OUT' && wasAuthenticatedRef.current && !isManualSignOutRef.current && !isOffline()) {
         setShowSessionExpired(true)
       }
       if (event === 'TOKEN_REFRESHED') {
@@ -918,8 +919,13 @@ export default function App() {
   useEffect(() => {
     async function checkSession() {
       if (!wasAuthenticatedRef.current) return
+      // On a field with no signal the token refresh behind getSession() fails
+      // and reports no session. That is a dead network, not an expired login —
+      // locking the coach out mid-game would be the worst possible moment.
+      if (isOffline()) return
       const { data: { session }, error } = await supabase.auth.getSession()
       if (error || !session) {
+        if (isOffline()) return   // dropped signal between the check and the call
         addToast('Your session expired — please log in again', 'warning', 5000)
         setShowSessionExpired(true)
       }
@@ -939,8 +945,9 @@ export default function App() {
   useEffect(() => {
     if (!session) return
     const refreshInterval = setInterval(async () => {
+      if (isOffline()) return   // nothing to refresh against; the cached session stands
       const { error } = await supabase.auth.refreshSession()
-      if (error) {
+      if (error && !isOffline()) {
         setShowSessionExpired(true)
       }
     }, 30 * 60 * 1000)
@@ -949,7 +956,7 @@ export default function App() {
 
   // Custom 'session-expired' event (dispatched by Supabase 401 interceptors)
   useEffect(() => {
-    function handleSessionExpired() { setShowSessionExpired(true) }
+    function handleSessionExpired() { if (!isOffline()) setShowSessionExpired(true) }
     window.addEventListener('session-expired', handleSessionExpired)
     return () => window.removeEventListener('session-expired', handleSessionExpired)
   }, [])
@@ -960,14 +967,13 @@ export default function App() {
     })
   }, [])
 
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        registrations.forEach(r => r.unregister())
-      })
-      caches.keys().then(names => names.forEach(name => caches.delete(name)))
-    }
-  }, [])
+  // NOTE: this used to unregister every service worker and delete every cache
+  // on mount — a one-off cache-buster for a bad deploy that was never removed.
+  // It ran on every launch, so it wiped the precache the PWA needs to open with
+  // no signal: the app kept working only while Chrome's HTTP cache happened to
+  // still hold the shell, then stopped opening on the field at all. The service
+  // worker is built with registerType 'autoUpdate', which already replaces
+  // itself on each load, so a stale worker does not need nuking by hand.
 
   useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.substring(1))

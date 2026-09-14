@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
+import { readCached } from '../../lib/offline'
 import PlanBadge from '../UI/PlanBadge'
 
 export default function StandingsPage({ team }) {
@@ -18,11 +19,13 @@ export default function StandingsPage({ team }) {
   }, [team?.id])
 
   async function loadStandings() {
-    const { data } = await supabase
-      .from('standings')
-      .select('*')
-      .eq('team_id', team.id)
-      .order('updated_at', { ascending: true })
+    const { data } = await readCached(
+      `cache_standings_${team.id}`,
+      () => supabase.from('standings').select('*')
+        .eq('team_id', team.id)
+        .order('updated_at', { ascending: true }),
+      [],
+    )
     if (data && data.length > 0) {
       setStandingsList(data)
       setActiveId(data[0].id)

@@ -121,6 +121,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
     subscription,
     switchTeam,
     updateTeamBranding,
+    saveWithOfflineSupport,
   } = useApp()
   const { addToast } = useToast()
   const { session } = useAuth()
@@ -248,16 +249,19 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
     setError('')
     try {
       if (editingPlayer) {
-        const { data, error: err } = await supabase
-          .from('players').update(playerData).eq('id', editingPlayer.id).select().single()
-        if (err) throw err
-        setPlayers(prev => prev.map(p => p.id === data.id ? data : p))
+        const updated = { ...editingPlayer, ...playerData }
+        const { ok } = await saveWithOfflineSupport('players', 'update', playerData, 'id', editingPlayer.id)
+        if (!ok) throw new Error('save failed')
+        setPlayers(prev => prev.map(p => p.id === updated.id ? updated : p))
         addToast('Player saved', 'success')
       } else {
-        const { data, error: err } = await supabase
-          .from('players').insert({ ...playerData, team_id: team.id }).select().single()
-        if (err) throw err
-        setPlayers(prev => [...prev, data].sort((a, b) => a.jersey_number - b.jersey_number))
+        // Mint the id here so a player added on the field is a real row the
+        // moment it appears — queued if there is no signal, and still the same
+        // player once it syncs.
+        const row = { id: crypto.randomUUID(), ...playerData, team_id: team.id }
+        const { ok } = await saveWithOfflineSupport('players', 'upsert', row, 'id', row.id)
+        if (!ok) throw new Error('save failed')
+        setPlayers(prev => [...prev, row].sort((a, b) => a.jersey_number - b.jersey_number))
         setPlayerCount(prev => prev + 1)
       }
     } catch (err) {
@@ -272,8 +276,8 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
   async function handleDeletePlayer(playerId) {
     setError('')
     try {
-      const { error: err } = await supabase.from('players').delete().eq('id', playerId)
-      if (err) throw err
+      const { ok } = await saveWithOfflineSupport('players', 'delete', null, 'id', playerId)
+      if (!ok) throw new Error('delete failed')
       setPlayers(prev => prev.filter(p => p.id !== playerId))
       setPlayerCount(prev => Math.max(0, prev - 1))
     } catch (err) {

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { isOffline } from '../lib/offline'
 
 const AuthContext = createContext(null)
 
@@ -29,14 +30,29 @@ export function AuthProvider({ children }) {
     let mounted = true
 
     // Confirm with Supabase, but don't block rendering on it.
+    //
+    // Offline this call is NOT harmless: once the access token is an hour old,
+    // getSession() tries to refresh it, the refresh fails with no network, and
+    // it resolves { session: null }. Taking that at face value signs a coach
+    // out on the sideline. Supabase keeps the session in storage on a network
+    // failure (only a real auth rejection clears it), so when we are offline
+    // — or the call came back empty while we hold a cached session — we keep
+    // what we have and let the next online refresh sort it out.
     supabase.auth.getSession()
-      .then(({ data: { session: live } }) => {
-        if (mounted) setSession(live)
+      .then(({ data: { session: live }, error }) => {
+        if (!mounted) return
+        if (live) { setSession(live); return }
+        if (isOffline() || error) return            // network problem — keep cached
+        if (readCachedSession()) return             // storage still holds a session
+        setSession(null)                            // genuinely signed out
       })
       .catch(() => { /* offline or refresh failure — keep cached session */ })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      if (mounted) setSession(s)
+      if (!mounted) return
+      // Same guard: a failed token refresh offline must not clear the session.
+      if (!s && isOffline()) return
+      setSession(s)
     })
 
     return () => {
