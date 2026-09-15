@@ -156,8 +156,25 @@ async function loadUsers() {
   for (const m of memberships || []) {
     if (!assistsByUser.has(m.user_id)) assistsByUser.set(m.user_id, [])
     assistsByUser.get(m.user_id).push({
+      team_id: m.team_id,
       name: teamNameById.get(m.team_id) || '(unknown team)',
       display_name: m.display_name,
+    })
+  }
+
+  // Both ends of the relationship: who an assistant helps, and who helps a head
+  // coach. An assistant's row is meaningless without the account it hangs off.
+  const ownerIdByTeam = new Map((teams || []).map(t => [t.id, t.user_id]))
+  const emailById = new Map(users.map(u => [u.id, u.email || null]))
+  const assistantsByOwner = new Map()
+  for (const m of memberships || []) {
+    const ownerId = ownerIdByTeam.get(m.team_id)
+    if (!ownerId) continue
+    if (!assistantsByOwner.has(ownerId)) assistantsByOwner.set(ownerId, [])
+    assistantsByOwner.get(ownerId).push({
+      name: m.display_name || '(unnamed)',
+      team: teamNameById.get(m.team_id) || '(unknown team)',
+      user_id: m.user_id,
     })
   }
 
@@ -190,6 +207,12 @@ async function loadUsers() {
       stripe_subscription_id: s?.stripe_subscription_id || null,
       teams:                  userTeams.length,
       team_names:             userTeams.map(t => t.name),
+      // Who this assistant answers to, and who answers to this head coach.
+      assist_of:              assists.map(a => ({
+                                team:  a.name,
+                                coach: emailById.get(ownerIdByTeam.get(a.team_id)) || '(unknown)',
+                              })),
+      assistants:             assistantsByOwner.get(u.id) || [],
       assists:                assists.length,
       assist_teams:           assists.map(a => a.name),
       display_name:           assists.find(a => a.display_name)?.display_name || null,

@@ -188,6 +188,8 @@
     tr.row:hover { background: rgba(0,200,83,0.035); }
 
     .email { font-weight: 500; }
+    .link-line { display: block; font-size: 11px; color: var(--dim, #8b8b9a); margin-top: 2px; }
+    .link-line b { font-weight: 600; color: inherit; }
     .provider { color: var(--dim); font-size: 11px; margin-left: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
     .num { font-variant-numeric: tabular-nums; color: var(--muted); }
 
@@ -457,7 +459,9 @@
       r = r.filter(u =>
         u.email.toLowerCase().includes(q) ||
         (u.display_name || '').toLowerCase().includes(q) ||
-        (u.assist_teams || []).some(t => t.toLowerCase().includes(q)))
+        (u.assist_teams || []).some(t => t.toLowerCase().includes(q)) ||
+        (u.assist_of || []).some(a => (a.coach || '').toLowerCase().includes(q)) ||
+        (u.assistants || []).some(a => (a.name || '').toLowerCase().includes(q)))
     }
     return r
   }
@@ -527,8 +531,21 @@
         const what = u.role === 'both' ? 'also assists' : 'assistant coach'
         return `<span class="gift-tag" title="${escapeHtml(what)} on: ${escapeHtml(teams)}">assistant</span>`
       }
+      // The link, spelled out both ways. An assistant row is meaningless on its
+      // own — the question is always "whose account is this hanging off?"
+      const linkLine = (u) => {
+        const out = []
+        for (const a of u.assist_of || []) {
+          out.push(`↳ assists <b>${escapeHtml(a.coach)}</b> · ${escapeHtml(a.team)}`)
+        }
+        if ((u.assistants || []).length) {
+          const who = u.assistants.map(a => `${a.name} (${a.team})`).join(', ')
+          out.push(`↳ ${u.assistants.length} assistant${u.assistants.length === 1 ? '' : 's'}: <b>${escapeHtml(who)}</b>`)
+        }
+        return out.length ? `<span class="link-line">${out.join('<br>')}</span>` : ''
+      }
       return `<tr class="row">
-        <td><span class="email">${escapeHtml(label(u))}</span>${provider}${assistTag(u)}</td>
+        <td><span class="email">${escapeHtml(label(u))}</span>${provider}${assistTag(u)}${linkLine(u)}</td>
         <td><span class="badge badge-${planClass}">${escapeHtml(u.plan)}</span>${override}${gift}${sandbox}</td>
         <td class="platform-cell" title="${escapeHtml(u.user_agent || '')}">${u.platform ? escapeHtml(u.platform) : '<span class="dim-dash">—</span>'}</td>
         <td class="device-cell" title="${escapeHtml(u.user_agent || '')}">${u.device ? escapeHtml(u.device) : '<span class="dim-dash">—</span>'}</td>
