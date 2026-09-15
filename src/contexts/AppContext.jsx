@@ -508,6 +508,29 @@ export function AppProvider({ userId, children }) {
     return data
   }
 
+  // Joins the head coach has not been shown yet. Marking them here rather than
+  // tracking it on the device means he is told once, on whichever phone he
+  // opens next — not once per device.
+  async function claimNewAssistants() {
+    if (isOffline()) return []
+    const ownedIds = teams.filter(t => teamRole(t) === 'owner').map(t => t.id)
+    if (ownedIds.length === 0) return []
+    const { data, error } = await supabase
+      .from('team_members')
+      .select('id, team_id, display_name, user_email')
+      .in('team_id', ownedIds)
+      .is('owner_notified_at', null)
+    if (error || !data?.length) return []
+    await supabase
+      .from('team_members')
+      .update({ owner_notified_at: new Date().toISOString() })
+      .in('id', data.map(m => m.id))
+    return data.map(m => ({
+      ...m,
+      teamName: teams.find(t => t.id === m.team_id)?.name || 'your team',
+    }))
+  }
+
   async function peekInvite(code) {
     const { data, error } = await supabase.rpc('peek_team_invite', { invite_code: code })
     if (error) return { ok: false, error: error.message }
@@ -801,6 +824,7 @@ export function AppProvider({ userId, children }) {
     isAssistant,
     ownedTeams,
     loadTeamSharing,
+    claimNewAssistants,
     rotateTeamInvite,
     removeTeamMember,
     promoteTeamMember,

@@ -126,7 +126,8 @@ export default function TeamSharing({ team }) {
     : ''
 
   const seatsUsed = members.length
-  const full = seatsUsed >= maxAssistants
+  const unlimited = maxAssistants >= 99
+  const full = !unlimited && seatsUsed >= maxAssistants
 
   async function createCode() {
     setBusy(true)
@@ -198,9 +199,13 @@ export default function TeamSharing({ team }) {
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
         <h3 className="text-lg font-bold text-white">Assistant coaches</h3>
         <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
-          {/* Over the limit reads as "3 of 3 seats · 1 dormant", never "4 of 3". */}
-          {Math.min(seatsUsed, maxAssistants)} of {maxAssistants} {maxAssistants === 1 ? 'seat' : 'seats'}
-          {seatsUsed > maxAssistants && ` · ${seatsUsed - maxAssistants} dormant`}
+          {/* 99 is the internal stand-in for "no limit" — never show it as a
+              seat count. Over the limit reads "3 of 3 seats · 1 dormant",
+              never "4 of 3". */}
+          {unlimited
+            ? `${seatsUsed} assistant${seatsUsed === 1 ? '' : 's'}`
+            : `${Math.min(seatsUsed, maxAssistants)} of ${maxAssistants} ${maxAssistants === 1 ? 'seat' : 'seats'}`}
+          {!unlimited && seatsUsed > maxAssistants && ` · ${seatsUsed - maxAssistants} dormant`}
         </span>
       </div>
 

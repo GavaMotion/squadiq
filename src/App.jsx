@@ -608,7 +608,7 @@ const isInStandalone = window.matchMedia('(display-mode: standalone)').matches
 
 // ── Inner content (rendered inside AppProvider) ──────────────────
 function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
-  const { createTeam, syncPendingChanges, activeTeamId, team, teams, ownedTeams, maxTeams, isTrialExpired, daysLeftInTrial, subscription, setSubscription } = useApp()
+  const { createTeam, syncPendingChanges, activeTeamId, team, teams, ownedTeams, maxTeams, isTrialExpired, daysLeftInTrial, subscription, setSubscription, claimNewAssistants, dataLoaded } = useApp()
   const { session } = useAuth()
   const user = session?.user
   const { addToast } = useToast()
@@ -704,6 +704,19 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
       })
     }
   }, [isOnline, addToast, syncPendingChanges])
+
+  // A coach should not have to go looking to find out someone accepted.
+  const announcedJoinsRef = useRef(false)
+  useEffect(() => {
+    if (!dataLoaded || announcedJoinsRef.current) return
+    announcedJoinsRef.current = true
+    claimNewAssistants().then(joined => {
+      joined.forEach(m => {
+        const who = m.display_name || m.user_email || 'An assistant coach'
+        addToast(`${who} joined ${m.teamName} as assistant coach`, 'success', 6000)
+      })
+    }).catch(() => { /* nothing to announce */ })
+  }, [dataLoaded, claimNewAssistants, addToast])
 
   useEffect(() => {
     function onUnhandledRejection(event) {
