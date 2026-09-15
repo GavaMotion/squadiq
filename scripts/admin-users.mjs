@@ -233,6 +233,8 @@ function relTime(iso) {
   return `${Math.floor(mo / 12)}y ago`
 }
 function trialLeft(r) {
+  // An assistant's trial row is an artefact of the signup trigger, not a plan.
+  if (r.role === 'assistant') return '—'
   if (r.plan !== 'trial' || !r.trial_end) return ''
   const d = Math.ceil((new Date(r.trial_end) - Date.now()) / 86400000)
   return d > 0 ? `${d}d left` : 'expired'
@@ -241,6 +243,7 @@ function trialLeft(r) {
 // plan + everything that qualifies it, so an override never hides a gift:
 // "premium (unlimited, gift)".
 function planLabel(r) {
+  if (r.role === 'assistant') return '—'
   const notes = []
   if (r.plan_override) notes.push(r.plan_override)
   if (r.apple_environment === 'Sandbox') notes.push('sandbox')
@@ -278,10 +281,17 @@ if (format === 'json') {
     `\n${rows.length} matching user${rows.length === 1 ? '' : 's'}` +
     (hidden > 0 ? ` (${shown.length} shown, ${hidden} hidden — raise --limit)` : '')
   )
+  // Assistants carry a trial row they never asked for; counting it here would
+  // report helpers as prospects, the same way it would in the dashboard.
   const planCounts = {}
-  for (const r of rows) planCounts[r.plan] = (planCounts[r.plan] || 0) + 1
+  for (const r of rows) {
+    if (r.role === 'assistant') continue
+    planCounts[r.plan] = (planCounts[r.plan] || 0) + 1
+  }
   const summary = Object.entries(planCounts).map(([p, n]) => `${p}: ${n}`).join(', ')
   if (summary) console.log(`Plans: ${summary}`)
+  const assistants = rows.filter(r => r.role === 'assistant').length
+  if (assistants) console.log(`Assistants: ${assistants} (helping on another coach's team, no plan of their own)`)
   // Say it out loud: a gifted row looks exactly like a sale in the plan counts.
   const gifted = rows.filter(r => r.gifted).length
   if (gifted) console.log(`Gifted: ${gifted} (full access, not revenue)`)

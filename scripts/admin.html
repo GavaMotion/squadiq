@@ -544,17 +544,25 @@
         }
         return out.length ? `<span class="link-line">${out.join('<br>')}</span>` : ''
       }
+      // An assistant-only login gets a trial row from the signup trigger like
+      // anyone else, but it means nothing: they joined somebody else's team and
+      // have no account of their own to bill. Showing "trial · 30d left" makes
+      // them read as a prospect, and the plan controls would write a plan onto
+      // a helper. Blank all of it.
+      const helperOnly = isAssistant(u)
       return `<tr class="row">
         <td><span class="email">${escapeHtml(label(u))}</span>${provider}${assistTag(u)}${linkLine(u)}</td>
-        <td><span class="badge badge-${planClass}">${escapeHtml(u.plan)}</span>${override}${gift}${sandbox}</td>
+        <td>${helperOnly
+          ? '<span class="dim-dash" title="An assistant coach has no plan of their own — they work inside the head coach\'s subscription">—</span>'
+          : `<span class="badge badge-${planClass}">${escapeHtml(u.plan)}</span>${override}${gift}${sandbox}`}</td>
         <td class="platform-cell" title="${escapeHtml(u.user_agent || '')}">${u.platform ? escapeHtml(u.platform) : '<span class="dim-dash">—</span>'}</td>
         <td class="device-cell" title="${escapeHtml(u.user_agent || '')}">${u.device ? escapeHtml(u.device) : '<span class="dim-dash">—</span>'}</td>
         <td class="location-cell" title="${escapeHtml(u.ip || '')}">${u.location ? escapeHtml(u.location) : '<span class="dim-dash">—</span>'}</td>
         <td class="num">${rel(u.signup)}</td>
         <td class="num">${rel(u.last_seen)}</td>
         <td class="num">${u.teams}</td>
-        <td class="trial-cell ${tl.urgent ? 'urgent' : ''}">${tl.text}</td>
-        <td class="actions-cell">
+        <td class="trial-cell ${!helperOnly && tl.urgent ? 'urgent' : ''}">${helperOnly ? '<span class="dim-dash">—</span>' : tl.text}</td>
+        <td class="actions-cell">${helperOnly ? '<span class="dim-dash">—</span>' : `
           <select class="plan-select" data-uid="${escapeHtml(u.id)}" title="Set plan">
             ${['trial','solo','premium','expired'].map(p =>
               `<option value="${p}" ${u.plan === p ? 'selected' : ''}>${p}</option>`).join('')}
@@ -563,7 +571,7 @@
           <label class="gift-check${u.gifted ? ' on' : ''}" title="Given, not bought — keeps full access, drops out of Paying">
             <input type="checkbox" class="gift-toggle" data-uid="${escapeHtml(u.id)}" ${u.gifted ? 'checked' : ''} />Gift
           </label>
-          <button class="mini-btn reset-trial" data-uid="${escapeHtml(u.id)}" title="Restart a fresh 30-day trial">↻ Trial</button>
+          <button class="mini-btn reset-trial" data-uid="${escapeHtml(u.id)}" title="Restart a fresh 30-day trial">↻ Trial</button>`}
         </td>
       </tr>`
     }).join('')
