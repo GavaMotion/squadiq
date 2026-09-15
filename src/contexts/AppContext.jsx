@@ -498,8 +498,14 @@ export function AppProvider({ userId, children }) {
   }
 
   async function removeTeamMember(memberId) {
-    const { error } = await supabase.from('team_members').delete().eq('id', memberId)
-    return { ok: !error, error: error?.message }
+    // Ask for the deleted rows back. Row-level security refuses by matching
+    // nothing rather than by raising, so `!error` alone would report success
+    // for a delete that did nothing at all.
+    const { data, error } = await supabase
+      .from('team_members').delete().eq('id', memberId).select('id')
+    if (error) return { ok: false, error: error.message }
+    if (!data || data.length === 0) return { ok: false, error: 'nothing_removed' }
+    return { ok: true }
   }
 
   async function promoteTeamMember(memberId) {

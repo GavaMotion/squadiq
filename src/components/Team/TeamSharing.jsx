@@ -105,16 +105,25 @@ export default function TeamSharing({ team }) {
   const [busy,    setBusy]    = useState(false)
   const [confirm, setConfirm] = useState(null)   // { kind, member }
   const [showQr,  setShowQr]  = useState(false)
+  const [loadFailed, setLoadFailed] = useState(false)
 
   const isOwner = teamRole(team) === 'owner'
 
   const refresh = useCallback(async () => {
     if (!team?.id) return
     setLoading(true)
-    const { invite: inv, members: mem } = await loadTeamSharing(team.id)
+    const { invite: inv, members: mem, error } = await loadTeamSharing(team.id)
+    setLoading(false)
+    if (error) {
+      // Do not fall through to the "no code yet" state on a failed load. The
+      // obvious next tap there mints a code, which revokes the one already
+      // circulating in the team's group chat.
+      setLoadFailed(true)
+      return
+    }
+    setLoadFailed(false)
     setInvite(inv)
     setMembers(mem)
-    setLoading(false)
   }, [team?.id, loadTeamSharing])
 
   useEffect(() => { if (isOwner) refresh() }, [isOwner, refresh])
@@ -128,6 +137,7 @@ export default function TeamSharing({ team }) {
   const seatsUsed = members.length
   const unlimited = maxAssistants >= 99
   const full = !unlimited && seatsUsed >= maxAssistants
+  const expired = !!invite && new Date(invite.expires_at) < new Date()
 
   async function createCode() {
     setBusy(true)
@@ -135,6 +145,16 @@ export default function TeamSharing({ team }) {
     setBusy(false)
     if (!res?.ok) { addToast(res?.error === 'not_owner' ? 'Only the head coach can do that' : 'Could not create a code', 'error'); return }
     await refresh()
+  }
+
+  async function doRenew() {
+    setBusy(true)
+    const res = await rotateTeamInvite(team.id, false)
+    setBusy(false)
+    setConfirm(null)
+    if (!res?.ok) { addToast('Could not create a new code', 'error'); return }
+    await refresh()
+    addToast('New code created — your assistants keep their access', 'success', 4000)
   }
 
   async function doReset() {
@@ -157,7 +177,13 @@ export default function TeamSharing({ team }) {
     const res = await removeTeamMember(member.id)
     setBusy(false)
     setConfirm(null)
-    if (!res.ok) { addToast('Could not remove that assistant', 'error'); return }
+    if (!res.ok) {
+      addToast(res.error === 'nothing_removed'
+        ? 'Could not remove that assistant — reload and try again'
+        : 'Could not remove that assistant', 'error')
+      await refresh()
+      return
+    }
     await refresh()
     addToast('Assistant removed', 'success', 2500)
   }
@@ -222,6 +248,14 @@ export default function TeamSharing({ team }) {
 
         {loading ? (
           <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Loading…</div>
+        ) : loadFailed ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ color: '#f4a13b', fontSize: 12, lineHeight: 1.6 }}>
+              Couldn&apos;t load your assistant coaches just now. Your invite code
+              is untouched — try again when you have a connection.
+            </div>
+            <button onClick={refresh} style={btn({ justifyContent: 'center' })}>Try again</button>
+          </div>
         ) : maxAssistants === 0 ? (
           <div style={{ color: '#f4a13b', fontSize: 12, lineHeight: 1.6 }}>
             Your plan has ended, so assistant access is paused. Your assistants are
@@ -231,6 +265,27 @@ export default function TeamSharing({ team }) {
           <button onClick={createCode} disabled={busy} style={btn({ background: '#00c853', border: 'none', color: '#fff', justifyContent: 'center' })}>
             {busy ? 'Creating…' : 'Create an invite code'}
           </button>
+        ) : expired ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+            <div style={{
+              fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+              fontSize: 22, fontWeight: 700, letterSpacing: 4,
+              color: 'rgba(255,255,255,0.3)', textDecoration: 'line-through',
+            }}>
+              {invite.code}
+            </div>
+            <div style={{ color: '#f4a13b', fontSize: 12, textAlign: 'center', lineHeight: 1.6 }}>
+              This code expired on {new Date(invite.expires_at).toLocaleDateString()}.
+              {members.length > 0 && ' Your assistants still have access.'}
+            </div>
+            <button
+              onClick={doRenew}
+              disabled={busy}
+              style={btn({ background: '#00c853', border: 'none', color: '#fff', justifyContent: 'center' })}
+            >
+              {busy ? 'Creating…' : 'Get a new code'}
+            </button>
+          </div>
         ) : (
           <>
             <div style={{
@@ -256,11 +311,12 @@ export default function TeamSharing({ team }) {
               </button>
               <button onClick={copyCode} style={btn()}>Copy link</button>
               <button onClick={shareCode} style={btn()}>Share</button>
+              <button onClick={() => setConfirm({ kind: 'renew' })} style={btn()}>New code</button>
               <button
                 onClick={() => setConfirm({ kind: 'reset' })}
                 style={btn({ border: '1px solid rgba(226,75,74,0.4)', color: '#fca5a5' })}
               >
-                Reset code
+                Reset &amp; remove
               </button>
             </div>
 
@@ -320,15 +376,30 @@ export default function TeamSharing({ team }) {
         )}
       </div>
 
+      {confirm?.kind === 'renew' && (
+        <ConfirmSheet
+          title="Create a new code?"
+          body={
+            members.length > 0
+              ? `The old code stops working, so anyone still holding it can't join. Your ${members.length} current assistant${members.length === 1 ? '' : 's'} keep${members.length === 1 ? 's' : ''} access.`
+              : 'The old code stops working, so anyone you already sent it to will need the new one.'
+          }
+          confirmLabel="New code"
+          busy={busy}
+          onConfirm={doRenew}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+
       {confirm?.kind === 'reset' && (
         <ConfirmSheet
-          title="Reset the invite code?"
+          title="Reset and remove everyone?"
           body={
             members.length > 0
               ? `A new code is created and the old one stops working. Everyone who joined with the old code — ${members.length} assistant${members.length === 1 ? '' : 's'} — loses access to ${team.name} straight away. Use this if the code got out.`
               : 'A new code is created and the old one stops working. Anyone you already sent it to will not be able to join.'
           }
-          confirmLabel="Reset code"
+          confirmLabel="Reset & remove"
           danger
           busy={busy}
           onConfirm={doReset}
