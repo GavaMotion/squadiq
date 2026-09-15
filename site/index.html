@@ -137,6 +137,55 @@
     }
     .hero-img img { width: 100%; display: block; }
 
+    /* ---------- HERO CLIP (click-to-play, no YouTube JS until asked) ---------- */
+    .hero-clip {
+      position: relative;
+      width: 100%;
+      max-width: 288px;
+      aspect-ratio: 9 / 16;
+      margin: 2.5rem auto 0;
+      border-radius: 26px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+    }
+    .hero-clip img,
+    .hero-clip iframe {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: block; border: 0;
+    }
+    .hero-clip img { object-fit: cover; }
+    .hero-clip-play {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      gap: 0.85rem;
+      padding: 0 1rem 1.5rem;
+      border: 0; cursor: pointer;
+      font: inherit; color: var(--text);
+      background: linear-gradient(180deg, rgba(13,13,26,0) 40%, rgba(13,13,26,0.88) 100%);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .hero-clip-icon {
+      margin-top: auto;
+      width: 62px; height: 62px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 8px 30px rgba(0,200,83,0.45);
+      transition: transform 0.18s ease;
+    }
+    .hero-clip-icon svg { width: 24px; height: 24px; margin-left: 3px; fill: #06210f; }
+    .hero-clip-play:hover .hero-clip-icon,
+    .hero-clip-play:focus-visible .hero-clip-icon { transform: scale(1.08); }
+    .hero-clip-label { font-size: 0.85rem; font-weight: 600; letter-spacing: 0.01em; }
+    .hero-clip-note { color: var(--muted); font-size: 0.82rem; margin: 0.9rem auto 0; }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-clip-icon { transition: none; }
+    }
+
     /* ---------- STORE BADGES ---------- */
     .store-badges { display: flex; flex-wrap: wrap; gap: 0.65rem; }
     .badge-btn {
@@ -275,6 +324,19 @@
       .hero-logo { width: 220px; }
       section { padding: 2.5rem 1.25rem; }
       header { padding: 1rem 1.25rem; }
+
+      /* The badges stack four-high on a phone, which buries the clip. Lift the
+         clip above them — headline, then proof, then the buttons. */
+      .hero { display: flex; flex-direction: column; }
+      .hero-logo      { order: 1; }
+      .badge-eyebrow  { order: 2; }
+      .hero h1        { order: 3; }
+      .hero-sub       { order: 4; margin-bottom: 1.5rem; }
+      .hero-clip      { order: 5; margin-top: 0; }
+      .hero-clip-note { order: 6; margin-bottom: 1.75rem; }
+      .hero .store-badges { order: 7; }
+      .badge-note     { order: 8; }
+      .hero-sign      { order: 9; }
     }
   </style>
 </head>
@@ -284,7 +346,7 @@
   <a href="index.html" class="logo"><img class="brand-logo" src="assets/logo_squadiq_dark.png" alt="SquadIQ" /></a>
   <nav class="nav-links">
     <a href="#features">Features</a>
-    <a href="#trial">Free trial</a>
+    <a href="guide.html">Guide</a>
     <a href="support.html">Support</a>
     <a href="#download" class="nav-cta">Get the app</a>
   </nav>
@@ -324,6 +386,19 @@
       </a>
     </div>
     <p class="badge-note"><span>30-day free trial</span> · no credit card · works on phone, tablet &amp; desktop</p>
+
+    <!-- Lineup demo — poster only until clicked, then the YouTube player loads -->
+    <div class="hero-clip" id="heroClip" data-yt-clip="p5iEvLZKmO8">
+      <img src="assets/clip-lineup-poster.webp" width="648" height="1152" alt="The SquadIQ lineup screen, with the AI Lineup Planner about to fill four quarters" />
+      <button class="hero-clip-play" type="button" aria-label="Play the 38-second lineup demo">
+        <span class="hero-clip-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </span>
+        <span class="hero-clip-label">Watch it build a lineup · 0:38</span>
+      </button>
+    </div>
+    <p class="hero-clip-note">Roster in, one tap, four balanced quarters.</p>
+
     <img class="hero-sign" src="assets/bygavamotion.png" alt="by Gava Motion" />
   </div>
 </div>
@@ -414,6 +489,31 @@
   </div>
 </section>
 
+<!-- ============ EVERYONE PLAYS ============ -->
+<!-- Deliberately after the features and before the price. On its own the ¾ rule
+     is small print; once you have seen the app build a lineup it is the reason
+     to believe the lineup. And "will it actually be fair, or will I be fixing it
+     by hand?" is the doubt that sits between reading the features and paying. -->
+<section id="fair-play">
+  <div class="section-head">
+    <span class="eyebrow">Everyone plays</span>
+    <h2>Every parent counts the quarters. <span>Now the app counts too.</span></h2>
+    <p>AYSO's ¾ rule means every player gets at least three of the four quarters. SquadIQ checks your whole roster while you're still building the lineup and flags anyone short — before kickoff, not on the drive home.</p>
+  </div>
+
+  <div class="hero-clip" data-yt-clip="7S0zXA_bC1Q">
+    <img src="assets/clip-threequarter-poster.webp" width="648" height="1152" loading="lazy"
+         alt="The SquadIQ lineup screen with a player highlighted in amber for being short of three quarters" />
+    <button class="hero-clip-play" type="button" aria-label="Play the 52-second three-quarter rule demo">
+      <span class="hero-clip-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </span>
+      <span class="hero-clip-label">Watch the ¾ rule check · 0:52</span>
+    </button>
+  </div>
+  <p class="hero-clip-note">An amber row means someone is short. Fix it with a drag.</p>
+</section>
+
 <!-- ============ FREE TRIAL ============ -->
 <section id="trial">
   <div class="section-head">
@@ -489,6 +589,7 @@
         <strong>Product</strong>
         <a href="#features">Features</a>
         <a href="features.html">All features</a>
+        <a href="guide.html">Guide &amp; tutorials</a>
         <a href="#trial">Free trial</a>
         <a href="https://squadiq-coach.vercel.app" target="_blank" rel="noopener">Open web app</a>
       </div>
@@ -509,5 +610,90 @@
   </div>
 </footer>
 
+<script>
+  // Swap the poster for the real player on first click. Nothing from YouTube is
+  // requested until then — not even the iframe API — so the hero costs one
+  // 30 KB image on load.
+  //
+  // This uses the IFrame Player API rather than a plain <iframe> for one reason:
+  // YouTube loops Shorts in the embed and a plain iframe gives you no say in it.
+  // With the API we can stop on the final frame instead.
+  (function () {
+    // Any element carrying data-yt-clip. Each keeps its own player and its own
+    // guard timer; the API script is fetched once, by whichever is clicked first.
+    var clips = [].slice.call(document.querySelectorAll('[data-yt-clip]'));
+    if (!clips.length) return;
+
+    var waiting = [];
+    var apiRequested = false;
+    function loadApi() {
+      if (apiRequested) return;
+      apiRequested = true;
+      window.onYouTubeIframeAPIReady = function () {
+        waiting.splice(0).forEach(function (fn) { fn(); });
+      };
+      var s = document.createElement('script');
+      s.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(s);
+    }
+
+    function setup(clip) {
+      var videoId = clip.getAttribute('data-yt-clip');
+      var btn = clip.querySelector('.hero-clip-play');
+      if (!videoId || !btn) return;
+      var timer = null;
+
+      // Park on the last frame: seek to the very end, then pause there.
+      function freeze(p) {
+        if (timer) { clearInterval(timer); timer = null; }
+        try {
+          var d = p.getDuration();
+          if (d) p.seekTo(d - 0.05, true);
+          p.pauseVideo();
+        } catch (e) {}
+      }
+
+      // A looping Short can restart without ever reporting ENDED, so don't rely
+      // on that event alone — stop it a frame short of the end.
+      function guard(p) {
+        timer = setInterval(function () {
+          try {
+            var d = p.getDuration();
+            if (d && p.getCurrentTime() >= d - 0.3) freeze(p);
+          } catch (e) {}
+        }, 150);
+      }
+
+      function build() {
+        var mount = document.createElement('div');
+        clip.innerHTML = '';
+        clip.appendChild(mount);
+        new YT.Player(mount, {
+          videoId: videoId,
+          width: '100%',
+          height: '100%',
+          playerVars: {
+            autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1,
+            loop: 0, fs: 1
+          },
+          events: {
+            onReady: function (e) { e.target.playVideo(); guard(e.target); },
+            onStateChange: function (e) {
+              if (e.data === YT.PlayerState.ENDED) freeze(e.target);
+            }
+          }
+        });
+      }
+
+      btn.addEventListener('click', function () {
+        if (window.YT && window.YT.Player) { build(); return; }
+        waiting.push(build);
+        loadApi();
+      });
+    }
+
+    clips.forEach(setup);
+  })();
+</script>
 </body>
 </html>
