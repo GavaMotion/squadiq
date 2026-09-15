@@ -287,12 +287,14 @@ export default function TeamSharing({ team }) {
                       fontSize: 13, fontWeight: 600,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
-                      {m.user_email || 'Assistant coach'}
+                      {m.display_name || m.user_email || 'Assistant coach'}
                     </div>
                     <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
                       {dormant
                         ? 'Dormant — no seat on your plan'
-                        : `Joined ${new Date(m.joined_at).toLocaleDateString()}`}
+                        : m.last_seen_at
+                          ? `Last used ${new Date(m.last_seen_at).toLocaleDateString()}`
+                          : `Joined ${new Date(m.joined_at).toLocaleDateString()}`}
                     </div>
                   </div>
                   {dormant && maxAssistants > 0 && (
@@ -332,7 +334,7 @@ export default function TeamSharing({ team }) {
       {confirm?.kind === 'remove' && (
         <ConfirmSheet
           title="Remove this assistant?"
-          body={`${confirm.member.user_email || 'This assistant'} loses access to ${team.name} straight away. Nothing they added is deleted, and you can invite them again with the same code.`}
+          body={`${confirm.member.display_name || confirm.member.user_email || 'This assistant'} loses access to ${team.name} straight away. Nothing they added is deleted, and you can invite them again with the same code.`}
           confirmLabel="Remove"
           danger
           busy={busy}

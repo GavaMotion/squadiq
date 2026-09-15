@@ -4,10 +4,18 @@ import { supabase } from '../../lib/supabase'
 // Joining a team as an assistant coach.
 //
 // Deliberately self-contained — it talks to Supabase directly rather than
-// through AppContext, because it has to work before any team data is loaded and
-// from outside the provider (a QR scan lands on a cold app).
-export default function JoinTeamModal({ code: initialCode, onClose, onJoined }) {
+// through AppContext, because it has to work before any team data is loaded,
+// from outside the provider, and while signed out entirely (a scanned QR lands
+// on a cold app with no account at all).
+//
+// An assistant does not create an account. Signups here need email
+// confirmation, which means leaving the app for an inbox — not something that
+// happens ten minutes before kickoff. They sign in anonymously instead: a real,
+// distinct, removable user with no paperwork. The lasting link to the head
+// coach is the membership row on the server, not anything on the device.
+export default function JoinTeamModal({ code: initialCode, signedIn = true, onClose, onJoined }) {
   const [code,    setCode]    = useState((initialCode || '').toUpperCase())
+  const [name,    setName]    = useState('')
   const [preview, setPreview] = useState(null)
   const [error,   setError]   = useState('')
   const [busy,    setBusy]    = useState(false)
@@ -19,7 +27,7 @@ export default function JoinTeamModal({ code: initialCode, onClose, onJoined }) 
     expired:       'That code has expired. Ask the head coach for a fresh one.',
     full:          'This team has no assistant seats left. The head coach can free one up.',
     own_team:      'That’s your own team — you already have full access.',
-    not_signed_in: 'Sign in first, then open the invite again.',
+    not_signed_in: 'Could not start your access. Try again.',
   }[key] || fallback)
 
   const check = useCallback(async (value) => {
@@ -38,8 +46,23 @@ export default function JoinTeamModal({ code: initialCode, onClose, onJoined }) 
 
   async function join() {
     setBusy(true); setError('')
+
+    if (!signedIn) {
+      const { error: authError } = await supabase.auth.signInAnonymously()
+      if (authError) {
+        setBusy(false)
+        // The one case a coach can actually act on is worth naming plainly.
+        const disabled = /anonymous/i.test(authError.message || '')
+        setError(disabled
+          ? 'Assistant access isn’t switched on for this app yet. Ask the head coach to contact support.'
+          : 'Could not start your access — are you online?')
+        return
+      }
+    }
+
     const { data, error: rpcError } = await supabase.rpc('accept_team_invite', {
       invite_code: code.trim().toUpperCase(),
+      joiner_name: name.trim() || null,
     })
     setBusy(false)
     if (rpcError) { setError('Could not join — are you online?'); return }
@@ -47,10 +70,17 @@ export default function JoinTeamModal({ code: initialCode, onClose, onJoined }) 
     onJoined?.(data)
   }
 
+  const label = { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600, letterSpacing: 0.3 }
+  const field = {
+    background: '#0d0d1a', border: '1px solid rgba(255,255,255,0.15)',
+    borderRadius: 10, padding: '12px 14px', color: '#fff',
+    outline: 'none', width: '100%', boxSizing: 'border-box',
+  }
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 100000,
-      background: 'rgba(0,0,0,0.65)',
+      background: 'rgba(0,0,0,0.75)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
       <div style={{
@@ -59,7 +89,7 @@ export default function JoinTeamModal({ code: initialCode, onClose, onJoined }) 
         display: 'flex', flexDirection: 'column', gap: 14,
       }}>
         <div style={{ color: '#fff', fontSize: 17, fontWeight: 700 }}>
-          Join a team
+          {preview ? 'Join a team' : 'Assistant coach invite'}
         </div>
 
         {preview ? (
@@ -78,9 +108,24 @@ export default function JoinTeamModal({ code: initialCode, onClose, onJoined }) 
                 </div>
               )}
             </div>
+
+            {!signedIn && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={label}>YOUR NAME</span>
+                <input
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && join()}
+                  placeholder="So the head coach knows it's you"
+                  style={{ ...field, fontSize: 14 }}
+                />
+              </div>
+            )}
+
             <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, lineHeight: 1.6 }}>
-              As an assistant you can run the lineup, edit the roster and plan
-              practices. Billing and the team itself stay with the head coach.
+              {signedIn
+                ? 'As an assistant you can run the lineup, edit the roster and plan practices. Billing and the team itself stay with the head coach.'
+                : 'No account or password needed — one tap and you’re in. You can run the lineup, edit the roster and plan practices; billing and the team stay with the head coach.'}
             </div>
           </>
         ) : (
@@ -97,11 +142,9 @@ export default function JoinTeamModal({ code: initialCode, onClose, onJoined }) 
               autoCorrect="off"
               spellCheck={false}
               style={{
-                background: '#0d0d1a', border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: 10, padding: '12px 14px', color: '#fff',
+                ...field,
                 fontSize: 20, fontWeight: 700, letterSpacing: 4, textAlign: 'center',
                 fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
-                outline: 'none', width: '100%', boxSizing: 'border-box',
               }}
             />
           </>
@@ -137,9 +180,21 @@ export default function JoinTeamModal({ code: initialCode, onClose, onJoined }) 
               opacity: busy || (!preview && !code.trim()) ? 0.5 : 1,
             }}
           >
-            {busy ? '…' : preview ? 'Join team' : checked ? 'Try again' : 'Continue'}
+            {busy ? '…' : preview ? (signedIn ? 'Join team' : 'Join as assistant') : checked ? 'Try again' : 'Continue'}
           </button>
         </div>
+
+        {!signedIn && !preview && (
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)',
+              fontSize: 11, textDecoration: 'underline', cursor: 'pointer', padding: 0,
+            }}
+          >
+            I have a SquadIQ account — sign in instead
+          </button>
+        )}
       </div>
     </div>
   )

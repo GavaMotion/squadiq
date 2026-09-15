@@ -1125,7 +1125,21 @@ export default function App() {
 
       {/* ── Main app or auth page ── */}
       {!session ? (
-        <AuthPage />
+        <>
+          <AuthPage />
+          {/* An assistant arriving from a QR has no account and, with email
+              confirmation on, cannot practically make one at a field. Show the
+              invite over the sign-in page so the first thing they see is which
+              team they were asked to help with. */}
+          {joinCode && (
+            <JoinTeamModal
+              code={joinCode}
+              signedIn={false}
+              onClose={dismissJoin}
+              onJoined={() => { dismissJoin(); window.location.reload() }}
+            />
+          )}
+        </>
       ) : (
         <>
           {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
@@ -1146,6 +1160,7 @@ export default function App() {
           {!showSplash && joinCode && (
             <JoinTeamModal
               code={joinCode}
+              signedIn
               onClose={dismissJoin}
               onJoined={() => {
                 dismissJoin()

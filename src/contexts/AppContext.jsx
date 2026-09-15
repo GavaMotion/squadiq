@@ -476,7 +476,7 @@ export function AppProvider({ userId, children }) {
         .eq('team_id', teamId).is('revoked_at', null)
         .order('created_at', { ascending: false }).limit(1),
       supabase.from('team_members')
-        .select('id, user_id, user_email, role, seat_rank, joined_at')
+        .select('id, user_id, user_email, display_name, role, seat_rank, joined_at, last_seen_at')
         .eq('team_id', teamId)
         .order('seat_rank', { ascending: true }).order('joined_at', { ascending: true }),
     ])
@@ -514,11 +514,23 @@ export function AppProvider({ userId, children }) {
     return data
   }
 
-  async function acceptInvite(code) {
-    const { data, error } = await supabase.rpc('accept_team_invite', { invite_code: code })
+  async function acceptInvite(code, joinerName = null) {
+    const { data, error } = await supabase.rpc('accept_team_invite', {
+      invite_code: code, joiner_name: joinerName,
+    })
     if (error) return { ok: false, error: error.message }
     return data
   }
+
+  // An anonymous assistant who reinstalls returns as a new user and takes a
+  // second seat. Recording that this one is still in use lets the head coach
+  // tell the live row from the abandoned one.
+  useEffect(() => {
+    if (!activeTeamId || isOffline()) return
+    const shared = teams.find(t => t.id === activeTeamId && t.user_id && t.user_id !== userId)
+    if (!shared) return
+    supabase.rpc('touch_team_membership', { tid: activeTeamId }).then(() => {}, () => {})
+  }, [activeTeamId, teams, userId])
 
   // ── Normalize a DB custom drill row into library-drill shape ─
   function normalizeCustomDrill(db) {
