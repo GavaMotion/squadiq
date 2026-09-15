@@ -146,6 +146,21 @@ async function loadUsers() {
   // Resolve all session IPs to locations (cached); skip if none.
   await geolocate([...ipByUser.values()])
 
+  // Assistant-coach memberships. An assistant signs in anonymously, so they
+  // have no email and no team of their own — this is the only thing that says
+  // who they are and whose team they are on.
+  const { data: memberships } = await supabase
+    .from('team_members').select('team_id, user_id, display_name')
+  const teamNameById = new Map((teams || []).map(t => [t.id, t.name]))
+  const assistsByUser = new Map()
+  for (const m of memberships || []) {
+    if (!assistsByUser.has(m.user_id)) assistsByUser.set(m.user_id, [])
+    assistsByUser.get(m.user_id).push({
+      name: teamNameById.get(m.team_id) || '(unknown team)',
+      display_name: m.display_name,
+    })
+  }
+
   const subByUser = new Map((subs || []).map(s => [s.user_id, s]))
   const teamsByUser = new Map()
   for (const t of teams || []) {
@@ -156,6 +171,7 @@ async function loadUsers() {
   return users.map(u => {
     const s = subByUser.get(u.id)
     const userTeams = teamsByUser.get(u.id) || []
+    const assists = assistsByUser.get(u.id) || []
     const ua = uaByUser.get(u.id) || ''
     const ip = ipByUser.get(u.id) || ''
     return {
@@ -174,6 +190,15 @@ async function loadUsers() {
       stripe_subscription_id: s?.stripe_subscription_id || null,
       teams:                  userTeams.length,
       team_names:             userTeams.map(t => t.name),
+      assists:                assists.length,
+      assist_teams:           assists.map(a => a.name),
+      display_name:           assists.find(a => a.display_name)?.display_name || null,
+      anonymous:              !!u.is_anonymous,
+      // An assistant-only login is somebody else's helper, not a prospect.
+      role:                   userTeams.length && assists.length ? 'both'
+                              : userTeams.length ? 'head coach'
+                              : assists.length ? 'assistant'
+                              : '—',
       platform:               platformOf(ua),
       device:                 deviceOf(ua),
       user_agent:             ua,

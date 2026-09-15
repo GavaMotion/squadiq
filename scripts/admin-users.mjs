@@ -29,6 +29,8 @@ Filters:
   --inactive [days]   No sign-in within N days (default 30)
   --has-team          Has at least one team
   --no-team           Has no teams
+  --assistants        Assistant-coach logins only (helping on someone else's team)
+  --no-assistants     Hide assistant-coach logins
   --search <text>     Email contains text (case-insensitive)
 
 Options:
@@ -73,6 +75,21 @@ const { data: teams, error: teamErr } = await supabase
   .from('teams').select('id, user_id, name')
 if (teamErr) console.error('teams fetch warning:', teamErr.message)
 
+// Assistant-coach memberships. An assistant signs in anonymously, so they
+// have no email and no team of their own — this is the only thing that says
+// who they are and whose team they are on.
+const { data: memberships } = await supabase
+  .from('team_members').select('team_id, user_id, display_name')
+const teamNameById = new Map((teams || []).map(t => [t.id, t.name]))
+const assistsByUser = new Map()
+for (const m of memberships || []) {
+  if (!assistsByUser.has(m.user_id)) assistsByUser.set(m.user_id, [])
+  assistsByUser.get(m.user_id).push({
+    name: teamNameById.get(m.team_id) || '(unknown team)',
+    display_name: m.display_name,
+  })
+}
+
 const subByUser = new Map((subs || []).map(s => [s.user_id, s]))
 const teamsByUser = new Map()
 for (const t of teams || []) {
@@ -83,6 +100,7 @@ for (const t of teams || []) {
 let rows = users.map(u => {
   const s = subByUser.get(u.id)
   const userTeams = teamsByUser.get(u.id) || []
+  const assists = assistsByUser.get(u.id) || []
   return {
     id:                     u.id,
     email:                  u.email || '(no email)',
@@ -99,6 +117,15 @@ let rows = users.map(u => {
     stripe_subscription_id: s?.stripe_subscription_id || null,
     teams:                  userTeams.length,
     team_names:             userTeams.map(t => t.name),
+    assists:                assists.length,
+    assist_teams:           assists.map(a => a.name),
+    display_name:           assists.find(a => a.display_name)?.display_name || null,
+    anonymous:              !!u.is_anonymous,
+    // An assistant-only login is somebody else's helper, not a prospect.
+    role:                   userTeams.length && assists.length ? 'both'
+                            : userTeams.length ? 'head coach'
+                            : assists.length ? 'assistant'
+                            : '—',
   }
 })
 
@@ -136,6 +163,11 @@ if (inactiveDays !== null) {
   rows = rows.filter(r => !r.last_seen || new Date(r.last_seen).getTime() < cutoff)
 }
 
+// An assistant signs in anonymously and is handed a trial row by the signup
+// trigger like anyone else, so without this they read as real trials that all
+// "expire" 30 days later — churn that never happened.
+if (hasFlag('assistants'))    rows = rows.filter(r => r.role === 'assistant')
+if (hasFlag('no-assistants')) rows = rows.filter(r => r.role !== 'assistant')
 if (hasFlag('has-team')) rows = rows.filter(r => r.teams > 0)
 if (hasFlag('no-team'))  rows = rows.filter(r => r.teams === 0)
 
@@ -196,17 +228,21 @@ function planLabel(r) {
 if (format === 'json') {
   console.log(JSON.stringify(shown, null, 2))
 } else if (format === 'csv') {
-  const cols = ['email','plan','plan_override','gifted','signup','last_seen','teams','trial_end','stripe_customer_id']
+  const cols = ['email','role','plan','plan_override','gifted','signup','last_seen','teams','assists','trial_end','stripe_customer_id']
   console.log(cols.join(','))
   for (const r of shown) console.log(cols.map(c => JSON.stringify(r[c] ?? '')).join(','))
 } else {
-  const headers = ['Email', 'Plan', 'Signed up', 'Last seen', 'Teams', 'Trial']
+  const headers = ['Email', 'Plan', 'Signed up', 'Last seen', 'Role', 'Teams', 'Assists', 'Trial']
   const data = shown.map(r => [
-    r.email,
+    // An assistant joins anonymously, so "(no email)" is all auth knows about
+    // them. The name they gave on the way in is the only useful label.
+    r.email === '(no email)' && r.display_name ? r.display_name : r.email,
     planLabel(r),
     relTime(r.signup),
     relTime(r.last_seen),
+    r.role,
     String(r.teams),
+    String(r.assists),
     trialLeft(r),
   ])
   const widths = headers.map((h, i) => Math.max(h.length, ...data.map(row => row[i].length)))
