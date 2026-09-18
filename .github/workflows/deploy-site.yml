@@ -1,0 +1,49 @@
+name: Deploy site to Cloudflare Pages
+
+# squadiq.online is a Direct Upload Pages project, which Cloudflare cannot
+# convert to a Git-connected one. This publishes to that same project with
+# wrangler instead, so pushes to main go live without touching the custom
+# domain or taking the site down.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/deploy-site.yml'
+  workflow_dispatch:      # lets you redeploy by hand from the Actions tab
+
+concurrency:
+  group: deploy-site
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Publish site/
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          # --branch=main is what makes this the production deployment that
+          # squadiq.online serves. Any other value would publish to a preview
+          # URL instead and the live site would silently stay unchanged.
+          command: >-
+            pages deploy site
+            --project-name=squadiq
+            --branch=main
+            --commit-dirty=true
+
+      - name: Verify the live site picked it up
+        run: |
+          sleep 15
+          echo "--- squadiq.online ---"
+          curl -sS --retry 3 --retry-delay 5 "https://squadiq.online/?cb=$GITHUB_SHA" \
+            | grep -o '<title>[^<]*' || { echo "could not read the live page"; exit 1; }
