@@ -1,0 +1,10 @@
+# Cloudflare Pages redirects
+#
+# Short links for the social clip campaign (see ../social-captions.md).
+# Short enough to say out loud in a voiceover, and each one tags the visit so
+# analytics can tell which platform — and later which clip — sent the traffic.
+# 302 on purpose: these are campaign links, not permanent URLs.
+
+/yt   /?utm_source=youtube&utm_medium=shorts&utm_campaign=clips   302
+/ig   /?utm_source=instagram&utm_medium=reels&utm_campaign=clips  302
+/tt   /?utm_source=tiktok&utm_medium=video&utm_campaign=clips     302

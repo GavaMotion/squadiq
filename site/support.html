@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <title>Support – SquadIQ</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d1a;
+      --surface: #13131f;
+      --border: #1e1e30;
+      --green: #00c853;
+      --green-dim: #00c85322;
+      --text: #e0e0f0;
+      --muted: #6b6b8a;
+      --font: 'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 10;
+    }
+
+    .logo { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; }
+    .logo span { color: var(--green); }
+
+    .badge {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 3rem 2rem 6rem;
+    }
+
+    .hero {
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero h1 {
+      font-size: 2rem;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+    }
+
+    .hero h1 span { color: var(--green); }
+    .hero p { color: var(--muted); font-size: 14px; }
+
+    .updated {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-top: 1rem;
+    }
+
+    section { margin-bottom: 2.5rem; }
+
+    h2 {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h2::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 14px;
+      background: var(--green);
+      border-radius: 2px;
+    }
+
+    p { color: #b0b0cc; margin-bottom: 0.75rem; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .card p { margin: 0; }
+
+    .contact-card {
+      background: var(--surface);
+      border: 1px solid var(--green);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-top: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .contact-card a {
+      color: var(--green);
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .contact-card a:hover { text-decoration: underline; }
+    .contact-card p { margin: 0; font-size: 13px; color: var(--muted); }
+
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 0;
+    }
+
+    .faq-item:first-child { padding-top: 0.25rem; }
+    .faq-item:last-child { border-bottom: none; padding-bottom: 0.25rem; }
+
+    .faq-q {
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+      font-size: 14px;
+    }
+
+    .faq-a { color: #b0b0cc; font-size: 14px; margin: 0; }
+
+    .step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .step:first-child { padding-top: 0.25rem; }
+    .step:last-child { border-bottom: none; padding-bottom: 0.25rem; }
+
+    .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--green-dim);
+      border: 1px solid var(--green);
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-text { color: #b0b0cc; font-size: 14px; }
+    .step-label { font-weight: 500; color: var(--text); display: block; margin-bottom: 2px; }
+
+    a { color: var(--green); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    footer strong { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo" style="text-decoration:none;color:inherit">Squad<span>IQ</span></a>
+  <span class="badge">by Gava Motion</span>
+</header>
+
+<main>
+  <div class="hero">
+    <h1>Support <span>Center</span></h1>
+    <p>We're here to help. Reach out anytime and we'll get back to you quickly.</p>
+    <div class="updated">SquadIQ - Soccer Coach</div>
+  </div>
+
+  <section>
+    <h2>Contact Us</h2>
+    <div class="contact-card">
+      <a href="mailto:support@gavamotion.com">support@gavamotion.com</a>
+      <p>We typically respond within 24 hours on business days.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>About the App</h2>
+    <div class="card">
+      <p>SquadIQ is a youth soccer coaching app built by a coach, for coaches. It helps you manage your roster, plan lineups, run better practices, and track standings — all in one place.</p>
+      <p style="margin-top: 0.5rem; margin-bottom: 0;">Access the app at <a href="https://squadiq-coach.vercel.app" target="_blank">squadiq-coach.vercel.app</a></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Subscription & Billing</h2>
+    <div class="card">
+      <div class="faq-item">
+        <div class="faq-q">How do I purchase a subscription?</div>
+        <p class="faq-a">On the iOS app, subscriptions are purchased through the App Store using Apple In-App Purchase. On the web at <a href="https://squadiq-coach.vercel.app" target="_blank">squadiq-coach.vercel.app</a>, subscriptions are purchased through Stripe's secure checkout.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What plans are available?</div>
+        <p class="faq-a">
+          <strong style="color:#e0e0f0;">In the iOS app (App Store):</strong><br />
+          Solo Coach — $5.99/month or $59.99/year (1 team)<br />
+          Premium Coach — $8.99/month or $89.99/year (up to 4 teams)
+        </p>
+        <p class="faq-a" style="margin-top:0.5rem;">
+          <strong style="color:#e0e0f0;">On the web (Stripe):</strong><br />
+          Solo Coach — $4.99/month or $39.99/year (1 team)<br />
+          Premium Coach — $7.99/month or $63.99/year (up to 4 teams)
+        </p>
+        <p class="faq-a" style="margin-top:0.5rem;">All plans include a 30-day free trial. App Store pricing is slightly higher to account for Apple's platform fees.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How do I cancel my subscription?</div>
+        <p class="faq-a">If you subscribed through the iOS app, cancel in <strong style="color:#e0e0f0;">Settings → Apple ID → Subscriptions</strong> on your device (or in the App Store app under your account). If you subscribed on the web via Stripe, you can cancel anytime from the account settings inside the app, or by emailing us. Cancellation takes effect at the end of the current billing period.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I get a refund?</div>
+        <p class="faq-a">For App Store purchases, refunds are issued by Apple — request one at <a href="https://reportaproblem.apple.com" target="_blank" rel="noopener">reportaproblem.apple.com</a>. For Stripe purchases on the web, we offer a 7-day refund window — email <a href="mailto:support@gavamotion.com">support@gavamotion.com</a> and we'll take care of it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Getting Started</h2>
+    <div class="card">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <span class="step-label">Create a free account</span>
+          Sign up at squadiq-coach.vercel.app — no credit card required for the 30-day trial.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <span class="step-label">Add your team</span>
+          Go to My Team and add your players with their positions and ratings.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <span class="step-label">Plan your lineup</span>
+          Use the Lineup tab to set quarter-by-quarter substitutions with AI assistance.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text">
+          <span class="step-label">Run great practices</span>
+          Browse 69 drills and build structured practice plans in minutes.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Frequently Asked Questions</h2>
+    <div class="card">
+      <div class="faq-item">
+        <div class="faq-q">Does SquadIQ work offline?</div>
+        <p class="faq-a">Yes. SquadIQ caches your roster, lineups, practice plans, and drill library locally, so you can view and edit them without an internet connection — perfect for the sideline when reception is spotty. Any changes you make while offline are queued automatically and sync as soon as you're back online. A small "offline" indicator in the corner lets you know when you're working from cached data.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I manage more than one team?</div>
+        <p class="faq-a">Yes — Premium Coach supports up to 4 teams, with full data separation between them and a quick team switcher.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How does the AI Lineup Planner work?</div>
+        <p class="faq-a">It uses your players' position ratings and the "everybody plays" rule to automatically generate balanced lineups across all four quarters, including goalkeeper rotation.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Is my data secure?</div>
+        <p class="faq-a">Yes. All data is stored securely with Supabase, encrypted in transit via HTTPS, and never shared with third parties. See our <a href="privacy.html">Privacy Policy</a> for details.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">I'm having trouble logging in. What should I do?</div>
+        <p class="faq-a">Try resetting your password from the login screen. If you still need help, email <a href="mailto:support@gavamotion.com">support@gavamotion.com</a> and we'll get you back in.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Feedback & Feature Requests</h2>
+    <div class="card">
+      <p>SquadIQ is built and improved based on real coach feedback. Got an idea or a feature you'd love to see? Email us at <a href="mailto:support@gavamotion.com">support@gavamotion.com</a> — we read every message.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <strong>SquadIQ - Soccer Coach</strong> · by Gava Motion<br />
+  © 2025 Gava Motion. All rights reserved.
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <title>Features — SquadIQ</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d1a;
+      --surface: #13131f;
+      --surface-2: #1a1a2c;
+      --border: #1e1e30;
+      --green: #00c853;
+      --green-dim: #00c85322;
+      --green-glow: #00c85333;
+      --text: #e0e0f0;
+      --muted: #6b6b8a;
+      --font: 'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      position: sticky;
+      top: 0;
+      background: rgba(13, 13, 26, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 10;
+    }
+
+    .logo { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+    .logo span { color: var(--green); }
+
+    .nav-links {
+      margin-left: auto;
+      display: flex;
+      gap: 1.25rem;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--green); }
+    .nav-links a.active { color: var(--green); }
+
+    .hero {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 5rem 2rem 3rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, var(--green-glow) 0%, transparent 70%);
+      filter: blur(60px);
+      z-index: -1;
+    }
+
+    .badge-eyebrow {
+      display: inline-block;
+      font-size: 11px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 5px 14px;
+      border-radius: 20px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+    h1 span { color: var(--green); }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 1.1rem;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 2rem 6rem;
+    }
+
+    .feature {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      padding: 3rem 0;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+    }
+
+    .feature:last-child { border-bottom: none; }
+
+    .feature:nth-child(odd)  { grid-template-areas: "image content"; }
+    .feature:nth-child(even) { grid-template-areas: "content image"; }
+    .feature-image   { grid-area: image; }
+    .feature-content { grid-area: content; }
+
+    .feature-image {
+      aspect-ratio: 3 / 4;
+      max-width: 360px;
+      width: 100%;
+      margin: 0 auto;
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: var(--surface);
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .feature-image::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      box-shadow: inset 0 0 60px var(--icon-glow, var(--green-glow));
+      pointer-events: none;
+    }
+
+    .feature-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      display: block;
+    }
+
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .feature-icon::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, var(--icon-glow, var(--green-dim)), transparent 70%);
+    }
+
+    .feature-icon svg {
+      width: 32px;
+      height: 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .icon-team { --icon-color: #D4537E; --icon-glow: #D4537E33; }
+    .icon-lineup { --icon-color: #00c853; --icon-glow: #00c85333; }
+    .icon-sketch { --icon-color: #FF6B2B; --icon-glow: #FF6B2B33; }
+    .icon-practice { --icon-color: #00BCD4; --icon-glow: #00BCD433; }
+    .icon-standings { --icon-color: #F5C842; --icon-glow: #F5C84233; }
+
+    .feature-icon svg path,
+    .feature-icon svg circle,
+    .feature-icon svg rect,
+    .feature-icon svg line,
+    .feature-icon svg polyline {
+      stroke: var(--icon-color);
+    }
+    .feature-icon svg .fill { fill: var(--icon-color); stroke: none; }
+
+    .feature-number {
+      font-size: 11px;
+      color: var(--green);
+      letter-spacing: 0.15em;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      display: block;
+    }
+
+    .feature h2 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature .tagline {
+      color: var(--green);
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+
+    .feature p {
+      color: #b8b8d0;
+      font-size: 15px;
+      margin-bottom: 1.25rem;
+      max-width: 720px;
+    }
+
+    .highlights {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 0.6rem;
+      margin-top: 1rem;
+    }
+
+    .highlights li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 14px;
+      color: #b8b8d0;
+    }
+
+    .check {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--green-dim);
+      border: 1px solid var(--green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .check::after {
+      content: '';
+      width: 5px;
+      height: 9px;
+      border-right: 1.5px solid var(--green);
+      border-bottom: 1.5px solid var(--green);
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
+
+    .subfeatures {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .subfeatures-label {
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .subfeature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .subfeature {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .subfeature:hover {
+      border-color: var(--icon-color, var(--green));
+      transform: translateY(-2px);
+    }
+
+    .subfeature-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .subfeature-title::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--icon-color, var(--green));
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .subfeature-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .cta-section {
+      text-align: center;
+      padding: 4rem 2rem;
+      border-top: 1px solid var(--border);
+      margin-top: 3rem;
+    }
+
+    .cta-section h3 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .cta-section p {
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--green);
+      color: var(--bg);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 30px var(--green-glow);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover {
+      border-color: var(--green);
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    footer strong { color: var(--text); }
+
+    @media (max-width: 860px) {
+      .feature,
+      .feature:nth-child(odd),
+      .feature:nth-child(even) {
+        grid-template-columns: 1fr;
+        grid-template-areas: "image" "content";
+        gap: 1.5rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      h1 { font-size: 2.1rem; }
+      .nav-links a.nav-home { display: none; }
+      .hero { padding: 3rem 1.5rem 2rem; }
+      main { padding: 1rem 1.5rem 4rem; }
+      .feature { padding: 2rem 0; gap: 1.25rem; }
+      .feature h2 { font-size: 1.4rem; }
+      .feature-image { border-radius: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo" style="text-decoration:none;color:inherit">Squad<span>IQ</span></a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-home">Home</a>
+    <a href="features.html" class="active">Features</a>
+    <a href="guide.html">Guide</a>
+    <a href="support.html">Support</a>
+    <a href="privacy.html">Privacy</a>
+  </div>
+</header>
+
+<div class="hero">
+  <span class="badge-eyebrow">Features</span>
+  <h1>Everything a coach needs.<br /><span>Nothing they don't.</span></h1>
+  <p>Five connected tools that replace spreadsheets, group chats, and notebooks — built specifically for the way youth soccer actually works.</p>
+</div>
+
+<main>
+
+  <div class="feature icon-team">
+    <div class="feature-image">
+      <img src="features/team.webp" alt="My Team in SquadIQ" loading="lazy" />
+    </div>
+    <div class="feature-content">
+      <div class="feature-icon icon-team">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 00-3-3.87" />
+          <path d="M16 3.13a4 4 0 010 7.75" />
+        </svg>
+      </div>
+      <span class="feature-number">01 — MY TEAM</span>
+      <h2>Your roster, finally organized.</h2>
+      <p class="tagline">All your players, positions, and ratings in one place.</p>
+      <p>Build a complete profile for every player — jersey number, preferred positions, and per-position skill ratings. Rate strikers, defenders, midfielders, and goalkeepers independently so the rest of the app knows where each kid shines. Run multiple teams from one account with instant switching.</p>
+      <ul class="highlights">
+        <li><span class="check"></span>Add, edit, delete players</li>
+        <li><span class="check"></span>Per-position star ratings</li>
+        <li><span class="check"></span>Multi-team support (up to 4)</li>
+        <li><span class="check"></span>One-tap team switcher</li>
+      </ul>
+
+      <div class="subfeatures">
+        <div class="subfeatures-label">Every Function in My Team</div>
+        <div class="subfeature-grid">
+          <div class="subfeature">
+            <div class="subfeature-title">Player Profiles</div>
+            <div class="subfeature-desc">Name, jersey number, photo, and notes for each player on your roster.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Position Ratings</div>
+            <div class="subfeature-desc">Rate each player 1-5 stars across multiple positions — GK, DEF, MID, FWD.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Preferred Position</div>
+            <div class="subfeature-desc">Mark a primary position so the AI knows where your player belongs.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Team Creation</div>
+            <div class="subfeature-desc">Set team name, age division, colors, and roster size when creating a new team.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Quick Team Switcher</div>
+            <div class="subfeature-desc">Bottom-sheet modal on mobile to jump between up to 4 teams instantly.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Safe Deletion</div>
+            <div class="subfeature-desc">Confirmation modal before deleting a team or player — no accidents.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature icon-lineup">
+    <div class="feature-image">
+      <img src="features/lineup.webp" alt="Lineup planner in SquadIQ" loading="lazy" />
+    </div>
+    <div class="feature-content">
+      <div class="feature-icon icon-lineup">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="4" r="2" />
+          <path d="M12 6v6" />
+          <path d="M9 9l-2 4" />
+          <path d="M15 9l3 3" />
+          <path d="M12 12l-2 5" />
+          <path d="M12 12l3 5" />
+          <circle cx="17" cy="17" r="2.5" />
+        </svg>
+      </div>
+      <span class="feature-number">02 — LINEUP</span>
+      <h2>AI does your sub plans.</h2>
+      <p class="tagline">No more pre-game spreadsheets at 6am.</p>
+      <p>Pick a formation, mark your available players, and tap one button — the AI Lineup Planner generates a balanced four-quarter lineup using player ratings, position preferences, and the "everybody plays" rule. Goalkeeper rotation handled automatically. Override anything with drag-and-drop.</p>
+      <ul class="highlights">
+        <li><span class="check"></span>One-tap AI Lineup Planner</li>
+        <li><span class="check"></span>Automatic GK rotation</li>
+        <li><span class="check"></span>Equal playing time enforcement</li>
+        <li><span class="check"></span>Drag-and-drop overrides</li>
+      </ul>
+
+      <div class="subfeatures">
+        <div class="subfeatures-label">Every Function in Lineup</div>
+        <div class="subfeature-grid">
+          <div class="subfeature">
+            <div class="subfeature-title">AI Lineup Planner</div>
+            <div class="subfeature-desc">Generates balanced quarters in seconds based on ratings and availability.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Formation Selector</div>
+            <div class="subfeature-desc">Pick your formation — 4-3-3, 3-2-2, 2-3-2, and more based on team size.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Quarter-by-Quarter View</div>
+            <div class="subfeature-desc">See each of the four quarters separately and switch with a tap.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Availability Toggle</div>
+            <div class="subfeature-desc">Mark players in/out before generating — sick kids and no-shows are easy.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">GK Rotation</div>
+            <div class="subfeature-desc">Automatically rotates goalkeepers across quarters so no one's stuck in goal.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Manual Drag & Drop</div>
+            <div class="subfeature-desc">Override any AI suggestion by dragging players to different positions.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Playing Time Counter</div>
+            <div class="subfeature-desc">Live count of quarters per player so you can confirm fairness at a glance.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Save & Reuse</div>
+            <div class="subfeature-desc">Lineups save automatically — pick up where you left off next game day.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature icon-sketch">
+    <div class="feature-image">
+      <img src="features/sketch.webp" alt="Sketch board in SquadIQ" loading="lazy" />
+    </div>
+    <div class="feature-content">
+      <div class="feature-icon icon-sketch">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="7" y1="7" x2="10" y2="10" />
+          <line x1="10" y1="7" x2="7" y2="10" />
+          <circle cx="15" cy="9" r="2" />
+          <path d="M7 14 h6" stroke-dasharray="1.5 2" />
+          <path d="M14 17l3-3m0 0v2m0-2h-2" />
+        </svg>
+      </div>
+      <span class="feature-number">03 — SKETCH BOARD</span>
+      <h2>Draw plays kids understand.</h2>
+      <p class="tagline">The tactical board that finally works on mobile.</p>
+      <p>A fully interactive field with players you can drag, arrows you can draw, and movements you can map. Switch tools mid-play, erase mistakes, undo and redo anything. Save multiple boards with custom names — keep your best plays, formations, and set pieces ready for halftime.</p>
+      <ul class="highlights">
+        <li><span class="check"></span>Drag players, draw arrows</li>
+        <li><span class="check"></span>Erase, undo, redo</li>
+        <li><span class="check"></span>Multiple renameable boards</li>
+        <li><span class="check"></span>Mobile and tablet optimized</li>
+      </ul>
+
+      <div class="subfeatures">
+        <div class="subfeatures-label">Every Function in Sketch</div>
+        <div class="subfeature-grid">
+          <div class="subfeature">
+            <div class="subfeature-title">Player Pieces</div>
+            <div class="subfeature-desc">Drag offensive and defensive markers anywhere on the field.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Formation Presets</div>
+            <div class="subfeature-desc">Drop a full formation onto the field in one tap — then adjust.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Arrow Tool</div>
+            <div class="subfeature-desc">Draw movement lines for runs, passes, and player rotations.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Ball Marker</div>
+            <div class="subfeature-desc">Add a ball anywhere on the field to show possession and target zones.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Eraser</div>
+            <div class="subfeature-desc">Wipe individual arrows or markers without clearing the whole board.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Undo & Redo</div>
+            <div class="subfeature-desc">Step backward and forward through every change you make.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Multiple Boards</div>
+            <div class="subfeature-desc">Keep separate tabs for different plays, drills, or scenarios.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Rename Boards</div>
+            <div class="subfeature-desc">Double-click or long-press a tab to give it a custom name.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Clear Field</div>
+            <div class="subfeature-desc">Wipe an entire board fast when you want to start a new sketch.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature icon-practice">
+    <div class="feature-image">
+      <img src="features/practice.webp" alt="Practice drills in SquadIQ" loading="lazy" />
+    </div>
+    <div class="feature-content">
+      <div class="feature-icon icon-practice">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="4" width="14" height="17" rx="2" />
+          <rect x="9" y="2" width="6" height="4" rx="1" />
+          <line x1="9" y1="11" x2="15" y2="11" />
+          <line x1="9" y1="14" x2="15" y2="14" />
+          <line x1="9" y1="17" x2="13" y2="17" />
+        </svg>
+      </div>
+      <span class="feature-number">04 — PRACTICE</span>
+      <h2>69 drills. Smart plans.</h2>
+      <p class="tagline">Build a structured practice in minutes — or let AI do it.</p>
+      <p>A curated library of 69 drills covering warm-ups, technique, possession, finishing, defending, and small-sided games. Build practices manually by picking drills and setting durations, or tap AI Practice Plan and get a balanced session generated around the skills you want to focus on.</p>
+      <ul class="highlights">
+        <li><span class="check"></span>69 age-appropriate drills</li>
+        <li><span class="check"></span>AI Practice Plan generator</li>
+        <li><span class="check"></span>Build & save custom plans</li>
+        <li><span class="check"></span>Step-by-step instructions</li>
+      </ul>
+
+      <div class="subfeatures">
+        <div class="subfeatures-label">Every Function in Practice</div>
+        <div class="subfeature-grid">
+          <div class="subfeature">
+            <div class="subfeature-title">AI Practice Plan</div>
+            <div class="subfeature-desc">Pick a focus area and duration — AI builds a balanced session for you.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Drill Library</div>
+            <div class="subfeature-desc">69 drills organized by skill, age group, and intensity level.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Category Filters</div>
+            <div class="subfeature-desc">Warm-up, dribbling, passing, shooting, defending, small-sided games.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Drill Details</div>
+            <div class="subfeature-desc">Diagrams, setup instructions, coaching points, and progressions.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Custom Plans</div>
+            <div class="subfeature-desc">Mix any drills into your own practice plan, in any order.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Set Durations</div>
+            <div class="subfeature-desc">Set how long each drill runs — total time updates automatically.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Saved Plans</div>
+            <div class="subfeature-desc">Save plans to reuse week after week or copy and modify them.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Field-Ready View</div>
+            <div class="subfeature-desc">Clean session view to follow drill-by-drill during practice.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature icon-standings">
+    <div class="feature-image">
+      <img src="features/standings.webp" alt="League standings in SquadIQ" loading="lazy" />
+    </div>
+    <div class="feature-content">
+      <div class="feature-icon icon-standings">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+      </div>
+      <span class="feature-number">05 — STANDINGS</span>
+      <h2>Always know where you stand.</h2>
+      <p class="tagline">Real-time standings, auto-refreshed.</p>
+      <p>Pulls live standings directly from MatchTrak and TeamSideline so you're never refreshing a clunky league website at halftime. Track multiple divisions in tabs, see your team highlighted, and let the data refresh itself in the background.</p>
+      <ul class="highlights">
+        <li><span class="check"></span>MatchTrak & TeamSideline support</li>
+        <li><span class="check"></span>Auto-refresh every 6 hours</li>
+        <li><span class="check"></span>Multiple division tabs</li>
+        <li><span class="check"></span>Your team highlighted</li>
+      </ul>
+
+      <div class="subfeatures">
+        <div class="subfeatures-label">Every Function in Standings</div>
+        <div class="subfeature-grid">
+          <div class="subfeature">
+            <div class="subfeature-title">MatchTrak Scraper</div>
+            <div class="subfeature-desc">Pulls live standings from MatchTrak — all 12 teams of your division.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">TeamSideline Scraper</div>
+            <div class="subfeature-desc">Same live standings pulled from TeamSideline league pages.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Multiple Divisions</div>
+            <div class="subfeature-desc">Add tabs for each division you follow — sibling teams, rival groups.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Team Highlight</div>
+            <div class="subfeature-desc">Your team is highlighted in the table so you spot it at a glance.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Auto-Refresh</div>
+            <div class="subfeature-desc">Data refreshes automatically if it's older than six hours.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Manual Refresh</div>
+            <div class="subfeature-desc">Tap to force an immediate refresh right after a game ends.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Full Stats</div>
+            <div class="subfeature-desc">Wins, losses, ties, points, goals for, goals against, and goal differential.</div>
+          </div>
+          <div class="subfeature">
+            <div class="subfeature-title">Renameable Tabs</div>
+            <div class="subfeature-desc">Give each standings tab a custom name to stay organized.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="cta-section">
+  <h3>Try it free for 30 days.</h3>
+  <p>No credit card. No commitment. Just a better way to coach.</p>
+  <div class="cta-buttons">
+    <a href="https://squadiq-coach.vercel.app" class="btn btn-primary">Start free trial</a>
+    <a href="support.html" class="btn btn-outline">Have questions?</a>
+  </div>
+</div>
+
+<footer>
+  <strong>SquadIQ - Soccer Coach</strong> · by Gava Motion<br />
+  © 2025 Gava Motion. All rights reserved.
+</footer>
+
+</body>
+</html>
