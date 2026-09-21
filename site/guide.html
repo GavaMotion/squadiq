@@ -168,6 +168,44 @@
       display: block;
     }
     .shot img { width: 100%; display: block; }
+
+    /* Click-to-play video facade. The screenshot stays as the poster and the
+       YouTube iframe is only built on click — five live embeds would cost more
+       than the rest of the guide put together. */
+    .shot .play {
+      display: block; width: 100%; padding: 0; border: 0;
+      background: none; cursor: pointer; position: relative;
+      color: inherit; font: inherit;
+    }
+    .shot .play img { display: block; width: 100%; }
+    .shot .play-badge {
+      position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 56px; height: 56px; border-radius: 50%;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.35);
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.18s ease, transform 0.18s ease;
+    }
+    .shot .play-badge::after {
+      content: ""; width: 0; height: 0; margin-left: 4px;
+      border-left: 15px solid #fff;
+      border-top: 9px solid transparent;
+      border-bottom: 9px solid transparent;
+    }
+    .shot .play:hover .play-badge,
+    .shot .play:focus-visible .play-badge {
+      background: rgba(0,0,0,0.75);
+      transform: translate(-50%, -50%) scale(1.06);
+    }
+    .shot .embed { position: relative; width: 100%; aspect-ratio: 9 / 16; }
+    .shot .embed iframe {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      border: 0; display: block;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .shot .play-badge { transition: none; }
+    }
     .shot-cap {
       text-align: center;
       font-size: 12px;
@@ -349,8 +387,14 @@
         </ul>
       </div>
       <div class="col-shot">
-        <div class="shot"><img src="guide/team.png" alt="My Team roster in SquadIQ" loading="lazy" /></div>
-        <div class="shot-cap">The roster tab — players, numbers, and positions.</div>
+        <div class="shot">
+          <button class="play" type="button" data-yt="kPqfayGgFbs" data-title="SquadIQ — build your roster"
+                  aria-label="Play video: build your roster">
+            <img src="guide/team.png" alt="My Team roster in SquadIQ" loading="lazy" />
+            <span class="play-badge" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="shot-cap">Tap to play — the roster tab, in under a minute.</div>
       </div>
     </div>
   </section>
@@ -377,8 +421,14 @@
         </ul>
       </div>
       <div class="col-shot">
-        <div class="shot"><img src="guide/lineup-full.png" alt="The Lineup screen with field, out panel and player cards" loading="lazy" /></div>
-        <div class="shot-cap">The Lineup screen: field on top, player cards below, OUT panel on the right.</div>
+        <div class="shot">
+          <button class="play" type="button" data-yt="7S0zXA_bC1Q" data-title="SquadIQ — fair playing time and the AYSO three-quarter rule"
+                  aria-label="Play video: fair playing time and the AYSO three-quarter rule">
+            <img src="guide/lineup-full.png" alt="The Lineup screen with field, out panel and player cards" loading="lazy" />
+            <span class="play-badge" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="shot-cap">Tap to play — the lineup screen and the three-quarter check.</div>
       </div>
     </div>
 
@@ -436,8 +486,14 @@
         </ul>
       </div>
       <div class="col-shot">
-        <div class="shot"><img src="guide/ai-planner.png" alt="AI Lineup Planner with per-player availability toggles" loading="lazy" /></div>
-        <div class="shot-cap">Set who’s available, then generate a fair plan.</div>
+        <div class="shot">
+          <button class="play" type="button" data-yt="p5iEvLZKmO8" data-title="SquadIQ — the AI Lineup Planner"
+                  aria-label="Play video: the AI Lineup Planner">
+            <img src="guide/ai-planner.png" alt="AI Lineup Planner with per-player availability toggles" loading="lazy" />
+            <span class="play-badge" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="shot-cap">Tap to play — set who’s available, then generate a fair plan.</div>
       </div>
     </div>
 
@@ -476,8 +532,14 @@
         </ul>
       </div>
       <div class="col-shot">
-        <div class="shot"><img src="guide/sketch.png" alt="The Sketch tactical board" loading="lazy" /></div>
-        <div class="shot-cap">Your players in blue, opponents in yellow, arrows for movement.</div>
+        <div class="shot">
+          <button class="play" type="button" data-yt="gAIxe8ilqYU" data-title="SquadIQ — drawing a play on the sketch board"
+                  aria-label="Play video: drawing a play on the sketch board">
+            <img src="guide/sketch.png" alt="The Sketch tactical board" loading="lazy" />
+            <span class="play-badge" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="shot-cap">Tap to play — your players, your numbers, arrows for movement.</div>
       </div>
     </div>
   </section>
@@ -505,8 +567,14 @@
         </ul>
       </div>
       <div class="col-shot">
-        <div class="shot"><img src="guide/practice.png" alt="Practice plan builder with drill library" loading="lazy" /></div>
-        <div class="shot-cap">A built plan up top; the filterable drill library below.</div>
+        <div class="shot">
+          <button class="play" type="button" data-yt="RB1UAZRQEEQ" data-title="SquadIQ — building a practice session"
+                  aria-label="Play video: building a practice session">
+            <img src="guide/practice.png" alt="Practice plan builder with drill library" loading="lazy" />
+            <span class="play-badge" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="shot-cap">Tap to play — a session built in about thirty seconds.</div>
       </div>
     </div>
   </section>
@@ -554,5 +622,24 @@
   © 2025 Gava Motion. All rights reserved.
 </footer>
 
+
+<script>
+  // Build the YouTube player only when someone asks for it, so the guide stays
+  // light for a coach opening it on phone data.
+  document.querySelectorAll('.shot .play').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var box = document.createElement('div');
+      box.className = 'embed';
+      var f = document.createElement('iframe');
+      f.src = 'https://www.youtube-nocookie.com/embed/' + btn.dataset.yt +
+              '?autoplay=1&rel=0&playsinline=1';
+      f.title = btn.dataset.title || 'SquadIQ demo';
+      f.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture';
+      f.allowFullscreen = true;
+      box.appendChild(f);
+      btn.replaceWith(box);
+    });
+  });
+</script>
 </body>
 </html>
