@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { planFromPriceId } from '../_shared/stripe-plans.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -8,15 +9,19 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-// Map Stripe price IDs → plan names
-function planFromPriceId(priceId: string): string {
-  const soloMonthly   = Deno.env.get('STRIPE_SOLO_MONTHLY_PRICE_ID')   ?? ''
-  const soloYearly    = Deno.env.get('STRIPE_SOLO_YEARLY_PRICE_ID')    ?? ''
-  const premiumMonthly = Deno.env.get('STRIPE_PREMIUM_MONTHLY_PRICE_ID') ?? ''
-  const premiumYearly  = Deno.env.get('STRIPE_PREMIUM_YEARLY_PRICE_ID')  ?? ''
-  if (priceId === soloMonthly || priceId === soloYearly) return 'solo'
-  if (priceId === premiumMonthly || priceId === premiumYearly) return 'multi'
-  return 'solo'
+type Supa = ReturnType<typeof createClient>
+
+// Which SquadIQ user an event is about. create-checkout stamps
+// metadata.supabase_user_id; this used to read metadata.user_id, which is never
+// set, so every checkout/update/cancel event was silently ignored and a
+// cancelled subscriber kept their plan. The customer id is the fallback for
+// subscriptions made before the stamp existed.
+async function userIdFor(supabase: Supa, metadata: Stripe.Metadata | null | undefined, customer: unknown): Promise<string | null> {
+  const fromMeta = metadata?.supabase_user_id || metadata?.user_id
+  if (fromMeta) return fromMeta
+  if (typeof customer !== 'string' || !customer) return null
+  const { data } = await supabase.from('subscriptions').select('user_id').eq('stripe_customer_id', customer).maybeSingle()
+  return (data as { user_id?: string } | null)?.user_id ?? null
 }
 
 serve(async (req: Request) => {
@@ -32,7 +37,8 @@ serve(async (req: Request) => {
   try {
     event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret)
   } catch (err) {
-    return new Response(`Webhook signature verification failed: ${err}`, { status: 400 })
+    console.error('stripe-webhook: signature verification failed', err instanceof Error ? err.message : err)
+    return new Response('Webhook signature verification failed', { status: 400 })
   }
 
   const supabase = createClient(
@@ -44,12 +50,13 @@ serve(async (req: Request) => {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        const userId  = session.metadata?.user_id
+        const userId  = await userIdFor(supabase, session.metadata, session.customer)
         if (!userId || !session.subscription) break
 
         const stripeSubscription = await stripe.subscriptions.retrieve(session.subscription as string)
         const priceId = stripeSubscription.items.data[0]?.price.id ?? ''
         const plan    = planFromPriceId(priceId)
+        if (!plan) { console.error('stripe-webhook: unrecognised price', priceId); break }
         const periodEnd = new Date((stripeSubscription as any).current_period_end * 1000).toISOString()
 
         await supabase.from('subscriptions').update({
@@ -64,27 +71,37 @@ serve(async (req: Request) => {
       }
 
       case 'customer.subscription.updated': {
-        const sub     = event.data.object as Stripe.Subscription
-        const userId  = sub.metadata?.user_id
+        // Stripe doesn't guarantee event order, so a late 'updated' could land
+        // after 'deleted' and reactivate a cancelled plan. Act on Stripe's
+        // current state, not the snapshot inside the event.
+        const sub     = await stripe.subscriptions.retrieve((event.data.object as Stripe.Subscription).id)
+        const userId  = await userIdFor(supabase, sub.metadata, sub.customer)
         if (!userId) break
 
         const priceId   = sub.items.data[0]?.price.id ?? ''
-        const plan      = planFromPriceId(priceId)
         const periodEnd = new Date((sub as any).current_period_end * 1000).toISOString()
-        const status    = sub.status === 'active' ? 'active' : sub.status
-
-        await supabase.from('subscriptions').update({
-          plan,
+        const patch: Record<string, unknown> = {
           current_period_end: periodEnd,
-          status,
-          updated_at: new Date().toISOString(),
-        }).eq('user_id', userId)
+          status:             sub.status,
+          updated_at:         new Date().toISOString(),
+        }
+        // A subscription Stripe has given up on loses its access; one that is
+        // live follows its price. past_due keeps the plan while Stripe retries.
+        if (['canceled', 'unpaid', 'incomplete_expired'].includes(sub.status)) {
+          patch.plan = 'expired'
+        } else if (sub.status === 'active' || sub.status === 'trialing') {
+          const plan = planFromPriceId(priceId)
+          if (plan) patch.plan = plan
+          else console.error('stripe-webhook: unrecognised price', priceId)
+        }
+
+        await supabase.from('subscriptions').update(patch).eq('user_id', userId)
         break
       }
 
       case 'customer.subscription.deleted': {
         const sub    = event.data.object as Stripe.Subscription
-        const userId = sub.metadata?.user_id
+        const userId = await userIdFor(supabase, sub.metadata, sub.customer)
         if (!userId) break
 
         await supabase.from('subscriptions').update({
@@ -114,7 +131,7 @@ serve(async (req: Request) => {
     return new Response(JSON.stringify({ received: true }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
 
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    return new Response(JSON.stringify({ error: message }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
+    console.error('stripe-webhook error:', err instanceof Error ? err.message : String(err))
+    return new Response(JSON.stringify({ error: 'webhook handler failed' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
 })

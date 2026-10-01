@@ -30,15 +30,21 @@ serve(async (req: Request) => {
 
     const { returnUrl } = await req.json().catch(() => ({}))
 
+    // Back to our own app only — any other address would turn a real Stripe
+    // page into a phishing redirect. Every platform loads the same web origin.
+    const appUrl = Deno.env.get('APP_URL') ?? 'https://squadiq-coach.vercel.app'
+    let returnTo = appUrl
+    try { if (new URL(returnUrl).origin === new URL(appUrl).origin) returnTo = new URL(returnUrl).href } catch { /* keep appUrl */ }
+
     const session = await stripe.billingPortal.sessions.create({
       customer: sub.stripe_customer_id,
-      return_url: returnUrl ?? Deno.env.get('APP_URL') ?? 'https://squadiq-coach.vercel.app',
+      return_url: returnTo,
     })
 
     return new Response(JSON.stringify({ url: session.url }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
 
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    return new Response(JSON.stringify({ error: message }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
+    console.error('customer-portal error:', err instanceof Error ? err.message : String(err))
+    return new Response(JSON.stringify({ error: 'Could not open billing portal' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
 })

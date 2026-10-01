@@ -129,8 +129,11 @@ async function applyTransaction(
 ) {
   const plan = PRODUCT_TO_PLAN[tx.productId] ?? 'solo'
   const expires = tx.expiresDate ? new Date(tx.expiresDate).toISOString() : null
-  const status  = tx.revocationDate ? 'canceled' : 'active'
-  const planValue = tx.revocationDate ? 'expired' : plan
+  // A refunded or already-lapsed transaction grants nothing. Before this, an
+  // old expired receipt was written back as an active paid plan.
+  const lapsed  = !!tx.revocationDate || (!!tx.expiresDate && tx.expiresDate < Date.now())
+  const status  = lapsed ? 'canceled' : 'active'
+  const planValue = lapsed ? 'expired' : plan
 
   const { data, error } = await supabase
     .from('subscriptions')
@@ -225,16 +228,27 @@ serve(async (req: Request) => {
     }
 
     // ── Branch A: client purchase verification ───────────────────────
-    const { jws, userId } = body ?? {}
-    if (!jws || !userId) {
-      return json({ error: 'Missing jws or userId' }, 400)
+    // The account comes from the caller's login, never from the body: a body
+    // userId let anyone with any Apple receipt upgrade any account. (This
+    // function runs with --no-verify-jwt for Apple's notifications, so the
+    // check has to happen here.)
+    const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) return json({ error: 'Unauthorized' }, 401)
+    const userId = user.id
+
+    const { jws } = body ?? {}
+    if (!jws) {
+      return json({ error: 'Missing jws' }, 400)
     }
 
     const tx = await verifyAppleJWS<AppleTransactionInfo>(jws)
 
-    const expectedBundle = Deno.env.get('APPLE_BUNDLE_ID')
-    if (expectedBundle && tx.bundleId && tx.bundleId !== expectedBundle) {
-      return json({ error: `Bundle ID mismatch: got ${tx.bundleId}` }, 400)
+    // Required, not optional: Apple signs receipts for every app, so without
+    // this a purchase in someone else's app with a matching product id passed.
+    const expectedBundle = Deno.env.get('APPLE_BUNDLE_ID') || 'com.gavamotion.squadiq'
+    if (tx.bundleId !== expectedBundle) {
+      return json({ error: 'Receipt is not for SquadIQ' }, 400)
     }
 
     if (!PRODUCT_TO_PLAN[tx.productId]) {
@@ -254,8 +268,8 @@ serve(async (req: Request) => {
     } else {
       message = String(err)
     }
-    console.error('verify-apple-receipt error:', message, 'raw:', JSON.stringify(err))
-    return json({ error: message }, 500)
+    console.error('verify-apple-receipt error:', message)
+    return json({ error: 'Could not verify purchase' }, 500)
   }
 })
 

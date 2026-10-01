@@ -26,6 +26,7 @@
  */
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -40,6 +41,16 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Deployed with --no-verify-jwt, so without this anyone with the public
+    // anon key could loop it and spend the Anthropic budget. Anonymous
+    // (invite-code) sessions don't count as an account here.
+    const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+    const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '')
+    const { data: { user } } = await supabase.auth.getUser(token)
+    if (!user || user.is_anonymous) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...CORS, 'Content-Type': 'application/json' } })
+    }
+
     const { division, teamName, playerCount } = await req.json()
 
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
@@ -87,8 +98,8 @@ Keep language positive and age-appropriate for ${div} players. For younger divis
     })
 
     if (!anthropicRes.ok) {
-      const body = await anthropicRes.text()
-      throw new Error(`Anthropic API ${anthropicRes.status}: ${body}`)
+      console.error('Anthropic API', anthropicRes.status, await anthropicRes.text())
+      throw new Error('Could not generate a plan right now')
     }
 
     const json = await anthropicRes.json()

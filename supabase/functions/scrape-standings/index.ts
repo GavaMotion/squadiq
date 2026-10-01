@@ -1,5 +1,4 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -141,7 +140,7 @@ function parseMatchTrakHTML(html: string) {
 // standings and pick up the coach's name on the way (this league labels teams
 // in the standings by head coach, so it lets us highlight their row).
 async function resolveMatchTrakTeamPage(url: string) {
-  const res = await fetch(url, { headers: { 'User-Agent': UA, 'Accept': 'text/html' } });
+  const res = await safeFetch(url, { headers: { 'User-Agent': UA, 'Accept': 'text/html' } });
   if (!res.ok) throw new Error(`MatchTrak returned ${res.status}`);
   const html = await res.text();
 
@@ -191,7 +190,7 @@ function isMatchTrakTeamPage(url: string) {
 async function fetchMatchTrak(url: string) {
   if (url.includes('RestrictToCategory')) {
     console.log('Fetching MatchTrak division URL:', url);
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       headers: { 'User-Agent': UA, 'Accept': 'text/html' },
     });
     if (!res.ok) throw new Error(`MatchTrak returned ${res.status}`);
@@ -239,7 +238,7 @@ function parseMatchTrakCSV(csv: string) {
 
 // ─── TeamSideline ─────────────────────────────────────────────
 async function fetchTeamSideline(url: string) {
-  const res = await fetch(url, {
+  const res = await safeFetch(url, {
     headers: {
       'User-Agent': UA,
       'Accept': 'text/html,application/xhtml+xml',
@@ -334,7 +333,7 @@ async function fetchMatchTrakDivisions(url: string) {
   const base = `https://${subdomain}.matchtrak.com`;
 
   const circuitUrl = `${base}/11/main.nsf/standings-circuit?openview&count=1000&ExpandView`;
-  const res = await fetch(circuitUrl, { headers: { 'User-Agent': UA } });
+  const res = await safeFetch(circuitUrl, { headers: { 'User-Agent': UA } });
   if (!res.ok) throw new Error('Could not fetch MatchTrak divisions');
   const html = await res.text();
 
@@ -369,10 +368,74 @@ async function fetchMatchTrakDivisions(url: string) {
 }
 
 // ─── Platform Detection ───────────────────────────────────────
+// By the real hostname: a substring match let `http://anything/?matchtrak.com`
+// through as a trusted league site.
+function onDomain(host: string, domain: string): boolean {
+  return host === domain || host.endsWith('.' + domain);
+}
 function detectPlatform(url: string): string {
-  if (url.includes('matchtrak.com')) return 'matchtrak';
-  if (url.includes('teamsideline.com')) return 'teamsideline';
+  const host = new URL(url).hostname.toLowerCase();
+  if (onDomain(host, 'matchtrak.com')) return 'matchtrak';
+  if (onDomain(host, 'teamsideline.com')) return 'teamsideline';
   return 'generic';
+}
+
+// This function fetches whatever link a coach pastes, so it must only ever
+// reach the public web — never localhost, private networks or cloud metadata.
+function assertPublicUrl(raw: unknown): string {
+  let u: URL;
+  try { u = new URL(String(raw)); } catch { throw new Error('That is not a valid link'); }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('Only http(s) links are supported');
+  if (u.port && u.port !== '80' && u.port !== '443') throw new Error('That link is not supported');
+  if (u.username || u.password) throw new Error('That link is not supported');
+  // A trailing dot ("localhost.") is the same host to DNS, so drop it first.
+  const host = u.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.+$/, '');
+  const privateHost =
+    host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal') ||
+    !host.includes('.') ||
+    /^(0|10|127)\./.test(host) || /^169\.254\./.test(host) || /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) || /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
+    /^\d+$/.test(host) || /^0x/i.test(host) ||
+    host.includes(':'); // any IPv6 literal
+  if (privateHost) throw new Error('That link is not supported');
+  return u.href;
+}
+
+// fetch() that re-checks every redirect hop, so a public page cannot bounce
+// the request onto an internal address.
+function isPrivateIp(ip: string): boolean {
+  const a = ip.toLowerCase();
+  if (a.includes(':')) {
+    return a === '::1' || a === '::' || /^(fc|fd|fe8|fe9|fea|feb)/.test(a) || a.startsWith('::ffff:');
+  }
+  return /^(0|10|127)\./.test(a) || /^169\.254\./.test(a) || /^192\.168\./.test(a) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(a) || /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(a);
+}
+
+// The name check can't see a public domain whose DNS points inward (e.g.
+// localtest.me → 127.0.0.1), so resolve it and look at the addresses too.
+async function assertPublicDns(url: string): Promise<void> {
+  const host = new URL(url).hostname.replace(/\.+$/, '');
+  for (const type of ['A', 'AAAA'] as const) {
+    let addrs: string[] = [];
+    try { addrs = await Deno.resolveDns(host, type); } catch { /* no record of this type */ }
+    if (addrs.some(isPrivateIp)) throw new Error('That link is not supported');
+  }
+}
+
+async function safeFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  let current = assertPublicUrl(url);
+  for (let hop = 0; hop < 5; hop++) {
+    await assertPublicDns(current);
+    const res = await fetch(current, { ...init, redirect: 'manual' });
+    const loc = res.headers.get('location');
+    if (res.status >= 300 && res.status < 400 && loc) {
+      current = assertPublicUrl(new URL(loc, current).href);
+      continue;
+    }
+    return res;
+  }
+  throw new Error('Too many redirects');
 }
 
 // ─── Main Handler ─────────────────────────────────────────────
@@ -380,7 +443,12 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { url, teamId, save } = await req.json();
+    // Read-only: this used to upsert into `standings` for any teamId when
+    // asked to save, with the service-role key and no login check — anyone
+    // could overwrite any team's table. The app always saves through the
+    // user's own session (RLS), so the save path is gone.
+    const body = await req.json();
+    const url = assertPublicUrl(body?.url);
     console.log('scrape-standings called with URL:', url);
     const platform = detectPlatform(url);
 
@@ -426,18 +494,6 @@ serve(async (req) => {
       if (!standings || standings.length === 0) {
         throw new Error('No standings found for this division');
       }
-      if (save && teamId) {
-        const supabase = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        );
-        await supabase.from('standings').upsert({
-          team_id: teamId,
-          mode: platform,
-          table_data: standings,
-          updated_at: new Date().toISOString(),
-        });
-      }
       return new Response(
         JSON.stringify({ standings, platform }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -448,7 +504,7 @@ serve(async (req) => {
     if (platform === 'teamsideline') {
       standings = await fetchTeamSideline(url);
     } else {
-      const res = await fetch(url, { headers: { 'User-Agent': UA } });
+      const res = await safeFetch(url, { headers: { 'User-Agent': UA } });
       if (!res.ok) throw new Error('Could not fetch page');
       const html = await res.text();
       standings = parseHTMLTable(html);
@@ -456,19 +512,6 @@ serve(async (req) => {
 
     if (!standings || standings.length === 0) {
       throw new Error('No standings table found. Try switching to manual entry.');
-    }
-
-    if (save && teamId) {
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-      await supabase.from('standings').upsert({
-        team_id: teamId,
-        mode: platform,
-        table_data: standings,
-        updated_at: new Date().toISOString(),
-      });
     }
 
     return new Response(

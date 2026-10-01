@@ -1,6 +1,19 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isKnownPrice } from '../_shared/stripe-plans.ts'
+
+const APP_URL = Deno.env.get('APP_URL') ?? 'https://squadiq-coach.vercel.app'
+
+// Stripe sends the buyer back to whatever URL we hand it, so only our own app
+// is allowed — anything else would make a real Stripe page a phishing redirect.
+function safeReturnUrl(url: unknown): string {
+  try {
+    const u = new URL(String(url))
+    if (u.origin === new URL(APP_URL).origin) return u.origin + u.pathname
+  } catch { /* fall through */ }
+  return APP_URL
+}
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -23,7 +36,12 @@ serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authError || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...CORS, 'Content-Type': 'application/json' } })
 
-    const { priceId, billingPeriod, successUrl, cancelUrl } = await req.json()
+    const { priceId, successUrl, cancelUrl } = await req.json()
+    // Only our own prices: otherwise any recurring price in the Stripe account
+    // (a cheap or retired one) could be checked out.
+    if (!isKnownPrice(String(priceId ?? ''))) {
+      return new Response(JSON.stringify({ error: 'Unknown plan' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } })
+    }
 
     // Look up or create Stripe customer
     const { data: sub } = await supabase.from('subscriptions').select('stripe_customer_id').eq('user_id', user.id).single()
@@ -40,8 +58,8 @@ serve(async (req: Request) => {
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
-      success_url: `${successUrl ?? Deno.env.get('APP_URL') ?? 'https://squadiq-coach.vercel.app'}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  cancelUrl  ?? `${Deno.env.get('APP_URL') ?? 'https://squadiq-coach.vercel.app'}`,
+      success_url: `${safeReturnUrl(successUrl)}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  safeReturnUrl(cancelUrl),
       allow_promotion_codes: true,
       metadata: {
         supabase_user_id: user.id,
@@ -56,7 +74,7 @@ serve(async (req: Request) => {
     return new Response(JSON.stringify({ url: session.url }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
 
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    return new Response(JSON.stringify({ error: message }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
+    console.error('create-checkout error:', err instanceof Error ? err.message : String(err))
+    return new Response(JSON.stringify({ error: 'Could not start checkout' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
 })

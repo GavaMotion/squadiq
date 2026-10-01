@@ -80,7 +80,7 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
 
       addToast('Verifying purchase…', 'info', 2500)
       const { data, error } = await supabase.functions.invoke('verify-apple-receipt', {
-        body: { jws: result.jws, productId: result.productId, userId: user.id },
+        body: { jws: result.jws, productId: result.productId },
       })
       if (error) throw error
       if (data?.subscription) setSubscription(data.subscription)

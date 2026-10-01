@@ -640,7 +640,7 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
         addToast('Confirming your subscription...', 'info', 3000)
 
         const { data, error } = await supabase.functions.invoke('confirm-subscription', {
-          body: { sessionId, userId: user.id },
+          body: { sessionId },
         })
 
         if (error) throw error
