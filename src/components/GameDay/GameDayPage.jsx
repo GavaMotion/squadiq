@@ -182,6 +182,21 @@ export default function GameDayPage() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Width of the right-hand pane, not the window: the field takes what its
+  // height allows, so a tablet in portrait leaves the tags one column wide
+  // while a shorter, wider window leaves room for six. A callback ref because
+  // the pane only mounts once the page has loaded.
+  const [rightPaneW, setRightPaneW] = useState(Infinity)
+  const paneObserver = useRef(null)
+  const rightPaneRef = useCallback(el => {
+    paneObserver.current?.disconnect()
+    paneObserver.current = null
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(([entry]) => setRightPaneW(Math.round(entry.contentRect.width)))
+    ro.observe(el)
+    paneObserver.current = ro
+  }, [])
+
   useEffect(() => {
     function onResize() {
       const w = window.innerWidth
@@ -273,6 +288,16 @@ export default function GameDayPage() {
   const planMode  = activePlanState?.mode === 'free' ? 'free' : 'quarters'
   const freeMode  = planMode === 'free'
   const freeSubs  = activePlanState?.freeSubs || null
+
+  // How the right pane lays out. Under ~360px (a tablet in portrait) it holds
+  // one tag per row, so the tags must scroll and the playing-time list can't
+  // share the pane: it opens from the right edge as on the phone. In Free Subs
+  // the tags keep their own height and scroll, and the list takes the rest —
+  // squeezed to a share of the pane, the tags spilled over the list.
+  const narrowPane     = isWide && rightPaneW < 360
+  const playTimeDrawer = freeMode && (!isWide || narrowPane)
+  const playTimePane   = freeMode && !playTimeDrawer
+  const tagsScroll     = !isWide || freeMode || narrowPane
 
   // Repaint the clock while it runs. One timer for the whole page.
   const [clockNow, setClockNow] = useState(() => Date.now())
@@ -1598,10 +1623,15 @@ export default function GameDayPage() {
         {/* ── Right pane: player tag grid ──
             The rail is a sibling of the scroller, not a child: inside it, it
             would scroll away with the tags. */}
-        <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <div ref={rightPaneRef} style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           {/* Rail beside the scroller, not inside it — a child would scroll
               away with the tags. */}
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'row' }}>
+          <div style={{
+            // With the list below, the tags take their own height first (and
+            // scroll if even that doesn't fit); the list gets what's left.
+            flex: playTimePane ? '0 1 auto' : 1,
+            minHeight: 0, display: 'flex', flexDirection: 'row',
+          }}>
             {!isWide && (
               <ScrollRail targetRef={tagPaneRef} accent={freeMode ? theme.freeAccent : theme.brandGreen} />
             )}
@@ -1611,13 +1641,13 @@ export default function GameDayPage() {
               style={{
                 flex: 1, minWidth: 0,
                 display: 'flex', flexDirection: 'column',
-                // On the phone the tags outgrow the pane — two rows on the
-                // field and two on the bench already do — so it has to
-                // scroll, and minHeight:0 lets a flex child shrink enough to.
+                // When the tags outgrow the pane — on the phone two rows on the
+                // field and two on the bench already do — it has to scroll,
+                // and minHeight:0 lets a flex child shrink enough to.
                 minHeight: 0,
-                overflowY: isWide ? 'visible' : 'auto',
-                // Room for the playing-time handle on the phone's right edge.
-                paddingRight: freeMode && !isWide ? 30 : 0,
+                overflowY: tagsScroll ? 'auto' : 'visible',
+                // Room for the playing-time handle on the right edge.
+                paddingRight: playTimeDrawer ? 30 : 0,
               }}
             >
               <PlayerTagGrid
@@ -1627,7 +1657,7 @@ export default function GameDayPage() {
                 outAllIds={outAllIds}
                 outQIds={outQIds}
                 isMobile={!isWide}
-                fillHeight={isWide}
+                fillHeight={!tagsScroll}
                 onDragStart={onDragStart}
                 draggingPlayerId={draggingPlayerId}
                 shakingPlayerId={shakingPlayerId}
@@ -1636,7 +1666,7 @@ export default function GameDayPage() {
               />
             </div>
           </div>
-          {freeMode && isWide && (
+          {playTimePane && (
             <PlayTimeList
               players={availableForFreeList}
               freeSubs={freeSubs}
@@ -1648,10 +1678,10 @@ export default function GameDayPage() {
           )}
         </div>
 
-        {/* Phone: the ranking opens from the right edge. Anchored to the
-            bottom it covered the bench tags, which is what a coach reaches
-            for mid-game. */}
-        {freeMode && !isWide && (
+        {/* Phone, and a tablet in portrait: the ranking opens from the right
+            edge. Anchored to the bottom it covered the bench tags, which is
+            what a coach reaches for mid-game. */}
+        {playTimeDrawer && (
           <PlayTimeList
             players={availableForFreeList}
             freeSubs={freeSubs}

@@ -184,7 +184,9 @@ export default function PlayTimeList({ players, freeSubs, nowMs, totalMs, isMobi
       display: 'flex', flexDirection: 'column', minHeight: 0, flexShrink: 0,
       background: theme.freePanelBg,
       borderTop: `1px solid ${theme.freeAccentDim}`,
-      ...(open ? { flex: '1 1 45%' } : {}),
+      // Whatever the tags above leave, never less than a few rows. It used to
+      // claim 45% outright, which squeezed the tags until they spilled over it.
+      ...(open ? { flex: '1 1 0', minHeight: 150 } : {}),
     }}>
       <button
         onClick={() => setOpen(o => !o)}
