@@ -298,13 +298,140 @@
       font-size: 13px;
     }
 
+    /* ---------- Charts ---------- */
+    /* Every chart plots one series, so every mark is the one accent hue:
+       length carries the magnitude, colour carries nothing. Identity lives in
+       the row label beside the bar, never in the colour. */
+    .charts { margin-bottom: 22px; }
+    .charts-head {
+      display: flex; align-items: baseline; gap: 10px;
+      margin-bottom: 10px; flex-wrap: wrap;
+    }
+    .charts-head .h {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.7px;
+    }
+    .charts-head .note { font-size: 11px; color: var(--dim); }
+    .charts-toggle {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      padding: 4px 10px; border-radius: 999px; font-size: 11px; cursor: pointer;
+      font-family: inherit; transition: border-color 0.12s, color 0.12s;
+    }
+    .charts-toggle:hover { border-color: var(--accent); color: var(--accent); }
+    .charts.collapsed .chart-grid { display: none; }
+
+    .chart-grid {
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .chart-card {
+      background: var(--surface-grad);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px 16px;
+      min-width: 0;
+    }
+    .chart-title {
+      font-size: 11px; font-weight: 700; color: var(--text);
+      text-transform: uppercase; letter-spacing: 0.7px;
+    }
+    .chart-sub { display: block; font-size: 11px; color: var(--dim); margin-top: 2px; }
+    .chart-body { margin-top: 12px; }
+    .chart-empty { font-size: 12px; color: var(--dim); padding: 14px 0 6px; }
+
+    /* Bar list: label · track · value. The value sits in its own column so it
+       can never be clipped by a short bar. */
+    .bl-row {
+      display: grid; grid-template-columns: minmax(0, 96px) 1fr auto;
+      align-items: center; gap: 10px; padding: 3px 0; cursor: default;
+    }
+    .bl-label {
+      font-size: 12px; color: var(--muted);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .bl-row:hover .bl-label { color: var(--text); }
+    .bl-track {
+      height: 10px; border-radius: 0 5px 5px 0;
+      background: rgba(255,255,255,0.045);
+    }
+    .bl-fill {
+      display: block; height: 100%; min-width: 2px;
+      background: var(--accent);
+      border-radius: 0 4px 4px 0;
+      transition: width 0.2s ease;
+    }
+    .bl-value {
+      font-size: 12px; font-weight: 600; color: var(--text);
+      font-variant-numeric: tabular-nums; min-width: 22px; text-align: right;
+    }
+    .bl-row.other .bl-label, .bl-row.other .bl-value { color: var(--dim); }
+    .bl-row.other .bl-fill { background: rgba(136,136,168,0.45); }
+
+    /* Column chart: one bar per week, capped at 24px so the slot keeps its air. */
+    .colchart { position: relative; padding-top: 16px; }
+    .col-plot {
+      position: relative; height: 96px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cols {
+      position: absolute; inset: 0;
+      display: flex; align-items: flex-end; justify-content: space-between; gap: 2px;
+    }
+    .col {
+      position: relative;
+      flex: 1 1 0; min-width: 0; max-width: 24px; height: 100%;
+      display: flex; align-items: flex-end; cursor: default;
+    }
+    .col-fill {
+      width: 100%; background: var(--accent);
+      border-radius: 4px 4px 0 0; min-height: 0;
+      transition: height 0.2s ease;
+    }
+    .col:hover .col-fill { background: #00e676; }
+    .col-peak {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      font-size: 10px; font-weight: 700; color: var(--text);
+      font-variant-numeric: tabular-nums; pointer-events: none;
+    }
+    .col-axis {
+      display: flex; justify-content: space-between;
+      margin-top: 6px; font-size: 10px; color: var(--dim);
+    }
+
+    .viz-tip {
+      position: fixed; z-index: 200; pointer-events: none;
+      background: var(--panel); border: 1px solid var(--border-strong);
+      color: var(--text); padding: 6px 10px; border-radius: 8px;
+      font-size: 12px; white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+      opacity: 0; transition: opacity 0.1s;
+    }
+    .viz-tip.show { opacity: 1; }
+
+    /* Archived rows: filed off the board, still whole. */
+    .archive-tag {
+      display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 10px;
+      background: rgba(226,75,74,0.14); color: var(--danger);
+      font-size: 10px; font-weight: 700; letter-spacing: 0.2px;
+    }
+    tr.row.archived td { opacity: 0.62; }
+    tr.row.archived:hover td { opacity: 1; }
+    .mini-btn.archive:hover { border-color: var(--danger); color: var(--danger); }
+    .mini-btn.restore:hover { border-color: var(--accent); color: var(--accent); }
+
     @media (max-width: 720px) {
       body { padding: 14px; }
+      /* The header bleeds to the edges, so its negative margin has to track
+         the body padding — at -24px it pushed the page 10px sideways. */
+      header { margin: -14px -14px 18px; padding: 14px; }
+      .chart-grid { grid-template-columns: 1fr; }
+      .bl-row { grid-template-columns: minmax(0, 78px) 1fr auto; }
       .summary-card { min-width: 90px; padding: 10px 12px; }
       .summary-value { font-size: 18px; }
       th:nth-child(5), td:nth-child(5),
       th:nth-child(6), td:nth-child(6) { display: none; }
-      .search { min-width: 0; flex: 1; }
+      .spacer { display: none; }
+      .search { min-width: 0; flex: 1 1 100%; }
     }
   </style>
 </head>
@@ -326,6 +453,15 @@
 
   <div class="summary" id="summary"></div>
 
+  <section class="charts" id="charts">
+    <div class="charts-head">
+      <span class="h">Who they are &amp; where</span>
+      <span class="note">describes the rows currently in the table — filters and search apply</span>
+      <button class="charts-toggle" id="charts-toggle" aria-expanded="true">Hide</button>
+    </div>
+    <div class="chart-grid" id="chart-grid"></div>
+  </section>
+
   <div class="controls">
     <button class="filter-btn active" data-filter="all">All</button>
     <button class="filter-btn" data-filter="valid">Valid</button>
@@ -337,6 +473,7 @@
     <button class="filter-btn" data-filter="inactive">Inactive (30d)</button>
     <button class="filter-btn" data-filter="no-team">No team</button>
     <button class="filter-btn" data-filter="assistants">Assistants</button>
+    <button class="filter-btn" data-filter="archived">Archived</button>
     <span class="spacer"></span>
     <input class="search" id="search" type="text" placeholder="Search email, name or team..." autocomplete="off" />
     <button class="refresh-btn" id="refresh">⟳ Refresh</button>
@@ -367,6 +504,7 @@
   </div>
 
   <div id="toast" class="toast"></div>
+  <div id="viz-tip" class="viz-tip"></div>
 
 <script>
   let allUsers = []
@@ -438,13 +576,22 @@
   function isGifted(u) {
     return !!u.gifted && (u.plan === 'solo' || u.plan === 'premium')
   }
+  // Archived = filed off the board by hand. Nothing is deleted: the row keeps
+  // every column it had and one click puts it back.
+  function isArchived(u) {
+    return !!u.archived_at
+  }
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
   }
 
   function applyFilter(users) {
-    let r = users
+    // An archived account is off the board everywhere except the Archived
+    // filter — that is the whole point of archiving it.
+    let r = activeFilter === 'archived'
+      ? users.filter(isArchived)
+      : users.filter(u => !isArchived(u))
     if (activeFilter === 'valid')    r = r.filter(isValid)
     if (activeFilter === 'paying')   r = r.filter(isPaying)
     if (activeFilter === 'gifted')   r = r.filter(isGifted)
@@ -479,6 +626,132 @@
         default: return (new Date(b.signup) - new Date(a.signup)) * dir
       }
     })
+  }
+
+  // ── Charts ───────────────────────────────────────────────────
+  // Every chart here plots one series, so every bar wears the same accent hue:
+  // length carries the number and the label beside it carries the identity.
+  // Colouring each bar by its own size would encode the length twice and spend
+  // the only free channel on something the bar already says.
+  const TOP_N = 7
+
+  // Count one field across the rows on the board, biggest first, with the tail
+  // folded into a single "Other" row rather than growing bars nobody reads.
+  function tally(rows, pick) {
+    const counts = new Map()
+    let known = 0
+    for (const u of rows) {
+      const k = pick(u)
+      if (!k) continue
+      known++
+      counts.set(k, (counts.get(k) || 0) + 1)
+    }
+    const sorted = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    const out = sorted.slice(0, TOP_N).map(([label, value]) => ({ label, value }))
+    const tail = sorted.slice(TOP_N)
+    if (tail.length) {
+      out.push({
+        label: 'Other (' + tail.length + ')',
+        value: tail.reduce((n, e) => n + e[1], 0),
+        other: true,
+      })
+    }
+    return { rows: out, known, distinct: sorted.length }
+  }
+
+  // The value lives in its own column, so a one-account bar can never clip the
+  // number the way an inline label would.
+  function barList(rows, total) {
+    const max = Math.max(...rows.map(r => r.value))
+    return rows.map(r => {
+      const pct = total ? Math.round((r.value / total) * 100) : 0
+      const tip = r.label + ' — ' + r.value + ' of ' + total + ' (' + pct + '%)'
+      return `<div class="bl-row${r.other ? ' other' : ''}" data-tip="${escapeHtml(tip)}">
+        <span class="bl-label" title="${escapeHtml(r.label)}">${escapeHtml(r.label)}</span>
+        <span class="bl-track"><span class="bl-fill" style="width:${(r.value / max) * 100}%"></span></span>
+        <span class="bl-value">${r.value}</span>
+      </div>`
+    }).join('')
+  }
+
+  function chartCard(title, sub, body) {
+    return `<figure class="chart-card">
+      <figcaption>
+        <span class="chart-title">${escapeHtml(title)}</span>
+        <span class="chart-sub">${escapeHtml(sub)}</span>
+      </figcaption>
+      <div class="chart-body">${body}</div>
+    </figure>`
+  }
+
+  function countCard(title, rows, pick, emptyMsg) {
+    const t = tally(rows, pick)
+    if (!t.rows.length) return chartCard(title, '', `<div class="chart-empty">${escapeHtml(emptyMsg)}</div>`)
+    const sub = t.known + ' of ' + rows.length + ' shown'
+              + (t.distinct > TOP_N ? ' · ' + t.distinct + ' in all' : '')
+    return chartCard(title, sub, barList(t.rows, t.known))
+  }
+
+  // Signups per week for the last 12 weeks, oldest on the left. Weeks start on
+  // Monday, so "this week" means the week you are in rather than a rolling 7
+  // days that shifts every time you open the page.
+  function signupsCard(rows) {
+    const WEEKS = 12
+    const thisMonday = new Date()
+    thisMonday.setHours(0, 0, 0, 0)
+    thisMonday.setDate(thisMonday.getDate() - ((thisMonday.getDay() + 6) % 7))
+    const buckets = []
+    for (let i = WEEKS - 1; i >= 0; i--) {
+      const from = new Date(thisMonday)
+      from.setDate(from.getDate() - i * 7)
+      buckets.push({ from, value: 0 })
+    }
+    const floor = buckets[0].from.getTime()
+    let counted = 0
+    for (const u of rows) {
+      const t = new Date(u.signup).getTime()
+      if (!t || t < floor) continue
+      const i = Math.min(WEEKS - 1, Math.floor((t - floor) / (7 * 86400000)))
+      buckets[i].value++
+      counted++
+    }
+    const max = Math.max(1, ...buckets.map(b => b.value))
+    let peak = 0
+    buckets.forEach((b, i) => { if (b.value > buckets[peak].value) peak = i })
+    const fmt = (d) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    const cols = buckets.map((b, i) => {
+      const when = i === WEEKS - 1 ? 'this week' : 'week of ' + fmt(b.from)
+      const tip = when + ' — ' + b.value + ' signup' + (b.value === 1 ? '' : 's')
+      // Only the tallest column is labelled. A number on every bar is noise;
+      // the gridline gives the scale and hovering gives the rest.
+      const label = (i === peak && b.value > 0)
+        ? `<span class="col-peak" style="bottom:calc(${(b.value / max) * 100}% + 4px)">${b.value}</span>` : ''
+      return `<div class="col" data-tip="${escapeHtml(tip)}">${label}<span class="col-fill" style="height:${(b.value / max) * 100}%"></span></div>`
+    }).join('')
+    const body = `<div class="colchart">
+      <div class="col-plot">
+        <div class="cols">${cols}</div>
+      </div>
+      <div class="col-axis"><span>12 weeks ago</span><span>this week</span></div>
+    </div>`
+    return chartCard('Signups per week', counted + ' in the last 12 weeks', body)
+  }
+
+  function renderCharts(filtered) {
+    $('chart-grid').innerHTML = [
+      signupsCard(filtered),
+      countCard('Country', filtered, u => u.country,
+        'No location yet — it comes from the IP of the last sign-in.'),
+      countCard('State / region', filtered, u => u.region,
+        'No region yet — it comes from the IP of the last sign-in.'),
+      countCard('Platform', filtered, u => u.platform,
+        'No platform yet — it comes from the last sign-in.'),
+      countCard('Device', filtered, u => u.device,
+        'No device yet — it comes from the last sign-in.'),
+      countCard('Sign-in method', filtered, u => (u.provider && u.provider !== '?' ? u.provider : ''),
+        'No sign-in method recorded.'),
+    ].join('')
   }
 
   function renderSummary(filtered) {
@@ -550,8 +823,12 @@
       // them read as a prospect, and the plan controls would write a plan onto
       // a helper. Blank all of it.
       const helperOnly = isAssistant(u)
-      return `<tr class="row">
-        <td><span class="email">${escapeHtml(label(u))}</span>${provider}${assistTag(u)}${linkLine(u)}</td>
+      const archived = isArchived(u)
+      const archiveTag = archived
+        ? `<span class="archive-tag" title="Archived ${escapeHtml(new Date(u.archived_at).toLocaleString())} — nothing was deleted">archived</span>`
+        : ''
+      return `<tr class="row${archived ? ' archived' : ''}">
+        <td><span class="email">${escapeHtml(label(u))}</span>${provider}${assistTag(u)}${archiveTag}${linkLine(u)}</td>
         <td>${helperOnly
           ? '<span class="dim-dash" title="An assistant coach has no plan of their own — they work inside the head coach\'s subscription">—</span>'
           : `<span class="badge badge-${planClass}">${escapeHtml(u.plan)}</span>${override}${gift}${sandbox}`}</td>
@@ -562,7 +839,8 @@
         <td class="num">${rel(u.last_seen)}</td>
         <td class="num">${u.teams}</td>
         <td class="trial-cell ${!helperOnly && tl.urgent ? 'urgent' : ''}">${helperOnly ? '<span class="dim-dash">—</span>' : tl.text}</td>
-        <td class="actions-cell">${helperOnly ? '<span class="dim-dash">—</span>' : `
+        <td class="actions-cell">${helperOnly ? '<span class="dim-dash">—</span>' : archived ? `
+          <button class="mini-btn restore" data-uid="${escapeHtml(u.id)}" title="Put this account back on the board">↩ Restore</button>` : `
           <select class="plan-select" data-uid="${escapeHtml(u.id)}" title="Set plan">
             ${['trial','solo','premium','expired'].map(p =>
               `<option value="${p}" ${u.plan === p ? 'selected' : ''}>${p}</option>`).join('')}
@@ -571,7 +849,8 @@
           <label class="gift-check${u.gifted ? ' on' : ''}" title="Given, not bought — keeps full access, drops out of Paying">
             <input type="checkbox" class="gift-toggle" data-uid="${escapeHtml(u.id)}" ${u.gifted ? 'checked' : ''} />Gift
           </label>
-          <button class="mini-btn reset-trial" data-uid="${escapeHtml(u.id)}" title="Restart a fresh 30-day trial">↻ Trial</button>`}
+          <button class="mini-btn reset-trial" data-uid="${escapeHtml(u.id)}" title="Restart a fresh 30-day trial">↻ Trial</button>
+          <button class="mini-btn archive" data-uid="${escapeHtml(u.id)}" title="Take this account off the board — kept, never deleted">✕ Archive</button>`}
         </td>
       </tr>`
     }).join('')
@@ -580,6 +859,7 @@
   function rerender() {
     const filtered = applyFilter(allUsers)
     renderSummary(filtered)
+    renderCharts(filtered)
     renderTable(sortRows(filtered))
     document.querySelectorAll('th[data-sort]').forEach(th => {
       th.classList.remove('sorted', 'asc', 'desc')
@@ -634,6 +914,49 @@
 
   $('refresh').addEventListener('click', load)
 
+  // ── Chart hover + collapse ─────────────────────────────────
+  // One shared tooltip follows the pointer, so the exact numbers the charts
+  // don't label are always a hover away.
+  const tipEl = $('viz-tip')
+  const chartGrid = $('chart-grid')
+  function hideTip() { tipEl.className = 'viz-tip' }
+  chartGrid.addEventListener('mousemove', (e) => {
+    const el = e.target.closest('[data-tip]')
+    if (!el) { hideTip(); return }
+    tipEl.textContent = el.dataset.tip
+    tipEl.className = 'viz-tip show'
+    const box = tipEl.getBoundingClientRect()
+    const pad = 14
+    let x = e.clientX + pad
+    let y = e.clientY + pad
+    if (x + box.width > window.innerWidth - 8) x = e.clientX - box.width - pad
+    if (y + box.height > window.innerHeight - 8) y = e.clientY - box.height - pad
+    tipEl.style.left = Math.max(8, x) + 'px'
+    tipEl.style.top = Math.max(8, y) + 'px'
+  })
+  chartGrid.addEventListener('mouseleave', hideTip)
+  window.addEventListener('scroll', hideTip, { passive: true })
+
+  const chartsEl = $('charts')
+  const chartsToggle = $('charts-toggle')
+  function setCharts(open, remember) {
+    chartsEl.classList.toggle('collapsed', !open)
+    chartsToggle.textContent = open ? 'Hide' : 'Show'
+    chartsToggle.setAttribute('aria-expanded', String(open))
+    if (!open) hideTip()
+    // Private windows and blocked site data throw on access, and the charts
+    // are not worth a broken page.
+    if (remember) try { localStorage.setItem('squadiq-admin-charts', open ? 'on' : 'off') } catch {}
+  }
+  let chartsOpen = !window.matchMedia('(max-width: 720px)').matches
+  try {
+    const saved = localStorage.getItem('squadiq-admin-charts')
+    if (saved) chartsOpen = saved === 'on'
+  } catch {}
+  setCharts(chartsOpen, false)
+  chartsToggle.addEventListener('click', () => setCharts(chartsEl.classList.contains('collapsed'), true))
+
+
   // ── Mutations: set plan / reset trial ──────────────────────────
   const toastEl = $('toast')
   let toastTimer
@@ -669,6 +992,7 @@
     if (patch.plan !== undefined) u.plan = patch.plan
     if (patch.trial_end !== undefined) u.trial_end = patch.trial_end
     if (patch.gifted !== undefined) u.gifted = patch.gifted
+    if (patch.archived_at !== undefined) u.archived_at = patch.archived_at
     rerender()
   }
 
@@ -714,6 +1038,43 @@
   })
 
   tbody.addEventListener('click', async (e) => {
+    // Archive / restore. Archiving is filing, not deleting — every column the
+    // row had survives it, and Restore is one click away in the Archived filter.
+    const arc = e.target.closest('.archive, .restore')
+    if (arc) {
+      const id = arc.dataset.uid
+      const u = userById(id)
+      if (!u) return
+      const next = arc.classList.contains('archive')
+      const who = (u.email === '(no email)' && u.display_name) ? u.display_name : u.email
+      // A paying account keeps its plan: we are still billing them, so cutting
+      // access would be charging for nothing. Everyone else is expired on the
+      // way out, which is the half of this that actually kills the account.
+      const msg = !next
+        ? `Restore ${who} to the board?
+
+The plan stays wherever it is now — set it by hand if they need access back.`
+        : isPaying(u)
+          ? `Archive ${who}?
+
+They are paying, so their plan is left alone — this only takes the row off the board. Nothing is deleted.`
+          : `Archive ${who}?
+
+The plan is set to expired and the row leaves the board. Nothing is deleted — restore it any time from the Archived filter.`
+      if (!confirm(msg)) return
+      arc.disabled = true
+      try {
+        const patch = await postAction('/api/archive', { userId: id, archived: next })
+        applyPatchLocal(id, patch)
+        toast(next
+          ? `${who} archived${patch.plan === 'expired' ? ' and expired' : ' (plan untouched — still paying)'}`
+          : `${who} restored to the board`, 'ok')
+      } catch (err) {
+        toast('Failed: ' + err.message, 'err')
+        arc.disabled = false
+      }
+      return
+    }
     const btn = e.target.closest('.reset-trial')
     if (!btn) return
     const id = btn.dataset.uid

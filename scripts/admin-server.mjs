@@ -88,7 +88,10 @@ function deviceOf(ua) {
 // Approximate IP → location for the dashboard. Uses ip-api.com (free, HTTP only,
 // non-commercial) and caches per IP for the server's lifetime so refreshes don't
 // re-query. To swap providers later, only this function needs changing.
-const geoCache = new Map() // ip -> location string
+// ip -> { label, city, region, country } so the dashboard can both print a
+// location and count by country/region without re-parsing the printed string.
+const geoCache = new Map()
+const NO_GEO = { label: '', city: '', region: '', country: '' }
 
 function isPrivateIp(ip) {
   return /^(10\.|127\.|192\.168\.|169\.254\.|::1$|fc|fd|fe80)/i.test(ip) ||
@@ -97,7 +100,9 @@ function isPrivateIp(ip) {
 
 async function geolocate(ips) {
   const todo = [...new Set(ips.filter(ip => ip && !geoCache.has(ip)))]
-  for (const ip of todo) if (isPrivateIp(ip)) geoCache.set(ip, 'local network')
+  for (const ip of todo) {
+    if (isPrivateIp(ip)) geoCache.set(ip, { ...NO_GEO, label: 'local network' })
+  }
   const lookups = todo.filter(ip => !geoCache.has(ip))
   for (let i = 0; i < lookups.length; i += 100) {
     const batch = lookups.slice(i, i + 100)
@@ -109,16 +114,19 @@ async function geolocate(ips) {
       })
       const rows = await r.json()
       for (const row of rows) {
-        let loc = 'unknown'
-        if (row.status === 'success') {
-          loc = [row.city, row.regionName, row.country].filter(Boolean).join(', ')
-          if (row.mobile) loc += ' · mobile'
-        }
-        geoCache.set(row.query, loc)
+        if (row.status !== 'success') { geoCache.set(row.query, { ...NO_GEO, label: 'unknown' }); continue }
+        let label = [row.city, row.regionName, row.country].filter(Boolean).join(', ')
+        if (row.mobile) label += ' · mobile'
+        geoCache.set(row.query, {
+          label,
+          city:    row.city || '',
+          region:  row.regionName || '',
+          country: row.country || '',
+        })
       }
     } catch (e) {
       console.warn('geolocation failed:', e.message)
-      for (const ip of batch) if (!geoCache.has(ip)) geoCache.set(ip, '')
+      for (const ip of batch) if (!geoCache.has(ip)) geoCache.set(ip, { ...NO_GEO })
     }
   }
 }
@@ -191,6 +199,7 @@ async function loadUsers() {
     const assists = assistsByUser.get(u.id) || []
     const ua = uaByUser.get(u.id) || ''
     const ip = ipByUser.get(u.id) || ''
+    const geo = (ip && geoCache.get(ip)) || NO_GEO
     return {
       id:                     u.id,
       email:                  u.email || '(no email)',
@@ -205,6 +214,8 @@ async function loadUsers() {
       trial_end:              s?.trial_end || null,
       stripe_customer_id:     s?.stripe_customer_id || null,
       stripe_subscription_id: s?.stripe_subscription_id || null,
+      // Filed off the board, never deleted. NULL = live.
+      archived_at:            s?.archived_at || null,
       teams:                  userTeams.length,
       team_names:             userTeams.map(t => t.name),
       // Who this assistant answers to, and who answers to this head coach.
@@ -225,7 +236,10 @@ async function loadUsers() {
       platform:               platformOf(ua),
       device:                 deviceOf(ua),
       user_agent:             ua,
-      location:               ip ? (geoCache.get(ip) || '') : '',
+      location:               geo.label,
+      country:                geo.country,
+      region:                 geo.region,
+      city:                   geo.city,
       ip:                     ip,
     }
   })
@@ -282,9 +296,21 @@ function isAllowedPeer(ra) {
   return false
 }
 
+// The Host the browser thinks it is talking to. A peer check alone is not
+// enough: with DNS rebinding a hostile page's own domain resolves to 127.0.0.1,
+// the request arrives from loopback, and the page could read /api/users. Only
+// names that are really this machine are accepted.
+function isAllowedHost(hostHeader) {
+  const host = String(hostHeader || '').toLowerCase().replace(/:\d+$/, '').replace(/^\[|\]$/g, '')
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return true
+  if (host.endsWith('.ts.net')) return true                          // Tailscale MagicDNS
+  const m = host.match(/^100\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/)       // Tailscale IP
+  return !!m && Number(m[1]) >= 64 && Number(m[1]) <= 127
+}
+
 const server = createServer(async (req, res) => {
   const ra = req.socket.remoteAddress || ''
-  if (!isAllowedPeer(ra)) {
+  if (!isAllowedPeer(ra) || !isAllowedHost(req.headers.host)) {
     res.writeHead(403); res.end('forbidden'); return
   }
 
@@ -309,7 +335,7 @@ const server = createServer(async (req, res) => {
       res.end(JSON.stringify(users))
       return
     }
-    if (req.method === 'POST' && (req.url === '/api/set-plan' || req.url === '/api/reset-trial' || req.url === '/api/set-gifted')) {
+    if (req.method === 'POST' && (req.url === '/api/set-plan' || req.url === '/api/reset-trial' || req.url === '/api/set-gifted' || req.url === '/api/archive')) {
       // Mutating endpoints. Access is already restricted to loopback/Tailscale;
       // additionally reject cross-origin browser requests (CSRF-lite): a custom
       // header forces a CORS preflight this server never approves, and any
@@ -327,6 +353,31 @@ const server = createServer(async (req, res) => {
       let patch
       if (req.url === '/api/reset-trial') {
         patch = { plan: 'trial', trial_start: nowIso, trial_end: trialEndIso, updated_at: nowIso }
+      } else if (req.url === '/api/archive') {
+        // Archiving is filing, not deleting: the row leaves the board and every
+        // column it had is still there. Un-archiving is one click.
+        if (typeof body.archived !== 'boolean') { res.writeHead(400); res.end('bad archived'); return }
+        if (!body.archived) {
+          patch = { archived_at: null, updated_at: nowIso }
+        } else {
+          // The kill half. A non-paying account is expired on the way out, so
+          // archiving actually ends the access it had. A paying one keeps its
+          // plan: money is still coming in, and cutting entitlement under a live
+          // subscription would be charging for nothing. Same definition of
+          // "paying" the dashboard uses — gifts and Apple sandbox receipts are
+          // not revenue, so they expire like any other freeloading row.
+          const { data: sub, error: subErr } = await supabase
+            .from('subscriptions')
+            .select('plan, gifted, apple_environment')
+            .eq('user_id', userId).maybeSingle()
+          if (subErr) throw new Error(subErr.message)
+          const paying = !!sub
+            && (sub.plan === 'solo' || sub.plan === 'premium')
+            && !sub.gifted
+            && sub.apple_environment !== 'Sandbox'
+          patch = { archived_at: nowIso, updated_at: nowIso }
+          if (!paying) patch.plan = 'expired'
+        }
       } else if (req.url === '/api/set-gifted') {
         // Gifted = the plan was given, not bought. Entitlement is untouched;
         // only the paying counts change.
@@ -346,9 +397,12 @@ const server = createServer(async (req, res) => {
         // A missing column means the migration hasn't been run — say that
         // rather than passing PostgREST's wording to the dashboard.
         const m = String(err?.message || err)
-        if (/gifted/.test(m) && /column|schema cache/i.test(m)) {
+        const missing = /column|schema cache/i.test(m) && (
+          /gifted/.test(m)     ? ['gifted',      '20260911000000_gifted_subscriptions.sql'] :
+          /archived_at/.test(m) ? ['archived_at', '20260916000000_archived_accounts.sql'] : null)
+        if (missing) {
           res.writeHead(400)
-          res.end("the 'gifted' column doesn't exist yet — run supabase/migrations/20260911000000_gifted_subscriptions.sql in the Supabase SQL editor")
+          res.end(`the '${missing[0]}' column doesn't exist yet — run supabase/migrations/${missing[1]} in the Supabase SQL editor`)
           return
         }
         throw err
