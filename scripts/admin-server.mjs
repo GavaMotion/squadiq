@@ -186,6 +186,13 @@ async function loadUsers() {
     })
   }
 
+  // Where each coach came from (campaign tag, else referring site). Only
+  // signups since Oct 1 2026 have a row; older accounts read as blank.
+  const { data: sources, error: srcErr } = await supabase
+    .from('signup_sources').select('user_id, source, medium, campaign, referrer')
+  if (srcErr) console.warn('signup sources skipped:', srcErr.message)
+  const sourceByUser = new Map((sources || []).map(r => [r.user_id, r]))
+
   const subByUser = new Map((subs || []).map(s => [s.user_id, s]))
   const teamsByUser = new Map()
   for (const t of teams || []) {
@@ -241,6 +248,7 @@ async function loadUsers() {
       region:                 geo.region,
       city:                   geo.city,
       ip:                     ip,
+      source:                 sourceByUser.get(u.id) || null,
     }
   })
 }

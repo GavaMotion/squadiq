@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { isOffline } from '../lib/offline'
+import { recordAttribution } from '../lib/attribution'
 
 const AuthContext = createContext(null)
 
@@ -60,6 +61,13 @@ export function AuthProvider({ children }) {
       subscription.unsubscribe()
     }
   }, [])
+
+  // File where a new coach came from. Kept out of onAuthStateChange on purpose:
+  // supabase-js deadlocks if a query is made inside that callback.
+  const userId = session?.user?.id
+  useEffect(() => {
+    if (session?.user && !isOffline()) recordAttribution(session.user)
+  }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const signUp = (email, password) =>
     supabase.auth.signUp({ email, password })

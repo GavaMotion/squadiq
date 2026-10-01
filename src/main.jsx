@@ -4,11 +4,14 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './components/UI/Toast'
 import App from './App'
 import { isAndroidTWA } from './lib/platform'
+import { captureAttribution } from './lib/attribution'
 import './index.css'
 
 // Read document.referrer on the very first load so the Android-TWA flag is
 // captured before any client-side navigation clears it.
 isAndroidTWA()
+// Same reason: campaign tags and the referrer only exist on the landing load.
+captureAttribution()
 
 // ── Global error boundary ─────────────────────────────────────────
 class GlobalErrorBoundary extends React.Component {

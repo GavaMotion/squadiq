@@ -846,5 +846,33 @@
   © 2025 Gava Motion. All rights reserved.
 </footer>
 
+<script>
+  // Carry the visit's source into the app. Signup happens on the app, which
+  // can't see the tags this page arrived with (or the site that sent the
+  // visitor), so pass both along on every link into it. Kept for the tab's
+  // session, so a visitor who reads the features page first still arrives tagged.
+  (function () {
+    var KEY = 'sq_tags', tags = null;
+    try {
+      var q = new URLSearchParams(location.search), t = {};
+      ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'].forEach(function (k) {
+        if (q.get(k)) t[k] = q.get(k);
+      });
+      var ref = '';
+      try { ref = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, '') : ''; } catch (e) {}
+      if (ref && ref !== location.hostname.replace(/^www\./, '')) t.sq_ref = ref;
+      if (Object.keys(t).length) sessionStorage.setItem(KEY, JSON.stringify(t));
+      tags = JSON.parse(sessionStorage.getItem(KEY) || 'null');
+    } catch (e) { return; }
+    if (!tags) return;
+    [].forEach.call(document.querySelectorAll('a[href^="https://squadiq-coach.vercel.app"]'), function (a) {
+      try {
+        var u = new URL(a.href);
+        Object.keys(tags).forEach(function (k) { u.searchParams.set(k, tags[k]); });
+        a.href = u.toString();
+      } catch (e) {}
+    });
+  })();
+</script>
 </body>
 </html>

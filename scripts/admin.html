@@ -817,6 +817,16 @@
         }
         return out.length ? `<span class="link-line">${out.join('<br>')}</span>` : ''
       }
+      // Where they came from: the campaign tag if there was one, else the site
+      // that sent them. Signups before Oct 1 2026 have no record and show nothing.
+      const sourceLine = (u) => {
+        const s = u.source
+        if (!s) return ''
+        const what = s.source
+          ? [s.source, s.medium, s.campaign].filter(Boolean).join(' · ')
+          : (s.referrer || 'direct')
+        return `<span class="link-line">via ${escapeHtml(what)}</span>`
+      }
       // An assistant-only login gets a trial row from the signup trigger like
       // anyone else, but it means nothing: they joined somebody else's team and
       // have no account of their own to bill. Showing "trial · 30d left" makes
@@ -834,7 +844,7 @@
           : `<span class="badge badge-${planClass}">${escapeHtml(u.plan)}</span>${override}${gift}${sandbox}`}</td>
         <td class="platform-cell" title="${escapeHtml(u.user_agent || '')}">${u.platform ? escapeHtml(u.platform) : '<span class="dim-dash">—</span>'}</td>
         <td class="device-cell" title="${escapeHtml(u.user_agent || '')}">${u.device ? escapeHtml(u.device) : '<span class="dim-dash">—</span>'}</td>
-        <td class="location-cell" title="${escapeHtml(u.ip || '')}">${u.location ? escapeHtml(u.location) : '<span class="dim-dash">—</span>'}</td>
+        <td class="location-cell" title="${escapeHtml(u.ip || '')}">${u.location ? escapeHtml(u.location) : '<span class="dim-dash">—</span>'}${sourceLine(u)}</td>
         <td class="num">${rel(u.signup)}</td>
         <td class="num">${rel(u.last_seen)}</td>
         <td class="num">${u.teams}</td>
