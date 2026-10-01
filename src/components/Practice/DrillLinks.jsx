@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useToast } from '../UI/Toast'
 
 // ── YouTube thumbnail extractor ──────────────────────────────────
 function ytThumb(url) {
@@ -145,9 +146,12 @@ export default function DrillLinks({ teamId, drillName, color }) {
   const [links, setLinks]     = useState([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding]   = useState(false)
+  const { addToast }          = useToast()
 
   useEffect(() => {
-    if (!teamId) return
+    // Without a team or a drill name the link is unaddressable — it would save
+    // against a null key and never be found again. Stop loading so the UI can say so.
+    if (!teamId || !drillName) { setLoading(false); return }
     setLoading(true)
     supabase
       .from('drill_links')
@@ -155,30 +159,46 @@ export default function DrillLinks({ teamId, drillName, color }) {
       .eq('team_id', teamId)
       .eq('drill_name', drillName)
       .order('created_at')
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) addToast('Could not load drill links', 'error')
         setLinks(data || [])
         setLoading(false)
       })
   }, [teamId, drillName])
 
   async function handleAdd(url, label) {
+    if (!teamId || !drillName) {
+      addToast('Cannot save link — no team selected for this drill', 'error')
+      return
+    }
     const { data, error } = await supabase
       .from('drill_links')
       .insert({ team_id: teamId, drill_name: drillName, url, label })
       .select()
       .single()
-    if (!error && data) {
-      setLinks(prev => [...prev, data])
-      setAdding(false)
+    if (error || !data) {
+      addToast(`Could not save link${error?.message ? ' — ' + error.message : ''}`, 'error')
+      return
     }
+    setLinks(prev => [...prev, data])
+    setAdding(false)
   }
 
   async function handleDelete(id) {
-    await supabase.from('drill_links').delete().eq('id', id)
+    const { error } = await supabase.from('drill_links').delete().eq('id', id)
+    if (error) { addToast('Could not remove link', 'error'); return }
     setLinks(prev => prev.filter(l => l.id !== id))
   }
 
   if (loading) return null
+
+  if (!teamId || !drillName) {
+    return (
+      <div className="px-3 pb-3 mt-2">
+        <p className="text-xs text-gray-500">Links can't be saved for this drill right now.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="px-3 pb-3 mt-2">
