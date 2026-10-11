@@ -18,7 +18,7 @@ re-derived through PWABuilder each time.
 | | |
 |---|---|
 | packageId | `com.gavamotion.squadiq` |
-| versionCode / versionName | `2` / `1.0.0.1` |
+| versionCode / versionName | `3` / `1.0.0.2` (install referrer → launch URL tags) |
 | targetSdkVersion | `36` (Android 16) |
 | minSdkVersion | `23` |
 | Signing | Play App Signing is ON; we hold the **upload** key only |
@@ -67,6 +67,16 @@ keytool -importcert -trustcacerts -cacerts -storepass changeit -noprompt \
    ```
 
    (The template's default 1536m heap fails to reserve in this environment; 768m is fine.)
+
+   If a dependency download fails with *PKIX path validation failed*, AVG's root
+   isn't in the JDK truststore (any more). Instead of re-importing it, let Java use
+   the Windows store, which already trusts it:
+
+   ```bash
+   ./gradlew.bat bundleRelease --no-daemon \
+     "-Dorg.gradle.jvmargs=-Xmx768m -Djavax.net.ssl.trustStoreType=Windows-ROOT" \
+     -Djavax.net.ssl.trustStoreType=Windows-ROOT
+   ```
 
 4. Sign the bundle with the upload key:
 

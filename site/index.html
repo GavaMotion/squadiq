@@ -732,6 +732,31 @@
         a.href = u.toString();
       } catch (e) {}
     });
+
+    // The store buttons. A coach who installs the app instead of using the web
+    // app would otherwise arrive untagged.
+    //  - Google Play keeps `referrer` through the install; the Android app reads
+    //    it on first launch (LauncherActivity) and opens the app with these tags.
+    //  - The App Store can't hand anything to the app. Its campaign token (ct)
+    //    only shows in App Store Connect → Analytics → Acquisition, and only
+    //    with the provider token (pt) from that page's campaign-link generator.
+    var APPLE_PT = '';
+    if (!tags.utm_source && !tags.sq_ref) return;
+    var utm = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'sq_ref']
+      .filter(function (k) { return tags[k]; })
+      .map(function (k) { return k + '=' + encodeURIComponent(tags[k]); }).join('&');
+    [].forEach.call(document.querySelectorAll('a[href^="https://play.google.com/store/apps/details"]'), function (a) {
+      try { var u = new URL(a.href); u.searchParams.set('referrer', utm); a.href = u.toString(); } catch (e) {}
+    });
+    if (APPLE_PT && tags.utm_source) [].forEach.call(document.querySelectorAll('a[href^="https://apps.apple.com/"]'), function (a) {
+      try {
+        var u = new URL(a.href);
+        u.searchParams.set('pt', APPLE_PT);
+        u.searchParams.set('ct', (tags.utm_campaign || tags.utm_source).slice(0, 40));
+        u.searchParams.set('mt', '8');
+        a.href = u.toString();
+      } catch (e) {}
+    });
   })();
 </script>
 </body>
