@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free Printable Soccer Rotation & Substitution Template | SquadIQ</title>
+  <meta name="description" content="Type your players’ names, pick 4v4, 7v7, 9v9 or 11v11 and quarters or halves, and print a fair soccer substitution rotation — or a blank grid. Free, no signup." />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="canonical" href="https://squadiq.online/soccer-rotation-template" />
+
+  <!-- Open Graph / social -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="SquadIQ" />
+  <meta property="og:url" content="https://squadiq.online/soccer-rotation-template" />
+  <meta property="og:title" content="Free printable soccer rotation template" />
+  <meta property="og:description" content="Type your players’ names, pick 4v4, 7v7, 9v9 or 11v11 and quarters or halves, and print a fair soccer substitution rotation — or a blank grid. Free, no signup." />
+  <meta property="og:image" content="https://squadiq.online/assets/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#00c853" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d1a;
+      --surface: #13131f;
+      --surface-2: #1a1a2c;
+      --border: #1e1e30;
+      --border-2: #2a2a42;
+      --green: #00c853;
+      --green-dim: #00c85322;
+      --green-glow: #00c85333;
+      --amber: #EF9F27;
+      --red: #e0685f;
+      --text: #e0e0f0;
+      --soft: #b6b6d0;
+      --muted: #8a8aa8;
+      --font: 'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    a { color: var(--green); }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+    textarea:focus-visible, summary:focus-visible {
+      outline: 2px solid var(--green); outline-offset: 2px; border-radius: 4px;
+    }
+
+    .skip {
+      position: absolute; left: -999px; top: 0; z-index: 20;
+      background: var(--green); color: var(--bg); padding: 8px 14px; font-weight: 700;
+    }
+    .skip:focus { left: 8px; top: 8px; }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      position: sticky;
+      top: 0;
+      background: rgba(13, 13, 26, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 10;
+    }
+
+    .logo { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+    .logo span { color: var(--green); }
+
+    .nav-links {
+      margin-left: auto;
+      display: flex;
+      gap: 1.25rem;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .nav-links a { color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--green); }
+
+    .hero {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 4.5rem 2rem 1.5rem;
+      text-align: center;
+      position: relative;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 500px; height: 500px; max-width: 100vw;
+      background: radial-gradient(circle, var(--green-glow) 0%, transparent 70%);
+      filter: blur(60px);
+      z-index: -1;
+    }
+
+    .badge-eyebrow {
+      display: inline-block;
+      font-size: 11px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 5px 14px;
+      border-radius: 20px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: 2.9rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+    h1 span { color: var(--green); }
+    .hero p { color: var(--soft); font-size: 1.08rem; max-width: 600px; margin: 0 auto; }
+
+    .jump {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;
+      max-width: 720px; margin: 2rem auto 0; padding: 0 1rem;
+    }
+    .jump a {
+      font-size: 13px; font-weight: 600; text-decoration: none; color: var(--text);
+      padding: 7px 15px; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--surface); transition: border-color 0.2s;
+    }
+    .jump a:hover { border-color: var(--green); }
+
+    main { max-width: 860px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+
+    .section { padding: 2.75rem 0; border-top: 1px solid var(--border); scroll-margin-top: 80px; }
+    .section:first-child { border-top: none; }
+    .sec-num { font-size: 11px; letter-spacing: 0.15em; font-weight: 600; color: var(--green); text-transform: uppercase; }
+    .section h2 { font-size: 1.85rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin: 0.2rem 0 0.9rem; }
+    .section h3 { font-size: 1.15rem; font-weight: 600; margin: 1.6rem 0 0.4rem; }
+    .section p { color: var(--soft); margin-bottom: 0.9rem; }
+    .section p b, .section li b { color: var(--text); font-weight: 600; }
+    .section ul, .section ol { color: var(--soft); padding-left: 1.3rem; margin-bottom: 0.9rem; }
+    .section li { margin-bottom: 0.35rem; }
+
+    .answer {
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--green); border-radius: 12px;
+      padding: 1.1rem 1.3rem; margin-top: 0.5rem;
+    }
+    .answer p { margin-bottom: 0.5rem; }
+    .answer p:last-child { margin-bottom: 0; }
+
+    blockquote {
+      margin: 1rem 0; padding: 0.9rem 1.2rem; border-radius: 10px;
+      background: var(--surface-2); border: 1px solid var(--border-2);
+      color: var(--text); font-size: 15.5px;
+    }
+    blockquote cite { display: block; margin-top: 0.4rem; font-size: 12.5px; color: var(--muted); font-style: normal; }
+
+    .callout {
+      margin: 1.25rem 0; background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--amber); border-radius: 12px; padding: 1rem 1.2rem;
+    }
+    .callout p { font-size: 14px; margin-bottom: 0.4rem; }
+    .callout p:last-child { margin-bottom: 0; }
+
+    .table-wrap { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--border); border-radius: 12px; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; }
+    th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    thead th { background: var(--surface-2); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--soft); }
+    tbody tr:last-child td, tbody tr:last-child th { border-bottom: none; }
+    td.num, th.num { text-align: center; font-variant-numeric: tabular-nums; }
+
+    /* Tool panel */
+    .tool {
+      background: var(--surface); border: 1px solid var(--border-2);
+      border-radius: 16px; padding: 1.4rem; margin-top: 1rem;
+    }
+    .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; }
+    .field label, .field .lbl { display: block; font-size: 13px; font-weight: 600; margin-bottom: 0.35rem; color: var(--text); }
+    .field .hint { font-size: 12px; color: var(--muted); margin-top: 0.25rem; }
+    input[type=number], input[type=text], input[type=date], select, textarea {
+      width: 100%; font: inherit; font-size: 16px; color: var(--text);
+      background: var(--bg); border: 1px solid var(--border-2); border-radius: 10px;
+      padding: 10px 12px; min-height: 44px;
+    }
+    textarea { min-height: 180px; resize: vertical; line-height: 1.5; }
+    select { appearance: none; -webkit-appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--soft) 50%), linear-gradient(135deg, var(--soft) 50%, transparent 50%);
+      background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+      background-size: 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
+    .seg { display: flex; gap: 0.5rem; flex-wrap: wrap; border: 0; }
+    .seg legend { font-size: 13px; font-weight: 600; margin-bottom: 0.35rem; }
+    .seg label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--soft);
+      padding: 8px 12px; border: 1px solid var(--border-2); border-radius: 10px; cursor: pointer; min-height: 44px; }
+    .seg input { accent-color: var(--green); width: 16px; height: 16px; }
+    .seg label:has(input:checked) { border-color: var(--green); color: var(--text); background: var(--green-dim); }
+
+    .result { margin-top: 1.25rem; }
+    .status { padding: 0.8rem 1rem; border-radius: 10px; font-size: 14px; margin-bottom: 0.9rem; border: 1px solid; }
+    .status.ok { border-color: #00c85366; background: var(--green-dim); color: #b9f5cf; }
+    .status.warn { border-color: #EF9F2766; background: #EF9F2718; color: #f6d6a4; }
+    .status b { color: #fff; }
+
+    .cell { display: inline-block; min-width: 42px; text-align: center; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.03em; }
+    .cell.on  { background: var(--green-dim); color: #7ff0ab; border: 1px solid #00c85355; }
+    .cell.gk  { background: #EF9F2722; color: #f7c47a; border: 1px solid #EF9F2766; }
+    .cell.off { background: transparent; color: var(--muted); border: 1px dashed var(--border-2); }
+    .met { color: #7ff0ab; font-weight: 700; }
+    .miss { color: #ffb0a8; font-weight: 700; }
+    .legend { font-size: 12.5px; color: var(--muted); margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.8rem; align-items: center; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px 24px; border-radius: 10px; min-height: 44px; cursor: pointer;
+      font: inherit; font-size: 14px; font-weight: 600; text-decoration: none; border: 0;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary { background: var(--green); color: var(--bg); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px var(--green-glow); }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border-2); }
+    .btn-outline:hover { border-color: var(--green); }
+    .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.1rem; }
+
+    /* FAQ */
+    .faq details { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); margin-bottom: 0.6rem; }
+    .faq summary { cursor: pointer; padding: 0.95rem 1.1rem; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 1rem; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: '+'; color: var(--green); font-size: 1.2rem; line-height: 1; }
+    .faq details[open] summary::after { content: '\2013'; }
+    .faq details > div { padding: 0 1.1rem 1rem; }
+    .faq details p { margin-bottom: 0.5rem; }
+
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .sources { font-size: 13.5px; }
+    .sources li { color: var(--soft); }
+
+    /* CTA */
+    .cta-section { text-align: center; padding: 3.5rem 2rem 1rem; border-top: 1px solid var(--border); margin-top: 1rem; }
+    .cta-section h2 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    .cta-section p { color: var(--soft); margin: 0 auto 2rem; max-width: 560px; }
+    .cta-buttons { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+    footer { text-align: center; padding: 2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; margin-top: 3rem; }
+    footer strong { color: var(--text); }
+    .foot-tools { margin-bottom: 0.8rem; font-size: 13px; }
+    .foot-tools a { color: #b8b8d0; text-decoration: none; margin: 0 0.4rem; display: inline-block; }
+    .foot-tools a:hover { color: var(--green); }
+
+    @media (max-width: 640px) {
+      header { padding: 1rem 1.25rem; }
+      .nav-links { gap: 0.9rem; }
+      .nav-links a.nav-home { display: none; }
+      h1 { font-size: 2.05rem; }
+      .hero { padding: 2.75rem 1.25rem 1rem; }
+      .hero p { font-size: 1rem; }
+      main { padding: 0.5rem 1.25rem 2rem; }
+      .section { padding: 2.25rem 0; }
+      .section h2 { font-size: 1.5rem; }
+      .tool { padding: 0.9rem; }
+      .cta-section { padding: 3rem 1.25rem 1rem; }
+      th, td { padding: 7px 4px; }
+      .cell { min-width: 0; padding: 2px 4px; font-size: 11px; }
+      thead th { letter-spacing: 0.02em; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .btn, .jump a, .nav-links a { transition: none; }
+    }
+
+    .sheet { margin-top: 1.5rem; background: #fff; color: #111; border-radius: 12px; padding: 1.25rem; }
+    .sheet h3 { font-size: 1.2rem; margin: 0 0 0.2rem; color: #111; }
+    .sheet .meta { font-size: 13px; color: #444; margin-bottom: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; }
+    .sheet .table-wrap { border-color: #ccc; margin: 0.5rem 0; }
+    .sheet table { font-size: 13px; color: #111; }
+    .sheet th, .sheet td { border: 1px solid #bbb; padding: 7px 8px; }
+    .sheet thead th { background: #eef6f0; color: #111; }
+    .sheet td.box { min-width: 64px; height: 30px; }
+    .sheet .s-on { font-weight: 700; }
+    .sheet .s-gk { font-weight: 700; background: #fff3dd; }
+    .sheet .s-off { color: #777; background: #ececec; }
+    .sheet .sitrow td { white-space: normal; font-size: 11.5px; color: #333; }
+    .sheet .lines { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.6rem 1.2rem; font-size: 12.5px; color: #333; margin-top: 0.8rem; }
+    .sheet .lines span { border-bottom: 1px solid #999; padding-bottom: 2px; }
+    .sheet .brand { font-size: 11px; color: #777; margin-top: 0.8rem; text-align: right; }
+    .sheet .note { font-size: 12.5px; color: #333; margin: 0.4rem 0; }
+
+    @media print {
+      @page { size: auto; margin: 12mm; }
+      html, body { background: #fff !important; color: #111 !important; }
+      header, .hero, footer, .cta-section, .skip, .no-print,
+      main > .section:not(#tool), #tool > :not(.sheet) { display: none !important; }
+      main, #tool { padding: 0 !important; margin: 0 !important; max-width: none !important; border: 0 !important; }
+      .sheet { margin: 0; padding: 0; border-radius: 0; }
+      .sheet .table-wrap { overflow: visible; border: 0; }
+      .sheet table { font-size: 12pt; }
+      .sheet th, .sheet td { white-space: nowrap; }
+      .sheet thead th, .sheet .s-gk, .sheet .s-off { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .sheet tr { break-inside: avoid; }
+    }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do I make a fair soccer substitution rotation?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Count your player-periods: players on the field × number of periods (7 × 4 = 28 in a 7v7 game of quarters). Divide by your roster to see how many periods each kid gets, then spread the sits so nobody sits twice before every teammate has sat once. The template on this page does that for you."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I print a blank rotation sheet to fill in by hand?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Choose “Blank grid” and the sheet prints with your players’ names and empty boxes for every period, plus columns for goals and notes — handy if you prefer to decide subs at the field."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does the rotation template follow AYSO playing time rules?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It spreads time as evenly as the math allows and shows how many periods each player gets, so you can check it against your region’s minimum — half of every game nationally, three quarters in some regions. See our AYSO playing time guide for the details."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How many players should sit each quarter?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Roster size minus players on the field. Ten kids in a 7v7 game means three sit each quarter; twelve kids in a 9v9 game also means three."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Are my players’ names saved or uploaded?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. The names stay in your browser on this device so the list is there next time; nothing is sent to SquadIQ or anyone else."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can it rotate the goalkeeper too?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. For 7v7, 9v9 and 11v11 the template gives a different player the keeper spot each period where possible, and keeper time counts as playing time. Check your region for limits on quarters in goal."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header>
+  <a href="index.html" class="logo" style="text-decoration:none;color:inherit">Squad<span>IQ</span></a>
+  <nav class="nav-links" aria-label="Main">
+    <a href="index.html" class="nav-home">Home</a>
+    <a href="features.html">Features</a>
+    <a href="guide.html">Guide</a>
+    <a href="support.html">Support</a>
+    <a href="privacy.html">Privacy</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <span class="badge-eyebrow">Free printable</span>
+  <h1>Soccer rotation &amp;<br /><span>substitution template.</span></h1>
+  <p>Type your players’ names, pick your format, and print a fair rotation for the clipboard — who plays and who sits every period. Or print a blank grid and fill it in at the field.</p>
+</div>
+
+<main id="main">
+
+  <section class="section" id="tool" aria-labelledby="tool-h">
+    <div class="sec-num">01 — Build your sheet</div>
+    <h2 id="tool-h">Make a rotation in under a minute</h2>
+
+    <form class="tool" id="rot" novalidate>
+      <div class="fields">
+        <div class="field">
+          <label for="r-team">Team name <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+          <input id="r-team" type="text" autocomplete="off" placeholder="Blue Comets" />
+        </div>
+        <div class="field">
+          <label for="r-opp">Opponent <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+          <input id="r-opp" type="text" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="r-date">Game date <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+          <input id="r-date" type="date" />
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:1rem">
+        <label for="r-names">Player names — one per line</label>
+        <textarea id="r-names" spellcheck="false" aria-describedby="r-names-hint" placeholder="Ava&#10;Leo&#10;Mia&#10;Noah"></textarea>
+        <div class="hint" id="r-names-hint">Add a jersey number if you like (“7 Leo”). Names stay on this device only.</div>
+      </div>
+
+      <div class="fields" style="margin-top:1rem">
+        <div class="field">
+          <label for="r-format">Format</label>
+          <select id="r-format">
+            <option value="4v4">4v4 (no goalkeeper)</option>
+            <option value="7v7" selected>7v7 (incl. goalkeeper)</option>
+            <option value="9v9">9v9 (incl. goalkeeper)</option>
+            <option value="11v11">11v11 (incl. goalkeeper)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="r-periods">Periods</label>
+          <select id="r-periods">
+            <option value="quarters" selected>4 quarters</option>
+            <option value="halvesMid">2 halves + mid-half sub break</option>
+            <option value="halves">2 halves (halftime subs only)</option>
+          </select>
+        </div>
+        <fieldset class="field seg">
+          <legend>Fill in</legend>
+          <label><input type="radio" name="r-mode" value="auto" checked /> Fair rotation</label>
+          <label><input type="radio" name="r-mode" value="blank" /> Blank grid</label>
+        </fieldset>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="r-print">Print sheet</button>
+        <button type="button" class="btn btn-outline" id="r-shuffle">Shuffle who sits first</button>
+      </div>
+    </form>
+
+    <p class="status warn no-print" id="r-msg" hidden></p>
+    <div class="sheet" id="sheet" aria-live="polite"></div>
+  </section>
+
+  <section class="section" id="how" aria-labelledby="how-h">
+    <div class="sec-num">02 — How it works</div>
+    <h2 id="how-h">How the rotation is built</h2>
+    <ol>
+      <li><b>It counts the playing time available.</b> Players on the field × periods — a 7v7 game in quarters has 28 player-quarters to share.</li>
+      <li><b>It splits that as evenly as possible.</b> No player gets more than one period more than any teammate. With 10 kids in 7v7, eight play three quarters and two play two.</li>
+      <li><b>It spreads the sits.</b> Nobody sits a second time before a teammate who still owes a sit, and the sitting order moves around the roster.</li>
+      <li><b>It rotates the keeper.</b> In 7v7 and up, a different player takes goal each period where possible. Keeper time counts as playing time.</li>
+    </ol>
+    <p>The kids at the top of your list get the extra period when time does not divide evenly. Use <b>Shuffle who sits first</b>, or reorder your list each week, so the same kids are not always the ones with less time. Working to an AYSO minimum? Read <a href="ayso-playing-time.html">AYSO playing time rules, explained</a>.</p>
+  </section>
+
+  <section class="section" id="tips" aria-labelledby="tips-h">
+    <div class="sec-num">03 — At the field</div>
+    <h2 id="tips-h">Tips for running subs on game day</h2>
+    <ul>
+      <li><b>Print two copies</b> — one for you, one for the assistant coach or team parent who calls the subs.</li>
+      <li><b>Line up the next group early.</b> A minute before the break, gather the kids who are going in so the change takes seconds.</li>
+      <li><b>Tell the kids before kickoff.</b> “You sit second quarter” ends the “am I in?” questions.</li>
+      <li><b>Mark changes in pen.</b> If a kid arrives late or gets hurt, cross out and write the swap so your season record stays true.</li>
+    </ul>
+  </section>
+
+  <section class="section faq" id="faq" aria-labelledby="faq-h">
+    <div class="sec-num">04 — FAQ</div>
+    <h2 id="faq-h">Rotation template: common questions</h2>
+      <details>
+        <summary>How do I make a fair soccer substitution rotation?</summary>
+        <div><p>Count your player-periods: players on the field × number of periods (7 × 4 = 28 in a 7v7 game of quarters). Divide by your roster to see how many periods each kid gets, then spread the sits so nobody sits twice before every teammate has sat once. The template on this page does that for you.</p></div>
+      </details>
+      <details>
+        <summary>Can I print a blank rotation sheet to fill in by hand?</summary>
+        <div><p>Yes. Choose “Blank grid” and the sheet prints with your players’ names and empty boxes for every period, plus columns for goals and notes — handy if you prefer to decide subs at the field.</p></div>
+      </details>
+      <details>
+        <summary>Does the rotation template follow AYSO playing time rules?</summary>
+        <div><p>It spreads time as evenly as the math allows and shows how many periods each player gets, so you can check it against your region’s minimum — half of every game nationally, three quarters in some regions. See our <a href="ayso-playing-time.html">AYSO playing time guide</a> for the details.</p></div>
+      </details>
+      <details>
+        <summary>How many players should sit each quarter?</summary>
+        <div><p>Roster size minus players on the field. Ten kids in a 7v7 game means three sit each quarter; twelve kids in a 9v9 game also means three.</p></div>
+      </details>
+      <details>
+        <summary>Are my players’ names saved or uploaded?</summary>
+        <div><p>No. The names stay in your browser on this device so the list is there next time; nothing is sent to SquadIQ or anyone else.</p></div>
+      </details>
+      <details>
+        <summary>Can it rotate the goalkeeper too?</summary>
+        <div><p>Yes. For 7v7, 9v9 and 11v11 the template gives a different player the keeper spot each period where possible, and keeper time counts as playing time. Check your region for limits on quarters in goal.</p></div>
+      </details>
+  </section>
+
+</main>
+
+<div class="cta-section">
+  <h2>Plan this automatically in SquadIQ — free 30-day trial</h2>
+  <p>SquadIQ builds a fair four-quarter lineup from your roster, rotates the keeper, flags any kid under the minimum, and tracks playing time across the season. No credit card to start.</p>
+  <div class="cta-buttons">
+    <a href="https://squadiq-coach.vercel.app" class="btn btn-primary">Start your free 30-day trial</a>
+    <a href="features.html" class="btn btn-outline">See all features</a>
+  </div>
+</div>
+<footer>
+  <nav class="foot-tools" aria-label="Free coach tools">
+    <a href="ayso-playing-time.html">AYSO playing time rules</a> ·
+    <a href="soccer-rotation-template.html">Printable rotation template</a> ·
+    <a href="first-soccer-practice-u8.html">First U8 practice plan</a>
+  </nav>
+  <strong>SquadIQ — Soccer Coach</strong> · by Gava Motion<br />
+  © 2025 Gava Motion. All rights reserved.
+</footer>
+
+<script src="assets/rotation.js?v=2"></script>
+<script>
+  (function () {
+    var R = window.SquadRotation, esc = R.esc;
+    var $ = function (id) { return document.getElementById(id); };
+    var form = $('rot'), sheet = $('sheet'), msg = $('r-msg');
+    var KEY = 'sq_rotation_v1', offset = 0;
+
+    try {
+      var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (saved) {
+        ['team', 'opp', 'names', 'format', 'periods'].forEach(function (k) {
+          if (saved[k] != null) $('r-' + k).value = saved[k];
+        });
+      }
+    } catch (e) {}
+    if (!$('r-names').value.trim()) {
+      $('r-names').value = ['Ava', 'Leo', 'Mia', 'Noah', 'Sofia', 'Lucas', 'Emma', 'Mateo', 'Zoe', 'Eli'].join('\n');
+    }
+
+    function save() {
+      try {
+        localStorage.setItem(KEY, JSON.stringify({
+          team: $('r-team').value, opp: $('r-opp').value, names: $('r-names').value,
+          format: $('r-format').value, periods: $('r-periods').value
+        }));
+      } catch (e) {}
+    }
+
+    function render() {
+      var names = $('r-names').value.split(/\r?\n/).map(function (s) { return s.trim(); })
+        .filter(Boolean).slice(0, 30);
+      var fmt = R.FORMATS[$('r-format').value];
+      var per = R.PERIODS[$('r-periods').value];
+      var blank = form.querySelector('input[name=r-mode]:checked').value === 'blank';
+      var rows = names.length ? names : [];
+      if (!rows.length) for (var b = 0; b < 12; b++) rows.push('');
+
+      msg.hidden = true;
+      if (!blank && names.length < 2) {
+        msg.textContent = 'Add at least two player names to build a rotation — or choose “Blank grid”.';
+        msg.hidden = false;
+        blank = true;
+      }
+
+      // Shuffle rotates the list before planning, then we map back.
+      var order = rows.map(function (_, i) { return (i + offset) % rows.length; });
+      var plan = blank ? null : R.build({ names: order.map(function (i) { return rows[i]; }), onField: fmt.onField, periods: per.count, gk: fmt.gk });
+      var byRow = [];
+      if (plan) order.forEach(function (orig, j) { byRow[orig] = j; });
+
+      var date = $('r-date').value;
+      var dateTxt = '';
+      if (date) { try { dateTxt = new Date(date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); } catch (e) { dateTxt = date; } }
+      var team = $('r-team').value.trim(), opp = $('r-opp').value.trim();
+
+      var h = '<h3>' + esc(team || 'Game day rotation') + (opp ? ' vs ' + esc(opp) : '') + '</h3>' +
+        '<div class="meta"><span>' + esc(fmt.label) + '</span><span>' + esc(per.name) + '</span>' +
+        (dateTxt ? '<span>' + esc(dateTxt) + '</span>' : '') +
+        (plan ? '<span>' + Math.max(0, rows.length - plan.onField) + ' sit each period</span>' : '') + '</div>';
+
+      h += '<div class="table-wrap"><table><caption class="sr-only">Rotation sheet</caption><thead><tr><th scope="col" class="num">#</th><th scope="col">Player</th>';
+      per.labels.forEach(function (l) { h += '<th scope="col" class="num">' + esc(l) + '</th>'; });
+      h += (plan ? '<th scope="col" class="num">Plays</th>' : '') + '<th scope="col">Goals / notes</th></tr></thead><tbody>';
+
+      rows.forEach(function (nm, i) {
+        h += '<tr><td class="num">' + (i + 1) + '</td><th scope="row">' + (nm ? esc(nm) : '&nbsp;') + '</th>';
+        for (var p = 0; p < per.count; p++) {
+          if (!plan) { h += '<td class="box"></td>'; continue; }
+          var c = plan.grid[byRow[i]][p];
+          h += '<td class="num box s-' + c + '">' + (c === 'gk' ? 'GK' : c === 'on' ? 'Play' : 'Sit') + '</td>';
+        }
+        if (plan) h += '<td class="num">' + plan.plays[byRow[i]] + ' / ' + per.count + '</td>';
+        h += '<td class="box"></td></tr>';
+      });
+      if (plan && rows.length > plan.onField) {
+        h += '<tr class="sitrow"><td></td><th scope="row">Sitting</th>';
+        plan.sitters.forEach(function (s) {
+          h += '<td>' + s.map(function (j) { return order[j]; }).sort(function (a, b) { return a - b; }).map(function (i) { return esc(rows[i]); }).join(', ') + '</td>';
+        });
+        h += '<td></td><td></td></tr>';
+      }
+      h += '</tbody></table></div>';
+      if (plan) h += '<p class="note">Play = on the field' + (fmt.gk ? ' · GK = in goal (counts as playing)' : '') + ' · Sit = on the bench.</p>';
+      h += '<div class="lines"><span>Coach:</span><span>Field:</span><span>Final score:</span></div>' +
+        '<div class="brand">Made free at squadiq.online</div>';
+      sheet.innerHTML = h;
+    }
+
+    function update() { save(); render(); }
+    form.addEventListener('input', update);
+    form.addEventListener('change', update);
+    form.addEventListener('submit', function (e) { e.preventDefault(); update(); });
+    $('r-shuffle').addEventListener('click', function () { offset++; render(); });
+    $('r-print').addEventListener('click', function () { render(); window.print(); });
+    render();
+  })();
+</script>
+<script>
+  // Carry the visit's source into the app. Signup happens on the app, which
+  // can't see the tags this page arrived with (or the site that sent the
+  // visitor), so pass both along on every link into it. Kept for the tab's
+  // session, so a visitor who reads the features page first still arrives tagged.
+  (function () {
+    var KEY = 'sq_tags', tags = null;
+    try {
+      var q = new URLSearchParams(location.search), t = {};
+      ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'].forEach(function (k) {
+        if (q.get(k)) t[k] = q.get(k);
+      });
+      var ref = '';
+      try { ref = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, '') : ''; } catch (e) {}
+      if (ref && ref !== location.hostname.replace(/^www\./, '')) t.sq_ref = ref;
+      if (Object.keys(t).length) sessionStorage.setItem(KEY, JSON.stringify(t));
+      tags = JSON.parse(sessionStorage.getItem(KEY) || 'null');
+    } catch (e) { return; }
+    if (!tags) return;
+    [].forEach.call(document.querySelectorAll('a[href^="https://squadiq-coach.vercel.app"]'), function (a) {
+      try {
+        var u = new URL(a.href);
+        Object.keys(tags).forEach(function (k) { u.searchParams.set(k, tags[k]); });
+        a.href = u.toString();
+      } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>

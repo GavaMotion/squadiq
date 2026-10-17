@@ -14,6 +14,7 @@ export default defineConfig({
         globIgnores: ['cover_V.png', 'cover_H.png', 'coachpad_cover.png'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         navigateFallback: '/index.html',
+        importScripts: ['push-sw.js'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,

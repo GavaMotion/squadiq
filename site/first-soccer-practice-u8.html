@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>First U8 Soccer Practice Plan: A 60-Minute Session (+ U10) | SquadIQ</title>
+  <meta name="description" content="A minute-by-minute 60-minute plan for your first U8 soccer practice, plus a U10 session — fun drills, setup, and coaching points for first-time parent coaches." />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="canonical" href="https://squadiq.online/first-soccer-practice-u8" />
+
+  <!-- Open Graph / social -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="SquadIQ" />
+  <meta property="og:url" content="https://squadiq.online/first-soccer-practice-u8" />
+  <meta property="og:title" content="Your first U8 soccer practice: a 60-minute plan" />
+  <meta property="og:description" content="A minute-by-minute 60-minute plan for your first U8 soccer practice, plus a U10 session — fun drills, setup, and coaching points for first-time parent coaches." />
+  <meta property="og:image" content="https://squadiq.online/assets/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#00c853" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d1a;
+      --surface: #13131f;
+      --surface-2: #1a1a2c;
+      --border: #1e1e30;
+      --border-2: #2a2a42;
+      --green: #00c853;
+      --green-dim: #00c85322;
+      --green-glow: #00c85333;
+      --amber: #EF9F27;
+      --red: #e0685f;
+      --text: #e0e0f0;
+      --soft: #b6b6d0;
+      --muted: #8a8aa8;
+      --font: 'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    a { color: var(--green); }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+    textarea:focus-visible, summary:focus-visible {
+      outline: 2px solid var(--green); outline-offset: 2px; border-radius: 4px;
+    }
+
+    .skip {
+      position: absolute; left: -999px; top: 0; z-index: 20;
+      background: var(--green); color: var(--bg); padding: 8px 14px; font-weight: 700;
+    }
+    .skip:focus { left: 8px; top: 8px; }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      position: sticky;
+      top: 0;
+      background: rgba(13, 13, 26, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 10;
+    }
+
+    .logo { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+    .logo span { color: var(--green); }
+
+    .nav-links {
+      margin-left: auto;
+      display: flex;
+      gap: 1.25rem;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .nav-links a { color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--green); }
+
+    .hero {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 4.5rem 2rem 1.5rem;
+      text-align: center;
+      position: relative;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 500px; height: 500px; max-width: 100vw;
+      background: radial-gradient(circle, var(--green-glow) 0%, transparent 70%);
+      filter: blur(60px);
+      z-index: -1;
+    }
+
+    .badge-eyebrow {
+      display: inline-block;
+      font-size: 11px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 5px 14px;
+      border-radius: 20px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: 2.9rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+    h1 span { color: var(--green); }
+    .hero p { color: var(--soft); font-size: 1.08rem; max-width: 600px; margin: 0 auto; }
+
+    .jump {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;
+      max-width: 720px; margin: 2rem auto 0; padding: 0 1rem;
+    }
+    .jump a {
+      font-size: 13px; font-weight: 600; text-decoration: none; color: var(--text);
+      padding: 7px 15px; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--surface); transition: border-color 0.2s;
+    }
+    .jump a:hover { border-color: var(--green); }
+
+    main { max-width: 860px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+
+    .section { padding: 2.75rem 0; border-top: 1px solid var(--border); scroll-margin-top: 80px; }
+    .section:first-child { border-top: none; }
+    .sec-num { font-size: 11px; letter-spacing: 0.15em; font-weight: 600; color: var(--green); text-transform: uppercase; }
+    .section h2 { font-size: 1.85rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin: 0.2rem 0 0.9rem; }
+    .section h3 { font-size: 1.15rem; font-weight: 600; margin: 1.6rem 0 0.4rem; }
+    .section p { color: var(--soft); margin-bottom: 0.9rem; }
+    .section p b, .section li b { color: var(--text); font-weight: 600; }
+    .section ul, .section ol { color: var(--soft); padding-left: 1.3rem; margin-bottom: 0.9rem; }
+    .section li { margin-bottom: 0.35rem; }
+
+    .answer {
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--green); border-radius: 12px;
+      padding: 1.1rem 1.3rem; margin-top: 0.5rem;
+    }
+    .answer p { margin-bottom: 0.5rem; }
+    .answer p:last-child { margin-bottom: 0; }
+
+    blockquote {
+      margin: 1rem 0; padding: 0.9rem 1.2rem; border-radius: 10px;
+      background: var(--surface-2); border: 1px solid var(--border-2);
+      color: var(--text); font-size: 15.5px;
+    }
+    blockquote cite { display: block; margin-top: 0.4rem; font-size: 12.5px; color: var(--muted); font-style: normal; }
+
+    .callout {
+      margin: 1.25rem 0; background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--amber); border-radius: 12px; padding: 1rem 1.2rem;
+    }
+    .callout p { font-size: 14px; margin-bottom: 0.4rem; }
+    .callout p:last-child { margin-bottom: 0; }
+
+    .table-wrap { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--border); border-radius: 12px; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; }
+    th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    thead th { background: var(--surface-2); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--soft); }
+    tbody tr:last-child td, tbody tr:last-child th { border-bottom: none; }
+    td.num, th.num { text-align: center; font-variant-numeric: tabular-nums; }
+
+    /* Tool panel */
+    .tool {
+      background: var(--surface); border: 1px solid var(--border-2);
+      border-radius: 16px; padding: 1.4rem; margin-top: 1rem;
+    }
+    .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; }
+    .field label, .field .lbl { display: block; font-size: 13px; font-weight: 600; margin-bottom: 0.35rem; color: var(--text); }
+    .field .hint { font-size: 12px; color: var(--muted); margin-top: 0.25rem; }
+    input[type=number], input[type=text], input[type=date], select, textarea {
+      width: 100%; font: inherit; font-size: 16px; color: var(--text);
+      background: var(--bg); border: 1px solid var(--border-2); border-radius: 10px;
+      padding: 10px 12px; min-height: 44px;
+    }
+    textarea { min-height: 180px; resize: vertical; line-height: 1.5; }
+    select { appearance: none; -webkit-appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--soft) 50%), linear-gradient(135deg, var(--soft) 50%, transparent 50%);
+      background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+      background-size: 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
+    .seg { display: flex; gap: 0.5rem; flex-wrap: wrap; border: 0; }
+    .seg legend { font-size: 13px; font-weight: 600; margin-bottom: 0.35rem; }
+    .seg label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--soft);
+      padding: 8px 12px; border: 1px solid var(--border-2); border-radius: 10px; cursor: pointer; min-height: 44px; }
+    .seg input { accent-color: var(--green); width: 16px; height: 16px; }
+    .seg label:has(input:checked) { border-color: var(--green); color: var(--text); background: var(--green-dim); }
+
+    .result { margin-top: 1.25rem; }
+    .status { padding: 0.8rem 1rem; border-radius: 10px; font-size: 14px; margin-bottom: 0.9rem; border: 1px solid; }
+    .status.ok { border-color: #00c85366; background: var(--green-dim); color: #b9f5cf; }
+    .status.warn { border-color: #EF9F2766; background: #EF9F2718; color: #f6d6a4; }
+    .status b { color: #fff; }
+
+    .cell { display: inline-block; min-width: 42px; text-align: center; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.03em; }
+    .cell.on  { background: var(--green-dim); color: #7ff0ab; border: 1px solid #00c85355; }
+    .cell.gk  { background: #EF9F2722; color: #f7c47a; border: 1px solid #EF9F2766; }
+    .cell.off { background: transparent; color: var(--muted); border: 1px dashed var(--border-2); }
+    .met { color: #7ff0ab; font-weight: 700; }
+    .miss { color: #ffb0a8; font-weight: 700; }
+    .legend { font-size: 12.5px; color: var(--muted); margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.8rem; align-items: center; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px 24px; border-radius: 10px; min-height: 44px; cursor: pointer;
+      font: inherit; font-size: 14px; font-weight: 600; text-decoration: none; border: 0;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary { background: var(--green); color: var(--bg); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px var(--green-glow); }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border-2); }
+    .btn-outline:hover { border-color: var(--green); }
+    .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.1rem; }
+
+    /* FAQ */
+    .faq details { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); margin-bottom: 0.6rem; }
+    .faq summary { cursor: pointer; padding: 0.95rem 1.1rem; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 1rem; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: '+'; color: var(--green); font-size: 1.2rem; line-height: 1; }
+    .faq details[open] summary::after { content: '\2013'; }
+    .faq details > div { padding: 0 1.1rem 1rem; }
+    .faq details p { margin-bottom: 0.5rem; }
+
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .sources { font-size: 13.5px; }
+    .sources li { color: var(--soft); }
+
+    /* CTA */
+    .cta-section { text-align: center; padding: 3.5rem 2rem 1rem; border-top: 1px solid var(--border); margin-top: 1rem; }
+    .cta-section h2 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    .cta-section p { color: var(--soft); margin: 0 auto 2rem; max-width: 560px; }
+    .cta-buttons { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+    footer { text-align: center; padding: 2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; margin-top: 3rem; }
+    footer strong { color: var(--text); }
+    .foot-tools { margin-bottom: 0.8rem; font-size: 13px; }
+    .foot-tools a { color: #b8b8d0; text-decoration: none; margin: 0 0.4rem; display: inline-block; }
+    .foot-tools a:hover { color: var(--green); }
+
+    @media (max-width: 640px) {
+      header { padding: 1rem 1.25rem; }
+      .nav-links { gap: 0.9rem; }
+      .nav-links a.nav-home { display: none; }
+      h1 { font-size: 2.05rem; }
+      .hero { padding: 2.75rem 1.25rem 1rem; }
+      .hero p { font-size: 1rem; }
+      main { padding: 0.5rem 1.25rem 2rem; }
+      .section { padding: 2.25rem 0; }
+      .section h2 { font-size: 1.5rem; }
+      .tool { padding: 0.9rem; }
+      .cta-section { padding: 3rem 1.25rem 1rem; }
+      th, td { padding: 7px 4px; }
+      .cell { min-width: 0; padding: 2px 4px; font-size: 11px; }
+      thead th { letter-spacing: 0.02em; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .btn, .jump a, .nav-links a { transition: none; }
+    }
+
+    .plan { list-style: none; padding: 0 !important; margin: 1rem 0 0; }
+    .drill { display: grid; grid-template-columns: 74px 1fr; gap: 1rem; padding: 1.1rem 1.2rem; margin-bottom: 0.8rem !important;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+    .drill.brk { background: transparent; border-style: dashed; padding: 0.7rem 1.2rem; align-items: center; }
+    .drill.brk p { margin: 0; font-size: 14px; }
+    .drill.brk h3 { margin: 0; font-size: 1rem; }
+    .when { display: flex; flex-direction: column; align-items: flex-start; }
+    .when .t { font-weight: 700; font-size: 1.15rem; color: var(--green); font-variant-numeric: tabular-nums; }
+    .when .m { font-size: 12px; color: var(--muted); }
+    .drill .cat { display: inline-block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--green); background: var(--green-dim); padding: 2px 9px; border-radius: 10px; }
+    .drill h3 { margin: 0.35rem 0 0.5rem !important; }
+    .drill p { font-size: 14.5px; margin-bottom: 0.5rem; }
+    .drill .cp-h { margin-bottom: 0.2rem; }
+    .drill ul { font-size: 14.5px; margin-bottom: 0.5rem; }
+    .drill .adj { color: var(--soft); font-size: 14px; }
+    .glance { margin-top: 1rem; }
+    .checklist { list-style: none; padding: 0 !important; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.5rem 1.2rem; }
+    .checklist li { padding-left: 1.6rem; position: relative; }
+    .checklist li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+    @media (max-width: 640px) {
+      .drill { grid-template-columns: 1fr; gap: 0.3rem; padding: 1rem; }
+      .when { flex-direction: row; gap: 0.6rem; align-items: baseline; }
+    }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How long should a U8 soccer practice be?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "About an hour is typical for rec soccer at this age, and many programs run 45 to 60 minutes. Young players do best with short activities — around 8 to 12 minutes each — and a game at the end."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What should I do at my first U8 practice?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Keep it simple: every kid gets a ball, learn names, play two or three fun dribbling games, then finish with a small-sided game. The 60-minute plan on this page is built that way, with timings for each activity."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "I have never played soccer. Can I still coach U8?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. At U8 your job is to keep kids moving, keep it fun and keep everyone involved. The games on this page need no demonstration skills — explain the rules in one sentence and let them play."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What equipment do I need for a youth soccer practice?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A ball for every player (size 3 is typical for U8, size 4 for U10 — check your league), 15 to 20 cones, two sets of pinnies, small goals or extra cones, water and a first-aid kit, plus your roster with parent phone numbers."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is a U10 practice different from U8?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "U10 players are ready for more passing, simple decisions with a teammate and short 1v1 duels. Groups get a little bigger and activities a little longer, but every practice should still end with a game."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What if the kids won’t listen?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Talk less. Give instructions in one or two sentences, with the ball under their feet, then start playing. Stop the group only briefly, and praise the kids who are doing it right — the rest copy them."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header>
+  <a href="index.html" class="logo" style="text-decoration:none;color:inherit">Squad<span>IQ</span></a>
+  <nav class="nav-links" aria-label="Main">
+    <a href="index.html" class="nav-home">Home</a>
+    <a href="features.html">Features</a>
+    <a href="guide.html">Guide</a>
+    <a href="support.html">Support</a>
+    <a href="privacy.html">Privacy</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <span class="badge-eyebrow">Practice plan</span>
+  <h1>Your first U8 soccer practice:<br /><span>a 60-minute plan.</span></h1>
+  <p>Just got handed a team? Here is a minute-by-minute session that keeps every kid moving, needs no soccer background, and ends with a game — plus a U10 version for older players.</p>
+  <nav class="jump" aria-label="On this page">
+    <a href="#before">Before you go</a>
+    <a href="#u8">U8 plan</a>
+    <a href="#u10">U10 plan</a>
+    <a href="#tips">First-timer tips</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+</div>
+
+<main id="main">
+
+  <section class="section" id="before" aria-labelledby="before-h">
+    <div class="sec-num">01 — Before you go</div>
+    <h2 id="before-h">What to bring to your first practice</h2>
+    <ul class="checklist">
+      <li>A ball for every player (size 3 for U8, size 4 for U10 — check your league)</li>
+      <li>15–20 cones</li>
+      <li>Two sets of pinnies</li>
+      <li>Small goals, or extra cones to make them</li>
+      <li>Water and a first-aid kit</li>
+      <li>Your roster with parent phone numbers</li>
+    </ul>
+    <div class="answer" style="margin-top:1.25rem">
+      <p><b>The three rules of a good U8 practice:</b> every kid has a ball, no lines, laps or lectures, and always finish with a game.</p>
+    </div>
+  </section>
+
+  <section class="section" id="u8" aria-labelledby="u8-h">
+    <div class="sec-num">02 — U8 session · 60 minutes</div>
+    <h2 id="u8-h">The 60-minute U8 practice plan</h2>
+    <p>Theme: <b>dribbling and having fun with the ball</b>. Set up one 20×25-yard grid before the kids arrive and most of the session runs inside it. Times are a guide — if a game is going well, let it run.</p>
+    <div class="table-wrap glance">
+      <table>
+        <caption class="sr-only">U8 practice at a glance</caption>
+        <thead><tr><th scope="col">Time</th><th scope="col">Activity</th><th scope="col" class="num">Minutes</th></tr></thead>
+        <tbody>
+          <tr><td>0:00</td><td>Free Dribble Explore</td><td class="num">5</td></tr>
+          <tr><td>0:05</td><td>Red Light Green Light</td><td class="num">8</td></tr>
+          <tr><td>0:13</td><td>Galaxy Battles</td><td class="num">12</td></tr>
+          <tr><td>0:25</td><td>Water break</td><td class="num">3</td></tr>
+          <tr><td>0:28</td><td>Sharks and Minnows</td><td class="num">10</td></tr>
+          <tr><td>0:38</td><td>Free Scrimmage</td><td class="num">17</td></tr>
+          <tr><td>0:55</td><td>Passing Circle Cooldown</td><td class="num">5</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ol class="plan">
+      <li class="drill">
+        <div class="when"><span class="t">0:00</span><span class="m">5 min</span></div>
+        <div class="body">
+          <span class="cat">Arrival</span>
+          <h3>Free Dribble Explore</h3>
+          <p><b>Setup:</b> A 20×25-yard grid marked with cones. A ball for every player. Start the moment the first kid arrives — nobody waits around.</p>
+          <p><b>How to play:</b> Players dribble freely inside the grid using whatever foot surface feels natural. No rules, no patterns — just kids and the ball getting comfortable together. Learn names as they go: “Nice touch, Mia!”</p>
+          <p class="cp-h"><b>Coaching points:</b></p>
+          <ul><li>Keep the ball close — no more than one step from your feet</li><li>Try different surfaces: inside, outside, sole and toe</li><li>Change speed and direction — don’t just run in circles</li></ul>
+          <p class="adj"><b>Adjust it:</b> Make it a game: coach calls “freeze” and the last player to stop does a silly challenge.</p>
+        </div>
+      </li>
+      <li class="drill">
+        <div class="when"><span class="t">0:05</span><span class="m">8 min</span></div>
+        <div class="body">
+          <span class="cat">Warm-up</span>
+          <h3>Red Light Green Light</h3>
+          <p><b>Setup:</b> Same grid. Every player has a ball. Coach stands where everyone can see and hear.</p>
+          <p><b>How to play:</b> Players dribble in the grid. Green light = dribble fast, yellow = slow, red = stop with a foot on top of the ball. Once they have it, add colors: blue = hide behind your ball, purple = run around your ball.</p>
+          <p class="cp-h"><b>Coaching points:</b></p>
+          <ul><li>Small touches to stay in control at speed</li><li>Stop cleanly — sole of the foot on the ball</li><li>Listen carefully and react fast</li></ul>
+          <p class="adj"><b>Adjust it:</b> Let players take turns calling the colors — it builds confidence and gives you a breather.</p>
+        </div>
+      </li>
+      <li class="drill">
+        <div class="when"><span class="t">0:13</span><span class="m">12 min</span></div>
+        <div class="body">
+          <span class="cat">Dribbling</span>
+          <h3>Galaxy Battles</h3>
+          <p><b>Setup:</b> Shrink the grid to about 15×20 yards so there is a bit of traffic. Every player has a ball.</p>
+          <p><b>How to play:</b> Everyone dribbles. Try to knock other players’ balls out of the grid while protecting your own. Lose your ball? Do five jumping jacks and jump straight back in — nobody is eliminated, so nobody stands around.</p>
+          <p class="cp-h"><b>Coaching points:</b></p>
+          <ul><li>Head up to see the space and the other players</li><li>Use your body to protect the ball</li><li>Change direction quickly when someone comes close</li></ul>
+          <p class="adj"><b>Adjust it:</b> Easier: coach is the only “alien” knocking balls out. Harder: left foot only, then right foot only.</p>
+        </div>
+      </li>
+      <li class="drill brk"><div class="when"><span class="t">0:25</span><span class="m">3 min</span></div><div class="body"><h3>Water break</h3><p>Quick drink. Ask “What was your favorite move so far?” — kids love to show you.</p></div></li>
+      <li class="drill">
+        <div class="when"><span class="t">0:28</span><span class="m">10 min</span></div>
+        <div class="body">
+          <span class="cat">Dribbling</span>
+          <h3>Sharks and Minnows</h3>
+          <p><b>Setup:</b> A 20×25-yard grid. Most players are minnows with a ball on one end line; one or two sharks without a ball stand in the middle.</p>
+          <p><b>How to play:</b> On “go”, minnows dribble to the far end line without losing their ball to the sharks. A minnow who loses their ball becomes a shark. Play until one or two minnows are left, then start again with new sharks.</p>
+          <p class="cp-h"><b>Coaching points:</b></p>
+          <ul><li>Minnows: keep the ball close under pressure</li><li>Look up to spot where the sharks are</li><li>Sharks: be patient and approach slowly</li></ul>
+          <p class="adj"><b>Adjust it:</b> Easier: start minnows on the long side of the grid so they have more room. Fairer: a shark who steals a ball becomes a minnow.</p>
+        </div>
+      </li>
+      <li class="drill">
+        <div class="when"><span class="t">0:38</span><span class="m">17 min</span></div>
+        <div class="body">
+          <span class="cat">Small-sided game</span>
+          <h3>Free Scrimmage</h3>
+          <p><b>Setup:</b> Two small goals (or two pairs of cones) on a 20×30-yard field. Split into teams of 3 or 4 with pinnies — run two games side by side if you have 10 or more kids.</p>
+          <p><b>How to play:</b> Just play. Keep your coaching to a minimum and let the game be the teacher. Play two games of about eight minutes with a water sip in between, and switch the teams around.</p>
+          <p class="cp-h"><b>Coaching points:</b></p>
+          <ul><li>Let the game be the teacher</li><li>Celebrate effort and creativity — loudly</li><li>Only stop play for safety</li></ul>
+          <p class="adj"><b>Adjust it:</b> If goals are rare, make the field narrower; if they are constant, make it bigger.</p>
+        </div>
+      </li>
+      <li class="drill">
+        <div class="when"><span class="t">0:55</span><span class="m">5 min</span></div>
+        <div class="body">
+          <span class="cat">Cool-down</span>
+          <h3>Passing Circle Cooldown</h3>
+          <p><b>Setup:</b> Everyone in a circle about 10 yards across with one ball.</p>
+          <p><b>How to play:</b> Pass across the circle, calling the name of the player you are passing to. Slow and deliberate. It is the perfect first-practice finish — by the end everyone knows everyone’s name.</p>
+          <p class="cp-h"><b>Coaching points:</b></p>
+          <ul><li>Call your teammate’s name before you pass</li><li>Make eye contact first</li><li>Weight the pass so it arrives comfortably</li></ul>
+          <p class="adj"><b>Adjust it:</b> Harder: add a second ball going the other way.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="section" id="u10" aria-labelledby="u10-h">
+    <div class="sec-num">03 — U10 session · 60 minutes</div>
+    <h2 id="u10-h">A 60-minute U10 practice plan</h2>
+    <p>Theme: <b>passing and 1v1 decisions</b>. U10 players are ready to work with a teammate, so activities move from pairs to small groups to a 4v4 game. If your division plays with goalkeepers, swap in a 10-minute <b>GK Footwork and Handling</b> warm-up for the keepers during the first activity.</p>
+    <div class="table-wrap glance">
+      <table>
+        <caption class="sr-only">U10 practice at a glance</caption>
+        <thead><tr><th scope="col">Time</th><th scope="col">Activity</th><th scope="col" class="num">Minutes</th></tr></thead>
+        <tbody>
+          <tr><td>0:00</td><td>Diamond Passing Warm-Up</td><td class="num">10</td></tr>
+          <tr><td>0:10</td><td>2v1 Keep Away</td><td class="num">10</td></tr>
+          <tr><td>0:20</td><td>Water break</td><td class="num">2</td></tr>
+          <tr><td>0:22</td><td>1v1 to Goal</td><td class="num">13</td></tr>
+          <tr><td>0:35</td><td>4v4 Attack Any Goal</td><td class="num">20</td></tr>
+          <tr><td>0:55</td><td>Juggling Pairs Cooldown</td><td class="num">5</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ol class="plan">
+      <li class="drill">
+        <div class="when"><span class="t">0:00</span><span class="m">10 min</span></div>
+        <div class="body">
+          <span class="cat">Warm-up</span>
+          <h3>Diamond Passing Warm-Up</h3>
+          <p><b>Setup:</b> Four cones in a diamond about 10 yards apart. Groups of four to six, one ball per group (two for bigger groups).</p>
+          <p><b>How to play:</b> Pass to the next cone and follow your pass. Keep the ball moving round the diamond, then switch direction so both feet get work.</p>
+          <p class="cp-h"><b>Coaching points:</b></p>
+          <ul><li>Plant foot beside the ball, pointing at your target</li><li>Strike through the middle of the ball with a firm ankle</li><li>First touch should set up your next pass</li></ul>
+          <p class="adj"><b>Adjust it:</b> Harder: two-touch only, or move the cones further apart.</p>
+        </div>
+      </li>
+      <li class="drill">
+        <div class="when"><span class="t">0:10</span><span class="m">10 min</span></div>
+        <div class="body">
+          <span class="cat">Passing</span>
+          <h3>2v1 Keep Away</h3>
+          <p><b>Setup:</b> Grids about 10×10 yards, three players per grid with one ball.</p>
+          <p><b>How to play:</b> Two players keep the ball away from one defender. Rotate the defender every 45 seconds so everyone defends.</p>
+          <p class="cp-h"><b>Coaching points:</b></p>
+          <ul><li>As soon as you pass, move to a new spot</li><li>Give the player on the ball a clear option</li><li>Defender: be patient — cut the passing lane instead of diving in</li></ul>
+          <p class="adj"><b>Adjust it:</b> Easier: make the grid bigger. Harder: one touch only.</p>
+        </div>
+      </li>
+      <li class="drill brk"><div class="when"><span class="t">0:20</span><span class="m">2 min</span></div><div class="body"><h3>Water break</h3><p>Quick drink while you set up the next activity.</p></div></li>
+      <li class="drill">
+        <div class="when"><span class="t">0:22</span><span class="m">13 min</span></div>
+        <div class="body">
+          <span class="cat">Shooting</span>
+          <h3>1v1 to Goal</h3>
+          <p><b>Setup:</b> Zones about 10×15 yards with a small goal (or two cones) at one end. Pairs, with a line of players waiting at each zone.</p>
+          <p><b>How to play:</b> The coach serves the ball to the attacker, who tries to beat the defender and score. The defender resets goal-side for every rep. Rotate roles every 90 seconds.</p>
+          <p class="cp-h"><b>Coaching points:</b></p>
+          <ul><li>Attacker: use a quick change of direction to beat the defender</li><li>Shoot early — don’t wait for the perfect moment</li><li>Defender: stay patient and stay goal-side</li></ul>
+          <p class="adj"><b>Adjust it:</b> Harder: a second defender joins after three seconds. Easier: play 2v1 with two attackers.</p>
+        </div>
+      </li>
+      <li class="drill">
+        <div class="when"><span class="t">0:35</span><span class="m">20 min</span></div>
+        <div class="body">
+          <span class="cat">Small-sided game</span>
+          <h3>4v4 Attack Any Goal</h3>
+          <p><b>Setup:</b> A square about 25×25 yards with a small goal on each side and two cones in the middle as a gate. Teams of four in pinnies.</p>
+          <p><b>How to play:</b> Either team can score in any of the four goals — but first they must pass the ball through the middle gate. It makes players look up, switch the attack and decide quickly.</p>
+          <p class="cp-h"><b>Coaching points:</b></p>
+          <ul><li>Scan before you receive — know where the open goal is</li><li>If one side is blocked, switch quickly to the other</li><li>Win the ball and attack right away</li></ul>
+          <p class="adj"><b>Adjust it:</b> Harder: three touches maximum. Easier: drop the middle-gate rule for the first game.</p>
+        </div>
+      </li>
+      <li class="drill">
+        <div class="when"><span class="t">0:55</span><span class="m">5 min</span></div>
+        <div class="body">
+          <span class="cat">Cool-down</span>
+          <h3>Juggling Pairs Cooldown</h3>
+          <p><b>Setup:</b> Pairs with one ball.</p>
+          <p><b>How to play:</b> Partner A juggles as many times as they can, then passes to partner B, who does the same. Start with thigh–thigh–catch and build up. Players count their personal best.</p>
+          <p class="cp-h"><b>Coaching points:</b></p>
+          <ul><li>Relax — tension makes juggling harder</li><li>Count out loud to track your best</li><li>Pass gently so your partner can succeed too</li></ul>
+          <p class="adj"><b>Adjust it:</b> Team target: add up both partners’ juggles and try to beat it next week.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="section" id="tips" aria-labelledby="tips-h">
+    <div class="sec-num">04 — First-timer tips</div>
+    <h2 id="tips-h">Tips for first-time parent coaches</h2>
+    <ul>
+      <li><b>Arrive 15 minutes early</b> and set up your grid before anyone shows up. Kids who arrive to cones and balls start playing; kids who arrive to a coach unpacking start wandering.</li>
+      <li><b>Explain in one sentence.</b> “Dribble to the other side without the sharks taking your ball. Go!” You can add rules once they are playing.</li>
+      <li><b>Learn every name in the first practice.</b> Use them constantly, especially with praise.</li>
+      <li><b>Recruit a helper.</b> One parent to chase stray balls and run a second game doubles the touches each kid gets.</li>
+      <li><b>Praise effort, not just goals.</b> “Great try going left, Leo!” builds the kids who need it most.</li>
+      <li><b>End on a high.</b> Finish while they are still having fun, and tell them one thing they did well.</li>
+    </ul>
+    <p>Games coming up? Read <a href="ayso-playing-time.html">AYSO playing time rules, explained</a> and print a <a href="soccer-rotation-template.html">free substitution rotation</a> for your first game.</p>
+  </section>
+
+  <section class="section faq" id="faq" aria-labelledby="faq-h">
+    <div class="sec-num">05 — FAQ</div>
+    <h2 id="faq-h">First practice: common questions</h2>
+      <details>
+        <summary>How long should a U8 soccer practice be?</summary>
+        <div><p>About an hour is typical for rec soccer at this age, and many programs run 45 to 60 minutes. Young players do best with short activities — around 8 to 12 minutes each — and a game at the end.</p></div>
+      </details>
+      <details>
+        <summary>What should I do at my first U8 practice?</summary>
+        <div><p>Keep it simple: every kid gets a ball, learn names, play two or three fun dribbling games, then finish with a small-sided game. The 60-minute plan on this page is built that way, with timings for each activity.</p></div>
+      </details>
+      <details>
+        <summary>I have never played soccer. Can I still coach U8?</summary>
+        <div><p>Yes. At U8 your job is to keep kids moving, keep it fun and keep everyone involved. The games on this page need no demonstration skills — explain the rules in one sentence and let them play.</p></div>
+      </details>
+      <details>
+        <summary>What equipment do I need for a youth soccer practice?</summary>
+        <div><p>A ball for every player (size 3 is typical for U8, size 4 for U10 — check your league), 15 to 20 cones, two sets of pinnies, small goals or extra cones, water and a first-aid kit, plus your roster with parent phone numbers.</p></div>
+      </details>
+      <details>
+        <summary>How is a U10 practice different from U8?</summary>
+        <div><p>U10 players are ready for more passing, simple decisions with a teammate and short 1v1 duels. Groups get a little bigger and activities a little longer, but every practice should still end with a game.</p></div>
+      </details>
+      <details>
+        <summary>What if the kids won’t listen?</summary>
+        <div><p>Talk less. Give instructions in one or two sentences, with the ball under their feet, then start playing. Stop the group only briefly, and praise the kids who are doing it right — the rest copy them.</p></div>
+      </details>
+  </section>
+
+</main>
+
+<div class="cta-section">
+  <h2>Every drill here is in SquadIQ — free 30-day trial</h2>
+  <p>SquadIQ’s practice library has these drills and more, with diagrams and coaching points. Tap “AI Plan”, pick a length and a focus, and it builds the session for you — then plans fair game-day lineups too.</p>
+  <div class="cta-buttons">
+    <a href="https://squadiq-coach.vercel.app" class="btn btn-primary">Start your free 30-day trial</a>
+    <a href="guide.html#practice" class="btn btn-outline">See how practice planning works</a>
+  </div>
+</div>
+<footer>
+  <nav class="foot-tools" aria-label="Free coach tools">
+    <a href="ayso-playing-time.html">AYSO playing time rules</a> ·
+    <a href="soccer-rotation-template.html">Printable rotation template</a> ·
+    <a href="first-soccer-practice-u8.html">First U8 practice plan</a>
+  </nav>
+  <strong>SquadIQ — Soccer Coach</strong> · by Gava Motion<br />
+  © 2025 Gava Motion. All rights reserved.
+</footer>
+<script>
+  // Carry the visit's source into the app. Signup happens on the app, which
+  // can't see the tags this page arrived with (or the site that sent the
+  // visitor), so pass both along on every link into it. Kept for the tab's
+  // session, so a visitor who reads the features page first still arrives tagged.
+  (function () {
+    var KEY = 'sq_tags', tags = null;
+    try {
+      var q = new URLSearchParams(location.search), t = {};
+      ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'].forEach(function (k) {
+        if (q.get(k)) t[k] = q.get(k);
+      });
+      var ref = '';
+      try { ref = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, '') : ''; } catch (e) {}
+      if (ref && ref !== location.hostname.replace(/^www\./, '')) t.sq_ref = ref;
+      if (Object.keys(t).length) sessionStorage.setItem(KEY, JSON.stringify(t));
+      tags = JSON.parse(sessionStorage.getItem(KEY) || 'null');
+    } catch (e) { return; }
+    if (!tags) return;
+    [].forEach.call(document.querySelectorAll('a[href^="https://squadiq-coach.vercel.app"]'), function (a) {
+      try {
+        var u = new URL(a.href);
+        Object.keys(tags).forEach(function (k) { u.searchParams.set(k, tags[k]); });
+        a.href = u.toString();
+      } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>

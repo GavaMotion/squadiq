@@ -34,6 +34,8 @@ import {
 } from '../../lib/freeSubs'
 import { PlayTimeSheet, exportPlayTimeSheet } from '../../lib/playTimeSheet'
 import { RosterPrintSheet, exportRosterSheet } from '../../lib/rosterSheet'
+import { shareText } from '../../lib/utils'
+import { markGoodMoment } from '../../lib/review'
 
 // ─── Pure local helpers ────────────────────────────────────────────
 function blankQuarterData(formation) {
@@ -380,6 +382,7 @@ export default function GameDayPage() {
       onConfirm: () => {
         updateFreeSubs(fs => endGame(fs, Date.now()))
         addToast('Game ended — playing time is final', 'info', 3000)
+        markGoodMoment('game-ended')
       },
     })
   }
@@ -1096,7 +1099,7 @@ export default function GameDayPage() {
         canvas.toBlob(async (blob) => {
           const file = new File([blob], `${fileName}.png`, { type: 'image/png' })
           if (navigator.share && navigator.canShare?.({ files: [file] })) {
-            await navigator.share({ title: `${team?.name} Game Plan`, files: [file] })
+            await navigator.share({ title: `${team?.name} Game Plan`, text: shareText('gameplan'), files: [file] })
           } else {
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a'); a.href = url; a.download = `${fileName}.png`; a.click()
@@ -1111,7 +1114,7 @@ export default function GameDayPage() {
         const pdfBlob = pdf.output('blob')
         const file = new File([pdfBlob], `${fileName}.pdf`, { type: 'application/pdf' })
         if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ title: `${team?.name} Game Plan`, files: [file] })
+          await navigator.share({ title: `${team?.name} Game Plan`, text: shareText('gameplan'), files: [file] })
         } else {
           pdf.save(`${fileName}.pdf`)
         }
@@ -1126,6 +1129,7 @@ export default function GameDayPage() {
     setIsExporting(true)
     try {
       await exportPlayTimeSheet(team)
+      markGoodMoment('shared')
     } catch (err) { console.error('Playing time sheet export error:', err) }
     finally { setIsExporting(false) }
   }
@@ -1172,6 +1176,7 @@ export default function GameDayPage() {
       formationsByQuarter,
       quarters:        quartersToGenerate,
     })
+    markGoodMoment('ai-lineup')
 
     setPlanStates(prev => {
       const current        = prev[activePlanId] || {}
@@ -2090,7 +2095,7 @@ export default function GameDayPage() {
                 ⚠ Under 3 quarters: {atRisk.map(p => p.name).join(', ')}
               </div>
             )}
-            <div style={{ marginTop: 16, color: 'rgba(255,255,255,0.2)', fontSize: 10, textAlign: 'center' }}>Created with SquadIQ</div>
+            <div style={{ marginTop: 16, color: 'rgba(255,255,255,0.55)', fontSize: 12, textAlign: 'center' }}>Made with <b style={{ color: '#00c853' }}>SquadIQ</b> · free for coaches at squadiq.online</div>
           </div>
         )
       })()}

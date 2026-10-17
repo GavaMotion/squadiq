@@ -37,3 +37,9 @@ export function ackToday(key) {
 }
 
 export const MODE_SWITCH_ACK = 'sq_ack_mode_switch'
+
+// Caption that rides along when a coach shares a sheet with parents. The link
+// is tagged so a parent who becomes a coach shows up in signup_sources.
+export function shareText(kind) {
+  return `Made with SquadIQ, free for coaches: https://squadiq.online/?utm_source=share&utm_medium=coach&utm_campaign=${kind}`
+}

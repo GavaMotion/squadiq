@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { isOffline } from '../../lib/offline'
 import { useApp } from '../../contexts/AppContext'
 import { useToast } from '../UI/Toast'
-import { getContrastTextColor } from '../../lib/utils'
+import { getContrastTextColor, shareText } from '../../lib/utils'
 import {
   DRILLS, CATEGORY_META, CATEGORY_ORDER, PHASE_META,
   DIVISIONS_ORDER, matchesDivision,
@@ -785,7 +785,7 @@ export default function PracticePage() {
         canvas.toBlob(async (blob) => {
           const file = new File([blob], `${fileName}.png`, { type: 'image/png' })
           if (navigator.share && navigator.canShare?.({ files: [file] })) {
-            await navigator.share({ title: fileName, files: [file] })
+            await navigator.share({ title: fileName, text: shareText('practice'), files: [file] })
           } else {
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a'); a.href = url; a.download = `${fileName}.png`; a.click()
@@ -800,7 +800,7 @@ export default function PracticePage() {
         const pdfBlob = pdf.output('blob')
         const file = new File([pdfBlob], `${fileName}.pdf`, { type: 'application/pdf' })
         if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ title: fileName, files: [file] })
+          await navigator.share({ title: fileName, text: shareText('practice'), files: [file] })
         } else {
           pdf.save(`${fileName}.pdf`)
         }
@@ -1163,7 +1163,7 @@ export default function PracticePage() {
                 </div>
               )
             })}
-            <div style={{ marginTop: 24, color: 'rgba(255,255,255,0.2)', fontSize: 10, textAlign: 'center' }}>Created with SquadIQ</div>
+            <div style={{ marginTop: 24, color: 'rgba(255,255,255,0.55)', fontSize: 12, textAlign: 'center' }}>Made with <b style={{ color: '#00c853' }}>SquadIQ</b> · free for coaches at squadiq.online</div>
           </div>
         )
       })()}

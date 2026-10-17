@@ -37,7 +37,7 @@ function installReceive() {
   }
 }
 
-function callBridge(action, body = {}) {
+export function callBridge(action, body = {}) {
   return new Promise((resolve, reject) => {
     if (!isIOSStoreKitAvailable()) {
       reject(new Error('Apple IAP bridge not available on this device'))

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AYSO Playing Time Rules, Explained (+ Free Rotation Calculator) | SquadIQ</title>
+  <meta name="description" content="AYSO’s Everyone Plays rule means every player plays at least half of every game — some regions require three quarters. See the rule, the math, and build a fair rotation free." />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="canonical" href="https://squadiq.online/ayso-playing-time" />
+
+  <!-- Open Graph / social -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="SquadIQ" />
+  <meta property="og:url" content="https://squadiq.online/ayso-playing-time" />
+  <meta property="og:title" content="AYSO playing time rules, explained" />
+  <meta property="og:description" content="AYSO’s Everyone Plays rule means every player plays at least half of every game — some regions require three quarters. See the rule, the math, and build a fair rotation free." />
+  <meta property="og:image" content="https://squadiq.online/assets/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#00c853" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d1a;
+      --surface: #13131f;
+      --surface-2: #1a1a2c;
+      --border: #1e1e30;
+      --border-2: #2a2a42;
+      --green: #00c853;
+      --green-dim: #00c85322;
+      --green-glow: #00c85333;
+      --amber: #EF9F27;
+      --red: #e0685f;
+      --text: #e0e0f0;
+      --soft: #b6b6d0;
+      --muted: #8a8aa8;
+      --font: 'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    a { color: var(--green); }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+    textarea:focus-visible, summary:focus-visible {
+      outline: 2px solid var(--green); outline-offset: 2px; border-radius: 4px;
+    }
+
+    .skip {
+      position: absolute; left: -999px; top: 0; z-index: 20;
+      background: var(--green); color: var(--bg); padding: 8px 14px; font-weight: 700;
+    }
+    .skip:focus { left: 8px; top: 8px; }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      position: sticky;
+      top: 0;
+      background: rgba(13, 13, 26, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 10;
+    }
+
+    .logo { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+    .logo span { color: var(--green); }
+
+    .nav-links {
+      margin-left: auto;
+      display: flex;
+      gap: 1.25rem;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .nav-links a { color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--green); }
+
+    .hero {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 4.5rem 2rem 1.5rem;
+      text-align: center;
+      position: relative;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 500px; height: 500px; max-width: 100vw;
+      background: radial-gradient(circle, var(--green-glow) 0%, transparent 70%);
+      filter: blur(60px);
+      z-index: -1;
+    }
+
+    .badge-eyebrow {
+      display: inline-block;
+      font-size: 11px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 5px 14px;
+      border-radius: 20px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: 2.9rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+    h1 span { color: var(--green); }
+    .hero p { color: var(--soft); font-size: 1.08rem; max-width: 600px; margin: 0 auto; }
+
+    .jump {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;
+      max-width: 720px; margin: 2rem auto 0; padding: 0 1rem;
+    }
+    .jump a {
+      font-size: 13px; font-weight: 600; text-decoration: none; color: var(--text);
+      padding: 7px 15px; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--surface); transition: border-color 0.2s;
+    }
+    .jump a:hover { border-color: var(--green); }
+
+    main { max-width: 860px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+
+    .section { padding: 2.75rem 0; border-top: 1px solid var(--border); scroll-margin-top: 80px; }
+    .section:first-child { border-top: none; }
+    .sec-num { font-size: 11px; letter-spacing: 0.15em; font-weight: 600; color: var(--green); text-transform: uppercase; }
+    .section h2 { font-size: 1.85rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin: 0.2rem 0 0.9rem; }
+    .section h3 { font-size: 1.15rem; font-weight: 600; margin: 1.6rem 0 0.4rem; }
+    .section p { color: var(--soft); margin-bottom: 0.9rem; }
+    .section p b, .section li b { color: var(--text); font-weight: 600; }
+    .section ul, .section ol { color: var(--soft); padding-left: 1.3rem; margin-bottom: 0.9rem; }
+    .section li { margin-bottom: 0.35rem; }
+
+    .answer {
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--green); border-radius: 12px;
+      padding: 1.1rem 1.3rem; margin-top: 0.5rem;
+    }
+    .answer p { margin-bottom: 0.5rem; }
+    .answer p:last-child { margin-bottom: 0; }
+
+    blockquote {
+      margin: 1rem 0; padding: 0.9rem 1.2rem; border-radius: 10px;
+      background: var(--surface-2); border: 1px solid var(--border-2);
+      color: var(--text); font-size: 15.5px;
+    }
+    blockquote cite { display: block; margin-top: 0.4rem; font-size: 12.5px; color: var(--muted); font-style: normal; }
+
+    .callout {
+      margin: 1.25rem 0; background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--amber); border-radius: 12px; padding: 1rem 1.2rem;
+    }
+    .callout p { font-size: 14px; margin-bottom: 0.4rem; }
+    .callout p:last-child { margin-bottom: 0; }
+
+    .table-wrap { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--border); border-radius: 12px; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; }
+    th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    thead th { background: var(--surface-2); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--soft); }
+    tbody tr:last-child td, tbody tr:last-child th { border-bottom: none; }
+    td.num, th.num { text-align: center; font-variant-numeric: tabular-nums; }
+
+    /* Tool panel */
+    .tool {
+      background: var(--surface); border: 1px solid var(--border-2);
+      border-radius: 16px; padding: 1.4rem; margin-top: 1rem;
+    }
+    .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; }
+    .field label, .field .lbl { display: block; font-size: 13px; font-weight: 600; margin-bottom: 0.35rem; color: var(--text); }
+    .field .hint { font-size: 12px; color: var(--muted); margin-top: 0.25rem; }
+    input[type=number], input[type=text], input[type=date], select, textarea {
+      width: 100%; font: inherit; font-size: 16px; color: var(--text);
+      background: var(--bg); border: 1px solid var(--border-2); border-radius: 10px;
+      padding: 10px 12px; min-height: 44px;
+    }
+    textarea { min-height: 180px; resize: vertical; line-height: 1.5; }
+    select { appearance: none; -webkit-appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--soft) 50%), linear-gradient(135deg, var(--soft) 50%, transparent 50%);
+      background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+      background-size: 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
+    .seg { display: flex; gap: 0.5rem; flex-wrap: wrap; border: 0; }
+    .seg legend { font-size: 13px; font-weight: 600; margin-bottom: 0.35rem; }
+    .seg label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--soft);
+      padding: 8px 12px; border: 1px solid var(--border-2); border-radius: 10px; cursor: pointer; min-height: 44px; }
+    .seg input { accent-color: var(--green); width: 16px; height: 16px; }
+    .seg label:has(input:checked) { border-color: var(--green); color: var(--text); background: var(--green-dim); }
+
+    .result { margin-top: 1.25rem; }
+    .status { padding: 0.8rem 1rem; border-radius: 10px; font-size: 14px; margin-bottom: 0.9rem; border: 1px solid; }
+    .status.ok { border-color: #00c85366; background: var(--green-dim); color: #b9f5cf; }
+    .status.warn { border-color: #EF9F2766; background: #EF9F2718; color: #f6d6a4; }
+    .status b { color: #fff; }
+
+    .cell { display: inline-block; min-width: 42px; text-align: center; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.03em; }
+    .cell.on  { background: var(--green-dim); color: #7ff0ab; border: 1px solid #00c85355; }
+    .cell.gk  { background: #EF9F2722; color: #f7c47a; border: 1px solid #EF9F2766; }
+    .cell.off { background: transparent; color: var(--muted); border: 1px dashed var(--border-2); }
+    .met { color: #7ff0ab; font-weight: 700; }
+    .miss { color: #ffb0a8; font-weight: 700; }
+    .legend { font-size: 12.5px; color: var(--muted); margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.8rem; align-items: center; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px 24px; border-radius: 10px; min-height: 44px; cursor: pointer;
+      font: inherit; font-size: 14px; font-weight: 600; text-decoration: none; border: 0;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary { background: var(--green); color: var(--bg); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px var(--green-glow); }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border-2); }
+    .btn-outline:hover { border-color: var(--green); }
+    .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.1rem; }
+
+    /* FAQ */
+    .faq details { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); margin-bottom: 0.6rem; }
+    .faq summary { cursor: pointer; padding: 0.95rem 1.1rem; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 1rem; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: '+'; color: var(--green); font-size: 1.2rem; line-height: 1; }
+    .faq details[open] summary::after { content: '\2013'; }
+    .faq details > div { padding: 0 1.1rem 1rem; }
+    .faq details p { margin-bottom: 0.5rem; }
+
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .sources { font-size: 13.5px; }
+    .sources li { color: var(--soft); }
+
+    /* CTA */
+    .cta-section { text-align: center; padding: 3.5rem 2rem 1rem; border-top: 1px solid var(--border); margin-top: 1rem; }
+    .cta-section h2 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    .cta-section p { color: var(--soft); margin: 0 auto 2rem; max-width: 560px; }
+    .cta-buttons { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+    footer { text-align: center; padding: 2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; margin-top: 3rem; }
+    footer strong { color: var(--text); }
+    .foot-tools { margin-bottom: 0.8rem; font-size: 13px; }
+    .foot-tools a { color: #b8b8d0; text-decoration: none; margin: 0 0.4rem; display: inline-block; }
+    .foot-tools a:hover { color: var(--green); }
+
+    @media (max-width: 640px) {
+      header { padding: 1rem 1.25rem; }
+      .nav-links { gap: 0.9rem; }
+      .nav-links a.nav-home { display: none; }
+      h1 { font-size: 2.05rem; }
+      .hero { padding: 2.75rem 1.25rem 1rem; }
+      .hero p { font-size: 1rem; }
+      main { padding: 0.5rem 1.25rem 2rem; }
+      .section { padding: 2.25rem 0; }
+      .section h2 { font-size: 1.5rem; }
+      .tool { padding: 0.9rem; }
+      .cta-section { padding: 3rem 1.25rem 1rem; }
+      th, td { padding: 7px 4px; }
+      .cell { min-width: 0; padding: 2px 4px; font-size: 11px; }
+      thead th { letter-spacing: 0.02em; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .btn, .jump a, .nav-links a { transition: none; }
+    }
+
+    .sitrow td { white-space: normal; font-size: 12.5px; color: var(--muted); }
+    .mini td, .mini th { white-space: normal; }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How much does every player have to play in AYSO?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Under AYSO’s national Everyone Plays® philosophy, every player on every team must play at least 50 percent of every game — at least half. Some regions set a higher bar; AYSO Region 76, for example, requires three quarters of each game except when that is mathematically impossible."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is the AYSO playing time rule half or three quarters?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The national minimum is half of every game. Three quarters is a regional rule: some regions adopt it in their own coach handbooks. Check your region’s coach handbook or ask your division coordinator which one applies to your team."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does playing goalkeeper count as playing time?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — a player in goal is on the field and playing. Regions often add separate limits on how many quarters one player may spend in goal (Region 76, for example, caps 9U–10U keepers at two quarters in goal), so check your region’s keeper rules too."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What if I have too many players to give everyone three quarters?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sometimes the math does not work. With 10 players in a 7v7 game of four quarters there are only 28 player-quarters to share, so two kids can play just half. Region 76 handles this by having those two play three quarters in later games until everyone has had a turn at half. The calculator on this page shows when you have hit that limit."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do players who arrive late still have to get their minimum?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Regional rules differ on late arrivals and players who are sick or injured. Your region’s coach handbook is the authority — when in doubt, give the late player as much time as you can and tell your referee or division coordinator."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I keep track of playing time across the whole season?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Write down who sat which period after every game, and give the kids who sat most last week the first spots this week. SquadIQ does this for you: it records each game’s lineup and builds the next one fairly from the season so far."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header>
+  <a href="index.html" class="logo" style="text-decoration:none;color:inherit">Squad<span>IQ</span></a>
+  <nav class="nav-links" aria-label="Main">
+    <a href="index.html" class="nav-home">Home</a>
+    <a href="features.html">Features</a>
+    <a href="guide.html">Guide</a>
+    <a href="support.html">Support</a>
+    <a href="privacy.html">Privacy</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <span class="badge-eyebrow">Free coach tool</span>
+  <h1>AYSO playing time rules,<br /><span>explained.</span></h1>
+  <p>What “Everyone Plays” actually requires, why some regions ask for three quarters, and a calculator that builds a fair rotation for your roster in seconds.</p>
+  <nav class="jump" aria-label="On this page">
+    <a href="#rule">The rule</a>
+    <a href="#three-quarters">The ¾ regions</a>
+    <a href="#math">The math</a>
+    <a href="#calculator">Calculator</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+</div>
+
+<main id="main">
+
+  <section class="section" id="rule" aria-labelledby="rule-h">
+    <div class="sec-num">01 — The national rule</div>
+    <h2 id="rule-h">Everyone Plays: at least half of every game</h2>
+    <div class="answer">
+      <p><b>Short answer:</b> AYSO requires every player on every team to play <b>at least 50% of every game</b>. Some regions raise that to <b>three quarters</b> — check your region’s coach handbook.</p>
+    </div>
+    <p style="margin-top:1rem">Everyone Plays® is the first of AYSO’s Six Philosophies. The official AYSO wiki puts it this way:</p>
+    <blockquote>
+      “AYSO’s goal is for kids and adults to play soccer, so we mandate that every player on every team must play at least 50 percent of every game.”
+      <cite>— <a href="https://wiki.ayso.org/wiki/Six_Philosophies" rel="noopener">AYSO Wiki, Six Philosophies</a></cite>
+    </blockquote>
+    <p>AYSO’s own FAQ repeats it — “Every player on every team must play at least 50 percent of every game” — and adds the reason: <i>“Spending the game on the bench is no way to learn soccer!”</i> (<a href="https://ayso.org/faqs-support/" rel="noopener">ayso.org FAQ</a>).</p>
+    <p>For a volunteer coach, that means three things:</p>
+    <ul>
+      <li><b>It is per game, not per season.</b> A kid who played the whole game last week still needs at least half this week.</li>
+      <li><b>It is a minimum, not a target.</b> Most coaches aim for everyone to play as close to equal time as the roster allows.</li>
+      <li><b>Your region can add to it.</b> National sets the floor; regions publish their own rules on top — including higher minimums and goalkeeper limits.</li>
+    </ul>
+  </section>
+
+  <section class="section" id="three-quarters" aria-labelledby="tq-h">
+    <div class="sec-num">02 — Regional rules</div>
+    <h2 id="tq-h">Some regions require three quarters</h2>
+    <p>A number of AYSO regions go beyond the national half-game minimum. <b>Region 76</b> (Beverly Hills) is a clear, published example. Its Everyone Plays guidelines say each player “must play at least 3/4 of each game, except when that is mathematically impossible,” noting that AYSO National’s baseline is half.</p>
+    <p>Region 76’s guidelines also spell out what happens when the math does not work:</p>
+    <ul>
+      <li><b>When it applies:</b> all season for 6U–10U, and the regular season for 12U–14U.</li>
+      <li><b>10U with 10 players:</b> two players play half the game and eight play three quarters. The two who played half get three quarters in later games until every teammate has had a half-game turn.</li>
+      <li><b>12U–14U with 15 players:</b> one player is limited to half, then gets three quarters in later games until everyone else has had a turn.</li>
+      <li><b>Goalkeepers:</b> 9U–10U players may play no more than two quarters in goal and must play at least one quarter in the field.</li>
+    </ul>
+    <p>Source: <a href="https://ayso76.org/everyone-plays-guidelines" rel="noopener">AYSO Region 76 — Everyone Plays guidelines</a>. Region 76’s coach handbooks state the same three-quarter commitment.</p>
+    <div class="callout">
+      <p><b>Your region may differ.</b> Rules on the ¾ minimum, keeper limits, late arrivals and playoffs vary from region to region and can change between seasons. Your region’s coach handbook, or your division coordinator, is the final word.</p>
+    </div>
+  </section>
+
+  <section class="section" id="math" aria-labelledby="math-h">
+    <div class="sec-num">03 — The math</div>
+    <h2 id="math-h">How many players can meet the minimum?</h2>
+    <p>Every game has a fixed number of <b>player-periods</b> to share: players on the field × number of periods. A 7v7 game in four quarters has 7 × 4 = <b>28</b>. If each kid needs three quarters, 28 ÷ 3 means at most <b>9 players</b> can all get there — a tenth kid makes it mathematically impossible, which is exactly the Region 76 10U exception above.</p>
+    <p>Largest roster where every player can reach the minimum, with substitutions at each quarter:</p>
+    <div class="table-wrap">
+      <table class="mini">
+        <caption class="sr-only">Maximum roster size by format and minimum playing time</caption>
+        <thead><tr><th scope="col">Format</th><th scope="col" class="num">Player-quarters</th><th scope="col" class="num">Max roster at ½</th><th scope="col" class="num">Max roster at ¾</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">4v4 (no keeper)</th><td class="num">16</td><td class="num">8</td><td class="num">5</td></tr>
+          <tr><th scope="row">7v7 (incl. keeper)</th><td class="num">28</td><td class="num">14</td><td class="num">9</td></tr>
+          <tr><th scope="row">9v9 (incl. keeper)</th><td class="num">36</td><td class="num">18</td><td class="num">12</td></tr>
+          <tr><th scope="row">11v11 (incl. keeper)</th><td class="num">44</td><td class="num">22</td><td class="num">14</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>If your games are played in <b>halves with substitutions only at halftime</b>, “three quarters” cannot be split out — it effectively means the whole game. Many divisions that play halves also allow a substitution break around the middle of each half; pick that option in the calculator and it works like quarters.</p>
+  </section>
+
+  <section class="section" id="calculator" aria-labelledby="calc-h">
+    <div class="sec-num">04 — Free calculator</div>
+    <h2 id="calc-h">Playing time calculator</h2>
+    <p>Enter your roster size and format. The calculator spreads playing time as evenly as possible, shows who sits each period, and checks every kid against the minimum. Goalkeeper turns rotate and count as playing time.</p>
+
+    <form class="tool" id="calc" novalidate>
+      <div class="fields">
+        <div class="field">
+          <label for="c-roster">Players at the game</label>
+          <input id="c-roster" type="number" inputmode="numeric" min="2" max="30" value="10" />
+          <div class="hint">Kids present, 2–30</div>
+        </div>
+        <div class="field">
+          <label for="c-format">Format</label>
+          <select id="c-format">
+            <option value="4v4">4v4 (no goalkeeper)</option>
+            <option value="7v7" selected>7v7 (incl. goalkeeper)</option>
+            <option value="9v9">9v9 (incl. goalkeeper)</option>
+            <option value="11v11">11v11 (incl. goalkeeper)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="c-periods">Periods</label>
+          <select id="c-periods">
+            <option value="quarters" selected>4 quarters</option>
+            <option value="halvesMid">2 halves + mid-half sub break</option>
+            <option value="halves">2 halves (halftime subs only)</option>
+          </select>
+        </div>
+        <fieldset class="field seg">
+          <legend>Minimum per player</legend>
+          <label><input type="radio" name="c-share" value="0.5" /> ½ game</label>
+          <label><input type="radio" name="c-share" value="0.75" checked /> ¾ game</label>
+        </fieldset>
+      </div>
+    </form>
+
+    <div class="result" id="c-result" aria-live="polite"></div>
+  </section>
+
+  <section class="section" id="tips" aria-labelledby="tips-h">
+    <div class="sec-num">05 — On game day</div>
+    <h2 id="tips-h">Making a fair rotation work at the field</h2>
+    <ul>
+      <li><b>Plan before you arrive.</b> Write the rotation at home and take it on a card — trying to work it out at a quarter break with ten kids asking “am I in?” is how mistakes happen.</li>
+      <li><b>Rotate who sits first.</b> Nobody wants to always be the one who sits Q1. Start the sitting order from a different kid each game.</li>
+      <li><b>Spread the keeper job.</b> Give different kids a turn in goal and check your region’s limit on quarters in goal.</li>
+      <li><b>Keep a season record.</b> When the math forces someone down to half, write it down so they get more next week.</li>
+      <li><b>Use a printed sheet.</b> Our free <a href="soccer-rotation-template.html">printable rotation template</a> fills in names and prints a clean card for the clipboard.</li>
+    </ul>
+  </section>
+
+  <section class="section faq" id="faq" aria-labelledby="faq-h">
+    <div class="sec-num">06 — FAQ</div>
+    <h2 id="faq-h">AYSO playing time: common questions</h2>
+      <details>
+        <summary>How much does every player have to play in AYSO?</summary>
+        <div><p>Under AYSO’s national Everyone Plays® philosophy, every player on every team must play at least 50 percent of every game — at least half. Some regions set a higher bar; AYSO Region 76, for example, requires three quarters of each game except when that is mathematically impossible.</p></div>
+      </details>
+      <details>
+        <summary>Is the AYSO playing time rule half or three quarters?</summary>
+        <div><p>The national minimum is half of every game. Three quarters is a regional rule: some regions adopt it in their own coach handbooks. Check your region’s coach handbook or ask your division coordinator which one applies to your team.</p></div>
+      </details>
+      <details>
+        <summary>Does playing goalkeeper count as playing time?</summary>
+        <div><p>Yes — a player in goal is on the field and playing. Regions often add separate limits on how many quarters one player may spend in goal (Region 76, for example, caps 9U–10U keepers at two quarters in goal), so check your region’s keeper rules too.</p></div>
+      </details>
+      <details>
+        <summary>What if I have too many players to give everyone three quarters?</summary>
+        <div><p>Sometimes the math does not work. With 10 players in a 7v7 game of four quarters there are only 28 player-quarters to share, so two kids can play just half. Region 76 handles this by having those two play three quarters in later games until everyone has had a turn at half. The calculator on this page shows when you have hit that limit.</p></div>
+      </details>
+      <details>
+        <summary>Do players who arrive late still have to get their minimum?</summary>
+        <div><p>Regional rules differ on late arrivals and players who are sick or injured. Your region’s coach handbook is the authority — when in doubt, give the late player as much time as you can and tell your referee or division coordinator.</p></div>
+      </details>
+      <details>
+        <summary>How do I keep track of playing time across the whole season?</summary>
+        <div><p>Write down who sat which period after every game, and give the kids who sat most last week the first spots this week. SquadIQ does this for you: it records each game’s lineup and builds the next one fairly from the season so far.</p></div>
+      </details>
+  </section>
+
+  <section class="section" id="sources" aria-labelledby="src-h">
+    <h2 id="src-h" style="font-size:1.2rem">Sources</h2>
+    <ul class="sources">
+      <li><a href="https://wiki.ayso.org/wiki/Six_Philosophies" rel="noopener">AYSO Wiki — Six Philosophies</a> (Everyone Plays®, 50 percent of every game)</li>
+      <li><a href="https://ayso.org/faqs-support/" rel="noopener">AYSO — FAQs &amp; Support</a></li>
+      <li><a href="https://ayso76.org/everyone-plays-guidelines" rel="noopener">AYSO Region 76 — Everyone Plays guidelines</a> (¾ minimum, exceptions, keeper limits)</li>
+    </ul>
+    <p style="font-size:13px;color:var(--muted)">SquadIQ is an independent coaching app and is not affiliated with or endorsed by AYSO. Rules summarized as published at the time of writing; your region’s current handbook takes precedence.</p>
+  </section>
+
+</main>
+
+<div class="cta-section">
+  <h2>Plan this automatically in SquadIQ — free 30-day trial</h2>
+  <p>SquadIQ builds a fair four-quarter lineup from your roster, rotates the keeper, flags any kid under the minimum, and tracks playing time across the season. No credit card to start.</p>
+  <div class="cta-buttons">
+    <a href="https://squadiq-coach.vercel.app" class="btn btn-primary">Start your free 30-day trial</a>
+    <a href="features.html" class="btn btn-outline">See all features</a>
+  </div>
+</div>
+<footer>
+  <nav class="foot-tools" aria-label="Free coach tools">
+    <a href="ayso-playing-time.html">AYSO playing time rules</a> ·
+    <a href="soccer-rotation-template.html">Printable rotation template</a> ·
+    <a href="first-soccer-practice-u8.html">First U8 practice plan</a>
+  </nav>
+  <strong>SquadIQ — Soccer Coach</strong> · by Gava Motion<br />
+  © 2025 Gava Motion. All rights reserved.
+</footer>
+
+<script src="assets/rotation.js?v=2"></script>
+<script>
+  (function () {
+    var R = window.SquadRotation, esc = R.esc;
+    var $ = function (id) { return document.getElementById(id); };
+    var form = $('calc'), out = $('c-result');
+
+    function render() {
+      var n = Math.max(2, Math.min(30, parseInt($('c-roster').value, 10) || 0));
+      var fmt = R.FORMATS[$('c-format').value];
+      var per = R.PERIODS[$('c-periods').value];
+      var share = parseFloat(form.querySelector('input[name=c-share]:checked').value);
+      var need = R.required(per.count, share);
+      var names = [];
+      for (var i = 1; i <= n; i++) names.push('Player ' + i);
+      var plan = R.build({ names: names, onField: fmt.onField, periods: per.count, gk: fmt.gk });
+
+      var short = plan.plays.filter(function (p) { return p < need; }).length;
+      var shareTxt = share === 0.5 ? 'half' : 'three quarters';
+      var maxR = R.maxRoster(fmt.onField, per.count, need);
+      var status;
+      if (n <= fmt.onField) {
+        status = '<div class="status ok"><b>Everyone plays the whole game.</b> ' + n + ' players for ' + fmt.onField + ' spots — nobody needs to sit.</div>';
+      } else if (!short) {
+        status = '<div class="status ok"><b>✓ Every player gets at least ' + shareTxt + '.</b> ' + fmt.onField + ' on the field × ' + per.count + ' periods = ' + fmt.onField * per.count + ' player-periods for ' + n + ' kids; each needs ' + need + '.</div>';
+      } else {
+        status = '<div class="status warn"><b>Not possible for everyone to reach ' + shareTxt + '.</b> ' + fmt.onField * per.count + ' player-periods ÷ ' + need + ' per kid = room for ' + maxR + ' players, and you have ' + n + '. Below is the fairest split: ' + short + ' player' + (short > 1 ? 's' : '') + ' get' + (short > 1 ? '' : 's') + ' one period less — give ' + (short > 1 ? 'them' : 'that player') + ' more time next game.' +
+          (per.count === 2 && share === 0.75 ? ' With halftime-only subs, ¾ means the whole game — try “2 halves + mid-half sub break”.' : '') + '</div>';
+      }
+
+      var h = status + '<div class="table-wrap"><table><caption class="sr-only">Rotation: who plays and sits each period</caption><thead><tr><th scope="col">Player</th>';
+      per.labels.forEach(function (l) { h += '<th scope="col" class="num">' + esc(l) + '</th>'; });
+      h += '<th scope="col" class="num">Total</th><th scope="col" class="num">Met?</th></tr></thead><tbody>';
+      plan.grid.forEach(function (row, i) {
+        h += '<tr><th scope="row">' + esc(names[i]) + '</th>';
+        row.forEach(function (c) {
+          var t = c === 'gk' ? 'GK' : c === 'on' ? 'Play' : 'Sit';
+          h += '<td class="num"><span class="cell ' + c + '">' + t + '</span></td>';
+        });
+        var ok = plan.plays[i] >= need;
+        h += '<td class="num">' + plan.plays[i] + '/' + per.count + '</td><td class="num">' +
+          (ok ? '<span class="met" aria-label="Yes">✓</span>' : '<span class="miss" aria-label="No">✗</span>') + '</td></tr>';
+      });
+      if (n > fmt.onField) {
+        h += '<tr class="sitrow"><th scope="row">Sitting</th>';
+        plan.sitters.forEach(function (s) {
+          h += '<td class="num">' + s.slice().sort(function (a, b) { return a - b; }).map(function (j) { return j + 1; }).join(', ') + '</td>';
+        });
+        h += '<td></td><td></td></tr>';
+      }
+      h += '</tbody></table></div><div class="legend"><span><span class="cell on">Play</span> on the field</span>' +
+        (fmt.gk ? '<span><span class="cell gk">GK</span> in goal (counts as playing)</span>' : '') +
+        '<span><span class="cell off">Sit</span> on the bench</span></div>' +
+        '<p style="margin-top:1rem;font-size:14px">Want this with your players’ names and a page to print? Use the <a href="soccer-rotation-template.html">printable rotation template</a>.</p>';
+      out.innerHTML = h;
+    }
+
+    form.addEventListener('input', render);
+    form.addEventListener('change', render);
+    form.addEventListener('submit', function (e) { e.preventDefault(); render(); });
+    render();
+  })();
+</script>
+<script>
+  // Carry the visit's source into the app. Signup happens on the app, which
+  // can't see the tags this page arrived with (or the site that sent the
+  // visitor), so pass both along on every link into it. Kept for the tab's
+  // session, so a visitor who reads the features page first still arrives tagged.
+  (function () {
+    var KEY = 'sq_tags', tags = null;
+    try {
+      var q = new URLSearchParams(location.search), t = {};
+      ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'].forEach(function (k) {
+        if (q.get(k)) t[k] = q.get(k);
+      });
+      var ref = '';
+      try { ref = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, '') : ''; } catch (e) {}
+      if (ref && ref !== location.hostname.replace(/^www\./, '')) t.sq_ref = ref;
+      if (Object.keys(t).length) sessionStorage.setItem(KEY, JSON.stringify(t));
+      tags = JSON.parse(sessionStorage.getItem(KEY) || 'null');
+    } catch (e) { return; }
+    if (!tags) return;
+    [].forEach.call(document.querySelectorAll('a[href^="https://squadiq-coach.vercel.app"]'), function (a) {
+      try {
+        var u = new URL(a.href);
+        Object.keys(tags).forEach(function (k) { u.searchParams.set(k, tags[k]); });
+        a.href = u.toString();
+      } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>

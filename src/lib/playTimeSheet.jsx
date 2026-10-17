@@ -4,7 +4,7 @@
 // off-screen and captured to PDF. This is the record a coach hands a parent
 // who asks how much their kid played, so it shows the stints too, not just a
 // total — "14:00" is an assertion, "0:00–8:20, 19:40–25:20" is evidence.
-import { getContrastTextColor } from './utils'
+import { getContrastTextColor, shareText } from './utils'
 import { fmtMs, pctOf, playedMsFor, segmentsFor, totalMs } from './freeSubs'
 
 export function PlayTimeSheet({ team, players, freeSubs, nowMs }) {
@@ -125,6 +125,9 @@ export function PlayTimeSheet({ team, players, freeSubs, nowMs }) {
         <span>Times are game clock, excluding stoppages while the clock was paused.</span>
         <span>Coach: ______________________</span>
       </div>
+      <div style={{ marginTop: 10, fontSize: 10, color: soft, textAlign: 'center' }}>
+        Made with <b style={{ color: primary }}>SquadIQ</b> · fair playing time, free for coaches at squadiq.online
+      </div>
     </div>
   )
 }
@@ -149,7 +152,7 @@ export async function exportPlayTimeSheet(team) {
   const pdfBlob = pdf.output('blob')
   const file = new File([pdfBlob], `${fileName}.pdf`, { type: 'application/pdf' })
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
-    await navigator.share({ title: `${team?.name} Playing Time`, files: [file] })
+    await navigator.share({ title: `${team?.name} Playing Time`, text: shareText('playtime'), files: [file] })
   } else {
     pdf.save(`${fileName}.pdf`)
   }

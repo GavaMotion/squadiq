@@ -9,6 +9,8 @@ import { supabase } from './lib/supabase'
 import { getContrastTextColor } from './lib/utils'
 import AuthPage from './components/Auth/AuthPage'
 import SubscriptionPage from './components/Subscription/SubscriptionPage'
+import RatingPrompt from './components/UI/RatingPrompt'
+import { disablePushOnThisDevice } from './lib/push'
 import Onboarding from './components/Onboarding/Onboarding'
 import JoinTeamModal from './components/Team/JoinTeamModal'
 import PrivacyPolicy from './components/Legal/PrivacyPolicy'
@@ -1045,9 +1047,10 @@ export default function App() {
     }
   }, [session])
 
-  function handleSignOut() {
+  async function handleSignOut() {
     isManualSignOutRef.current = true
     setShowSessionExpired(false)
+    await disablePushOnThisDevice()
     signOut()
   }
 
@@ -1165,6 +1168,8 @@ export default function App() {
               <AppContent tab={tab} setTab={setTab} onSignOut={handleSignOut} onShowOnboarding={() => setShowOnboarding(true)} />
             </AppProvider>
           </div>
+
+          {!showSplash && <RatingPrompt tab={tab} />}
 
           {!showSplash && showOnboarding && (
             <Onboarding onComplete={() => setShowOnboarding(false)} />

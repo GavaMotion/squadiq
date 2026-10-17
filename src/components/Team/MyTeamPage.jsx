@@ -16,6 +16,7 @@ import { MyTeamSkeleton } from '../UI/Skeleton'
 import PlanBadge from '../UI/PlanBadge'
 import { APP_VERSION, SUPPORT_EMAIL } from '../../version'
 import { RosterPrintSheet, exportRosterSheet } from '../../lib/rosterSheet'
+import GameReminderCard from './GameReminderCard'
 
 const DIVISIONS = ['Futsal', '8U', '10U', '12U', '14U', '16U', '19U']
 
@@ -653,6 +654,9 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
                 </div>
               </div>
             )}
+
+            {/* ── Next game: drives the evening-before reminder ── */}
+            {!editingTeam && <GameReminderCard />}
 
             {/* ── Roster ── */}
             {!editingTeam && (

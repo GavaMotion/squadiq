@@ -164,8 +164,8 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
         </div>
         <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.6 }}>
           {isTrialExpired
-            ? 'Subscribe to continue coaching with SquadIQ'
-            : 'Choose a plan to unlock more teams'}
+            ? 'Your teams, lineups and playing-time history are saved. Pick a plan to keep coaching with them.'
+            : 'Every feature, every game day. Premium adds up to 4 teams.'}
         </div>
 
         {androidTWA ? (
@@ -179,7 +179,7 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
               <div style={{ fontWeight: 700, color: '#fff', fontSize: 14, marginBottom: 6 }}>
                 Subscribe on the web
               </div>
-              To unlock more teams, subscribe to SquadIQ from your phone’s browser at{' '}
+              To keep coaching with SquadIQ, subscribe from your phone’s browser at{' '}
               <span style={{ color: '#00c853', fontWeight: 600 }}>squadiq.online</span>{' '}
               using this same account. Your plan unlocks here automatically once it’s active.
               <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
