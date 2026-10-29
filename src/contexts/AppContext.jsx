@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { getDefaultFormation, getFormationById, getGameLengthMin } from '../lib/formations'
+import { getDefaultFormation, getFormationById, getFormationList, getGameLengthMin, getTeamFormat } from '../lib/formations'
 import { createFreeSubs, parseFreeSubs, serializeFreeSubs } from '../lib/freeSubs'
 import { getContrastTextColor } from '../lib/utils'
 import { PLANS } from '../version'
@@ -10,6 +10,42 @@ import {
 } from '../lib/offline'
 
 // ── Game Day helpers — exported so GameDayPage can import them ───
+// Carry players across a formation swap by matching position labels.
+export function migrateQuarterPlan(oldPlan, oldSlots, newSlots) {
+  const pool = {}
+  for (const [slotId, playerId] of Object.entries(oldPlan)) {
+    if (!playerId) continue
+    const oldSlot = oldSlots.find(s => s.id === slotId)
+    if (!oldSlot) continue
+    if (!pool[oldSlot.label]) pool[oldSlot.label] = []
+    pool[oldSlot.label].push(playerId)
+  }
+  const newPlan = {}
+  for (const slot of newSlots) {
+    const bucket = pool[slot.label]
+    newPlan[slot.id] = (bucket && bucket.length) ? bucket.shift() : null
+  }
+  return newPlan
+}
+
+// Move any quarter whose formation doesn't belong to the team's game format
+// (division edited, or 9v9 switched to 11v11) onto the format's default.
+export function fitPlanStateToTeam(state, team) {
+  if (!state?.quarters) return state
+  const validIds    = new Set(getFormationList(team).map(f => f.id))
+  const defaultForm = getDefaultFormation(team)
+  let changed = false
+  const quarters = {}
+  for (const q of [1, 2, 3, 4]) {
+    const qState = state.quarters[q]
+    if (!qState || validIds.has(qState.formationId)) { quarters[q] = qState; continue }
+    const slots = migrateQuarterPlan(qState.slots || {}, qState.formation?.slots || [], defaultForm.slots)
+    quarters[q] = { ...qState, formationId: defaultForm.id, formation: defaultForm, slots }
+    changed = true
+  }
+  return changed ? { ...state, quarters } : state
+}
+
 export function emptyPlan(formation) {
   return Object.fromEntries(formation.slots.map(s => [s.id, null]))
 }
@@ -60,8 +96,8 @@ export function buildBlankPlanState(formation) {
   }
 }
 
-export function buildPlanState(plan, validIds, teamDivision) {
-  const defaultForm = getFormationById(plan.formation_id) || getDefaultFormation(teamDivision || '')
+export function buildPlanState(plan, validIds, team) {
+  const defaultForm = getFormationById(plan.formation_id) || getDefaultFormation(team || '')
   const qd          = plan.quarter_data || {}
   const hasNew      = Object.keys(qd).length > 0
 
@@ -91,10 +127,10 @@ export function buildPlanState(plan, validIds, teamDivision) {
   }
 
   const mode     = qd.mode === 'free' ? 'free' : 'quarters'
-  const freeSubs = parseFreeSubs(qd.free_subs, getGameLengthMin(teamDivision || ''), validIds)
-    || (mode === 'free' ? createFreeSubs(getGameLengthMin(teamDivision || '')) : null)
+  const freeSubs = parseFreeSubs(qd.free_subs, getGameLengthMin(team?.division || ''), validIds)
+    || (mode === 'free' ? createFreeSubs(getGameLengthMin(team?.division || '')) : null)
 
-  return { quarters, outAllIds, outQIds, mode, freeSubs }
+  return fitPlanStateToTeam({ quarters, outAllIds, outQIds, mode, freeSubs }, team)
 }
 
 // ── CSS custom properties for team branding ───────────────────────
@@ -303,7 +339,7 @@ export function AppProvider({ userId, children }) {
       let gdAllPlans = applyPendingChanges('saved_game_plans', savedPlans)
 
       if (gdAllPlans.length === 0 && !isOffline()) {
-        const baseForm = getDefaultFormation(teamData.division)
+        const baseForm = getDefaultFormation(teamData)
         const blankState = buildBlankPlanState(baseForm)
         try {
           const { data: newPlan } = await supabase
@@ -319,7 +355,7 @@ export function AppProvider({ userId, children }) {
         } catch { /* use local fallback below */ }
       }
       if (gdAllPlans.length === 0) {
-        const baseForm = getDefaultFormation(teamData.division)
+        const baseForm = getDefaultFormation(teamData)
         const blankState = buildBlankPlanState(baseForm)
         gdAllPlans = [{
           id: 'local-plan-1', name: 'Game Plan 1',
@@ -332,7 +368,7 @@ export function AppProvider({ userId, children }) {
       setGdPlans(gdAllPlans)
       const gdStates = {}
       for (const plan of gdAllPlans) {
-        gdStates[plan.id] = buildPlanState(plan, vids, teamData.division)
+        gdStates[plan.id] = buildPlanState(plan, vids, teamData)
       }
       setGdPlanStates(gdStates)
 
@@ -423,7 +459,7 @@ export function AppProvider({ userId, children }) {
         const { data: allTeams, error } = await readCached(
           `cache_teams_${userId}`,
           () => supabase.from('teams')
-            .select('id, user_id, name, division, color_primary, color_secondary, color_accent, created_at')
+            .select('*')
             .order('created_at', { ascending: true }),
           [],
         )
@@ -641,7 +677,7 @@ export function AppProvider({ userId, children }) {
   }
 
   // ── Create a new team and switch to it ────────────────────────
-  async function createTeam(name, division, branding = {}) {
+  async function createTeam(name, division, branding = {}, format = null) {
     // Enforce team limit
     if (ownedTeams.length >= maxTeams) {
       throw new Error(`Your plan allows up to ${maxTeams} team${maxTeams === 1 ? '' : 's'}. Upgrade to add more.`)
@@ -653,6 +689,7 @@ export function AppProvider({ userId, children }) {
         user_id:         userId,
         name:            name.trim(),
         division,
+        ...(format ? { format } : {}),
         color_primary:   branding.colorPrimary   || null,
         color_secondary: branding.colorSecondary || null,
         color_accent:    branding.colorAccent    || null,
@@ -806,6 +843,11 @@ export function AppProvider({ userId, children }) {
 
   // ── When team branding is edited in-place (MyTeamPage save) ──
   function updateTeamBranding(updatedTeam) {
+    if (getTeamFormat(updatedTeam) !== getTeamFormat(teamRef.current || '')) {
+      setGdPlanStates(prev => Object.fromEntries(
+        Object.entries(prev).map(([id, st]) => [id, fitPlanStateToTeam(st, updatedTeam)])
+      ))
+    }
     setTeam(updatedTeam)
     teamRef.current = updatedTeam
     applyTeamCSSVars(updatedTeam)

@@ -4,11 +4,11 @@ import theme from '../../theme'
 import { supabase } from '../../lib/supabase'
 import { isOffline } from '../../lib/offline'
 import { useTeamPresence } from '../../hooks/useTeamPresence'
-import { useApp, emptyPlan, buildBlankPlanState, planStateToQuarterData } from '../../contexts/AppContext'
+import { useApp, emptyPlan, buildBlankPlanState, planStateToQuarterData, migrateQuarterPlan } from '../../contexts/AppContext'
 import { useToast } from '../UI/Toast'
 import { getContrastTextColor, ackToday, ackedToday, MODE_SWITCH_ACK } from '../../lib/utils'
 import {
-  FORMATIONS_BY_DIVISION,
+  getFormationList,
   getDefaultFormation,
   getFormationById,
   getGameLengthMin,
@@ -113,66 +113,6 @@ export default function GameDayPage() {
       scheduleSave(activePlanId)
     }
   }, [planStates]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // When the active team's division changes (e.g. edited from U16 → U10),
-  // migrate every plan's quarter formations to the new division's default
-  // so the field shows the right number of positions.
-  const lastTeamDivRef = useRef({ id: null, division: null })
-  useEffect(() => {
-    if (!team?.id || !team?.division) return
-    const last = lastTeamDivRef.current
-    const sameTeam   = last.id === team.id
-    const divChanged = last.division !== team.division
-    lastTeamDivRef.current = { id: team.id, division: team.division }
-    if (!sameTeam || !divChanged) return
-
-    const validIds  = new Set((FORMATIONS_BY_DIVISION[team.division] || []).map(f => f.id))
-    const defaultForm = getDefaultFormation(team.division)
-    if (!defaultForm) return
-
-    const currentStates = planStatesRef.current || {}
-    const migratedStates = {}
-    const affected = []
-    for (const planId of Object.keys(currentStates)) {
-      const state = currentStates[planId]
-      if (!state?.quarters) continue
-      let stateChanged = false
-      const newQuarters = {}
-      for (const q of [1, 2, 3, 4]) {
-        const qState = state.quarters[q]
-        if (qState?.formationId && validIds.has(qState.formationId)) {
-          newQuarters[q] = qState
-        } else {
-          const oldSlots = qState?.formation?.slots || []
-          const oldPlan  = qState?.slots || {}
-          const migrated = migrateQuarterPlan(oldPlan, oldSlots, defaultForm.slots)
-          newQuarters[q] = { formationId: defaultForm.id, formation: defaultForm, slots: migrated }
-          stateChanged = true
-        }
-      }
-      if (stateChanged) {
-        migratedStates[planId] = { ...state, quarters: newQuarters }
-        affected.push(planId)
-      }
-    }
-    if (affected.length === 0) return
-
-    setPlanStates(prev => ({ ...prev, ...migratedStates }))
-    setPlans(prev => prev.map(p => (
-      affected.includes(p.id) ? { ...p, formation_id: defaultForm.id } : p
-    )))
-
-    // Persist all affected plans (active plan is already covered by the
-    // planStates auto-save effect; this handles the others).
-    queueMicrotask(() => {
-      for (const id of affected) {
-        if (!String(id).startsWith('local-')) scheduleSave(id)
-      }
-    })
-
-    setToast(`Formations updated for ${team.division}`)
-    setTimeout(() => setToast(null), 3000)
-  }, [team?.id, team?.division]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     return () => {
@@ -473,7 +413,7 @@ export default function GameDayPage() {
   ), [freeMode, freeSubs, freeNowMs, freeTotal])
 
   const playerMap     = useMemo(() => Object.fromEntries((players || []).map(p => [p.id, p])), [players])
-  const formationList = team ? (FORMATIONS_BY_DIVISION[team.division] || []) : []
+  const formationList = team ? getFormationList(team) : []
 
   const quarterPlansForList = useMemo(() => ({
     1: quarters?.[1]?.slots || {},
@@ -512,7 +452,7 @@ export default function GameDayPage() {
       ...prev,
       [planId]: updater(prev[planId] || buildBlankPlanState(
         getFormationById(prev[planId]?.quarters?.[1]?.formationId)
-          || getDefaultFormation(teamRef.current?.division || '')
+          || getDefaultFormation(teamRef.current || '')
       )),
     }))
   }
@@ -523,7 +463,7 @@ export default function GameDayPage() {
       ...prev,
       [planId]: updater(prev[planId] || buildBlankPlanState(
         getFormationById(prev[planId]?.quarters?.[1]?.formationId)
-          || getDefaultFormation(teamRef.current?.division || '')
+          || getDefaultFormation(teamRef.current || '')
       )),
     }))
   }
@@ -542,7 +482,7 @@ export default function GameDayPage() {
     const state = planStatesRef.current[planId]
     if (!state) return
     const plan = plans.find(p => p.id === planId)
-    const formationId = plan?.formation_id || state?.formationId || getDefaultFormation(teamRef.current?.division || '')?.id
+    const formationId = plan?.formation_id || state?.formationId || getDefaultFormation(teamRef.current || '')?.id
     const planData = {
       id:             planId,
       team_id:        teamIdRef.current,
@@ -609,7 +549,7 @@ export default function GameDayPage() {
     const prevId = activePlanRef.current
     if (prevId) { clearTimeout(saveTimersRef.current[prevId]); doSavePlan(prevId) }
 
-    const df        = getDefaultFormation(teamRef.current?.division || '')
+    const df        = getDefaultFormation(teamRef.current || '')
     const blankState = buildBlankPlanState(df)
     // With no signal the insert can't return an id, and a plan left on a
     // `local-` id is skipped by every later save — the coach would fill in a
@@ -669,7 +609,7 @@ export default function GameDayPage() {
     const dupName  = `Copy of ${orig?.name || 'Plan'}`
     const offline  = isOffline()
     const tempId   = offline ? crypto.randomUUID() : `local-dup-${Date.now()}`
-    const df       = getDefaultFormation(teamRef.current?.division || '')
+    const df       = getDefaultFormation(teamRef.current || '')
 
     const dupState = srcState
       ? {
@@ -745,7 +685,7 @@ export default function GameDayPage() {
     const remaining = plans.filter(p => p.id !== planId)
 
     if (remaining.length === 0) {
-      const df      = getDefaultFormation(teamRef.current?.division || '')
+      const df      = getDefaultFormation(teamRef.current || '')
       const tempId  = isOffline() ? crypto.randomUUID() : `local-new-${Date.now()}`
       const blank   = buildBlankPlanState(df)
 
@@ -814,23 +754,6 @@ export default function GameDayPage() {
   }
 
   // ─── Formation change ─────────────────────────────────────────
-  function migrateQuarterPlan(oldPlan, oldSlots, newSlots) {
-    const pool = {}
-    for (const [slotId, playerId] of Object.entries(oldPlan)) {
-      if (!playerId) continue
-      const oldSlot = oldSlots.find(s => s.id === slotId)
-      if (!oldSlot) continue
-      if (!pool[oldSlot.label]) pool[oldSlot.label] = []
-      pool[oldSlot.label].push(playerId)
-    }
-    const newPlan = {}
-    for (const slot of newSlots) {
-      const bucket = pool[slot.label]
-      newPlan[slot.id] = (bucket && bucket.length) ? bucket.shift() : null
-    }
-    return newPlan
-  }
-
   function handleFormationChange(newId) {
     const newForm = getFormationById(newId)
     if (!newForm) return

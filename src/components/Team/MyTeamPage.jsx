@@ -10,6 +10,8 @@ import theme from '../../theme'
 import PlayerCard from './PlayerCard'
 import AddPlayerModal from './AddPlayerModal'
 import BrandingFields from './BrandingFields'
+import GameFormatField from './GameFormatField'
+import { getTeamFormat } from '../../lib/formations'
 import PrivacyPolicy from '../Legal/PrivacyPolicy'
 import TermsOfService from '../Legal/TermsOfService'
 import { MyTeamSkeleton } from '../UI/Skeleton'
@@ -134,6 +136,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
   // Team edit state
   const [teamName,    setTeamName]    = useState('')
   const [division,    setDivision]    = useState('10U')
+  const [format,      setFormat]      = useState(null)
   const [branding,    setBranding]    = useState({
     colorPrimary: null, colorSecondary: null, colorAccent: null,
   })
@@ -185,6 +188,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
   function openEditTeam() {
     setTeamName(team?.name || '')
     setDivision(team?.division || '10U')
+    setFormat(team?.format || null)
     setBranding({
       colorPrimary:   team?.color_primary   || null,
       colorSecondary: team?.color_secondary || null,
@@ -211,6 +215,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
         .update({
           name:            teamName.trim(),
           division,
+          ...(format || team.format ? { format: division === 'Futsal' ? null : format } : {}),
           color_primary:   branding.colorPrimary   || null,
           color_secondary: branding.colorSecondary || null,
           color_accent:    branding.colorAccent    || null,
@@ -223,6 +228,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
         ...team,
         name:            teamName.trim(),
         division,
+        format:          division === 'Futsal' ? null : format,
         color_primary:   branding.colorPrimary   || null,
         color_secondary: branding.colorSecondary || null,
         color_accent:    branding.colorAccent    || null,
@@ -309,7 +315,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
 
       for (const t of allTeams || []) {
         const teamExport = {
-          name: t.name, division: t.division,
+          name: t.name, division: t.division, format: t.format ?? null,
           color_primary: t.color_primary, color_secondary: t.color_secondary, color_accent: t.color_accent,
           players: [], game_plans: [], practice_plans: [], strategy_sketches: [],
         }
@@ -525,7 +531,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
                     <label className="block text-sm font-medium text-gray-300 mb-1">Division</label>
                     <select
                       value={division}
-                      onChange={e => setDivision(e.target.value)}
+                      onChange={e => { setDivision(e.target.value); setFormat(null) }}
                       className="w-full px-4 py-2.5 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none transition appearance-none"
                       onFocus={e => (e.target.style.boxShadow = '0 0 0 2px var(--team-primary, #1a5c2e)')}
                       onBlur={e => (e.target.style.boxShadow = '')}
@@ -533,6 +539,12 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
                       {DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </div>
+                  <GameFormatField
+                    division={division}
+                    value={format}
+                    onChange={setFormat}
+                    labelClassName="block text-sm font-medium text-gray-300 mb-1"
+                  />
 
                   {/* Branding fields */}
                   <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
@@ -586,7 +598,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
                     {team?.name?.charAt(0)?.toUpperCase() || '?'}
                   </div>
                   <p className="text-green-200 text-xs font-medium uppercase tracking-widest mb-1">
-                    {team.division} Division
+                    {team.division} Division · {getTeamFormat(team)}
                   </p>
                   <div style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',

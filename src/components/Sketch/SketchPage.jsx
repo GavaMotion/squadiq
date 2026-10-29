@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { isOffline, readCached } from '../../lib/offline'
 import { useApp } from '../../contexts/AppContext'
 import theme from '../../theme'
-import { FORMATIONS_BY_DIVISION, getFormationById } from '../../lib/formations'
+import { getFormationList, getFormationById, getPlayersOnField } from '../../lib/formations'
 import { getContrastTextColor } from '../../lib/utils'
 import PlanBadge from '../UI/PlanBadge'
 
@@ -31,10 +31,6 @@ const ARROW_COLORS = {
   yellow: '#fbbf24',
   red:    '#ef4444',
   green:  '#22c55e',
-}
-
-const DIVISION_PLAYER_COUNT = {
-  Futsal: 5, U6: 3, U8: 4, U10: 7, U12: 9, U14: 11, U16: 11, U19: 11,
 }
 
 // Net pointer travel (px) below which a press counts as a tap, not a drag.
@@ -542,13 +538,13 @@ export default function SketchPage() {
   const oppTextColor   = getContrastTextColor(oppColor)
   const oppFormationId = oppFormationIds[activeSketchId] || null
   const myFormationId  = myFormationIds[activeSketchId]  || null
-  const formationList  = team ? (FORMATIONS_BY_DIVISION[team.division] || []) : []
+  const formationList  = team ? getFormationList(team) : []
 
   // ── Helpers (need access to component state) ───────────────────
   function getDefaultOppCount() {
     const q1 = gdPlanStates?.[gdActivePlanId]?.quarters?.[1]
     if (q1?.formation?.slots?.length) return q1.formation.slots.length
-    return DIVISION_PLAYER_COUNT[team?.division] || players.length || 7
+    return (team && getPlayersOnField(team)) || players.length || 7
   }
 
   // ── State helpers ──────────────────────────────────────────────

@@ -23,6 +23,7 @@ import StandingsPage from './components/Standings/StandingsPage'
 import TeamBadge from './components/Team/TeamBadge'
 import PlanBadge from './components/UI/PlanBadge'
 import BrandingFields from './components/Team/BrandingFields'
+import GameFormatField from './components/Team/GameFormatField'
 
 // ── Splash screen ────────────────────────────────────────────────
 function SplashScreen({ onDone }) {
@@ -93,6 +94,7 @@ function NewTeamModal({ onSave, onCancel }) {
   const { userId } = useApp()
   const [name,     setName]     = useState('')
   const [division, setDivision] = useState('10U')
+  const [format,   setFormat]   = useState(null)
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState('')
 
@@ -110,7 +112,7 @@ function NewTeamModal({ onSave, onCancel }) {
         colorPrimary:   branding.colorPrimary,
         colorSecondary: branding.colorSecondary,
         colorAccent:    branding.colorAccent,
-      })
+      }, format)
     } catch (err) {
       setError(err.message || 'Failed to create team.')
     } finally {
@@ -148,12 +150,18 @@ function NewTeamModal({ onSave, onCancel }) {
             <label className="block text-xs font-medium text-gray-400 mb-1">Division</label>
             <select
               value={division}
-              onChange={e => setDivision(e.target.value)}
+              onChange={e => { setDivision(e.target.value); setFormat(null) }}
               className="w-full text-sm rounded-lg px-3 py-2.5 bg-gray-800 border border-gray-700 text-white focus:outline-none appearance-none"
             >
               {DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
+          <GameFormatField
+            division={division}
+            value={format}
+            onChange={setFormat}
+            labelClassName="block text-xs font-medium text-gray-400 mb-1"
+          />
 
           {/* Branding */}
           <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
@@ -447,8 +455,8 @@ function TeamSwitcher() {
 
       {showNewTeam && (
         <NewTeamModal
-          onSave={async (name, division, branding) => {
-            await createTeam(name, division, branding)
+          onSave={async (name, division, branding, format) => {
+            await createTeam(name, division, branding, format)
             setShowNewTeam(false)
           }}
           onCancel={() => setShowNewTeam(false)}
@@ -673,7 +681,7 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
     checkPaymentSuccess()
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handleCreateTeam(name, division, branding) {
+  async function handleCreateTeam(name, division, branding, format) {
     if (ownedTeams.length >= maxTeams) {
       addToast(isTrialExpired
         ? 'Your trial has expired — upgrade to add teams'
@@ -682,7 +690,7 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
       setShowUpgradeModal(true)
       return
     }
-    await createTeam(name, division, branding)
+    await createTeam(name, division, branding, format)
   }
 
   const [installPrompt,     setInstallPrompt]     = useState(null)
@@ -844,8 +852,8 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
 
       {showNewTeam && (
         <NewTeamModal
-          onSave={async (name, division, branding) => {
-            await handleCreateTeam(name, division, branding)
+          onSave={async (name, division, branding, format) => {
+            await handleCreateTeam(name, division, branding, format)
             setShowNewTeam(false)
           }}
           onCancel={() => setShowNewTeam(false)}

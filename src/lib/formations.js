@@ -312,24 +312,57 @@ const F_FUTSAL_211 = {
   ],
 }
 
-// ── Formation registry by division ──────────────────────────────
-export const FORMATIONS_BY_DIVISION = {
-  Futsal: [F_FUTSAL_121, F_FUTSAL_22, F_FUTSAL_31, F_FUTSAL_211],
-  '8U':  [F_8U_21, F_8U_12, F_8U_111],
-  '10U': [F_10U_231, F_10U_321, F_10U_222, F_10U_312],
-  '12U': [F_12U_332, F_12U_323, F_12U_422, F_12U_242],
-  '14U': [F_11V11_433, F_11V11_442, F_11V11_352, F_11V11_4231, F_11V11_4411, F_11V11_343, F_11V11_532],
-  '16U': [F_11V11_433, F_11V11_442, F_11V11_352, F_11V11_4231, F_11V11_4411, F_11V11_343, F_11V11_532],
-  '19U': [F_11V11_433, F_11V11_442, F_11V11_352, F_11V11_4231, F_11V11_4411, F_11V11_343, F_11V11_532],
+// ── Formation registry by game format ───────────────────────────
+export const FORMATIONS_BY_FORMAT = {
+  '5v5':   [F_FUTSAL_121, F_FUTSAL_22, F_FUTSAL_31, F_FUTSAL_211],
+  '4v4':   [F_8U_21, F_8U_12, F_8U_111],
+  '7v7':   [F_10U_231, F_10U_321, F_10U_222, F_10U_312],
+  '9v9':   [F_12U_332, F_12U_323, F_12U_422, F_12U_242],
+  '11v11': [F_11V11_433, F_11V11_442, F_11V11_352, F_11V11_4231, F_11V11_4411, F_11V11_343, F_11V11_532],
 }
 
-export function getDefaultFormation(division) {
-  const list = FORMATIONS_BY_DIVISION[division]
+// Formats a coach can pick for an outdoor team. Futsal is always 5v5.
+export const GAME_FORMATS = ['4v4', '7v7', '9v9', '11v11']
+
+// What each division plays unless the team overrides it (teams.format).
+export const DEFAULT_FORMAT_BY_DIVISION = {
+  Futsal: '5v5',
+  '8U':  '4v4',
+  '10U': '7v7',
+  '12U': '9v9',
+  '14U': '11v11',
+  '16U': '11v11',
+  '19U': '11v11',
+}
+
+// Accepts a team row ({ division, format }) or a bare division string.
+// A team's own format wins; otherwise the division's standard applies.
+export function getTeamFormat(teamOrDivision) {
+  if (typeof teamOrDivision === 'string') {
+    return DEFAULT_FORMAT_BY_DIVISION[teamOrDivision] || '11v11'
+  }
+  const division = teamOrDivision?.division
+  if (division === 'Futsal') return '5v5'
+  const own = teamOrDivision?.format
+  if (own && FORMATIONS_BY_FORMAT[own]) return own
+  return DEFAULT_FORMAT_BY_DIVISION[division] || '11v11'
+}
+
+export function getFormationList(teamOrDivision) {
+  return FORMATIONS_BY_FORMAT[getTeamFormat(teamOrDivision)] || []
+}
+
+export function getPlayersOnField(teamOrDivision) {
+  return parseInt(getTeamFormat(teamOrDivision), 10)
+}
+
+export function getDefaultFormation(teamOrDivision) {
+  const list = getFormationList(teamOrDivision)
   return (list && list[0]) || F_11V11_433
 }
 
 export function getFormationById(id) {
-  for (const list of Object.values(FORMATIONS_BY_DIVISION)) {
+  for (const list of Object.values(FORMATIONS_BY_FORMAT)) {
     const f = list.find(f => f.id === id)
     if (f) return f
   }
@@ -362,6 +395,10 @@ export function getGameLengthMin(division) {
 }
 
 // Backward-compat
+export const FORMATIONS_BY_DIVISION = Object.fromEntries(
+  Object.entries(DEFAULT_FORMAT_BY_DIVISION).map(([d, f]) => [d, FORMATIONS_BY_FORMAT[f]])
+)
+
 export function getFormation(division) {
   return getDefaultFormation(division)
 }
