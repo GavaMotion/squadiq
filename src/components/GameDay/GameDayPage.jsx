@@ -996,14 +996,22 @@ export default function GameDayPage() {
   }
 
   function getAtRiskPlayers() {
+    // Nothing is planned yet → nobody is at risk (a blank plan would
+    // otherwise flag the whole roster).
+    const anyPlanned = [1, 2, 3, 4].some(q =>
+      Object.values(quarters?.[q]?.slots || {}).some(Boolean))
+    if (!anyPlanned) return []
     return players.filter(p => {
       if (outAllIds.has(p.id)) return false
+      // Out for every quarter individually = not playing today, not at risk.
+      if ([1, 2, 3, 4].every(q => outQIds[q]?.has(p.id))) return false
       let played = 0
       for (const q of [1, 2, 3, 4]) {
         const inField = Object.values(quarters?.[q]?.slots || {}).includes(p.id)
         if (inField) played++
       }
-      return played > 0 && played < 3
+      // A kid planned for zero quarters is the worst case, so include 0.
+      return played < 3
     })
   }
 
