@@ -1080,7 +1080,7 @@ export default function App() {
       setNewPassword('')
       setConfirmPassword('')
       window.location.hash = ''
-      alert('Password updated successfully!')
+      addToast('Password updated', 'success', 3000)
     }
   }
 

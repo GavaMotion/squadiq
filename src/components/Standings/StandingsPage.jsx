@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { readCached } from '../../lib/offline'
 import PlanBadge from '../UI/PlanBadge'
+import ConfirmDialog from '../UI/ConfirmDialog'
 
 export default function StandingsPage({ team }) {
   const [standingsList, setStandingsList] = useState([])
   const [activeId, setActiveId] = useState(null)
+  const [confirmRemove, setConfirmRemove] = useState(false)
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -179,7 +181,7 @@ export default function StandingsPage({ team }) {
   }
 
   async function deleteActive() {
-    if (!activeId || !confirm('Remove this standings tab?')) return
+    if (!activeId) return
     if (!String(activeId).startsWith('local-')) {  // demo mode rows aren't persisted
       await supabase.from('standings').delete().eq('id', activeId)
     }
@@ -206,6 +208,17 @@ export default function StandingsPage({ team }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '16px 16px 100px', overflowY: 'auto' }}>
+      {confirmRemove && (
+        <ConfirmDialog
+          icon="🗑"
+          tone="danger"
+          title="Remove this standings tab?"
+          message="The table stops updating here. You can add the link again any time."
+          confirmLabel="Remove"
+          onConfirm={() => { setConfirmRemove(false); deleteActive() }}
+          onCancel={() => setConfirmRemove(false)}
+        />
+      )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>🏆 Standings</span>
@@ -330,7 +343,7 @@ export default function StandingsPage({ team }) {
                 {refreshing.has(active.id) ? '⏳' : '🔄'} Refresh
               </button>
               <button
-                onClick={deleteActive}
+                onClick={() => setConfirmRemove(true)}
                 style={{ background: 'none', border: 'none', color: 'rgba(220,50,50,0.5)', fontSize: 13, cursor: 'pointer' }}
               >
                 🗑 Delete
