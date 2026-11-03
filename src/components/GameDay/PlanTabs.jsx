@@ -105,7 +105,7 @@ function PlanTab({ plan, isActive, isSaving, compact, mode, onSelect, onDuplicat
         >
           {isFree && (
             <span
-              title="Free subs plan"
+              title="Sub anytime plan"
               style={{
                 display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
                 background: theme.freeAccentBright, marginRight: 6, verticalAlign: 'middle',
@@ -180,7 +180,7 @@ function PlanTab({ plan, isActive, isSaving, compact, mode, onSelect, onDuplicat
               { label: 'Rename',    action: startEdit },
               { label: 'Duplicate', action: () => { onDuplicate(plan.id); setMenuOpen(false) } },
               {
-                label:  isFree ? 'Quarter mode' : 'Free subs mode',
+                label:  isFree ? 'Quarter mode' : 'Sub anytime mode',
                 action: () => { onToggleMode(plan.id); setMenuOpen(false) },
                 accent: !isFree,
               },

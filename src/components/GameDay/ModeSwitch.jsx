@@ -61,7 +61,7 @@ export default function ModeSwitch({ mode, onChange, compact }) {
         onMouseEnter={e => { if (!isFree) e.currentTarget.style.color = '#ffffff' }}
         onMouseLeave={e => { if (!isFree) e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
       >
-        Free subs
+        Sub anytime
       </button>
     </div>
   )

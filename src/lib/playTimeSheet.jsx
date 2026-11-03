@@ -62,7 +62,7 @@ export function PlayTimeSheet({ team, players, freeSubs, nowMs }) {
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.01em' }}>Playing Time Report</div>
           <div style={{ fontSize: 12, color: soft }}>
-            Squad<span style={{ color: primary, fontWeight: 700 }}>IQ</span> · Free subs
+            Squad<span style={{ color: primary, fontWeight: 700 }}>IQ</span> · Sub anytime
           </div>
         </div>
         <div style={{ textAlign: 'right', fontSize: 11, color: soft }}>

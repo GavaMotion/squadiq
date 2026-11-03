@@ -381,7 +381,7 @@ export default function GameDayPage() {
     }))
     if (planId === activePlanId) setViewedQuarterRaw(1)
     scheduleSave(planId)
-    addToast(`Free subs on — ${mins} min game, sub whenever you like`, 'info', 3500)
+    addToast(`Sub anytime is on — ${mins} min game, swap players whenever you like`, 'info', 3500)
   }
   function exitFreeMode(planId = activePlanId) {
     const apply = () => {
@@ -410,7 +410,7 @@ export default function GameDayPage() {
     setConfirm({
       icon: '↔',
       title: 'Back to quarter planning?',
-      message: 'Recorded playing time is kept, but the clock stops. You can switch back to free subs at any time.',
+      message: 'Recorded playing time is kept, but the clock stops. You can switch back to Sub anytime whenever you like.',
       confirmLabel: 'Switch',
       onConfirm: () => { ackToday(MODE_SWITCH_ACK); apply() },
     })
@@ -1352,9 +1352,9 @@ export default function GameDayPage() {
               style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8,
                 background: 'linear-gradient(135deg, #7b3fa8, #00c853)', color: '#fff',
                 border: 'none', cursor: 'pointer', flexShrink: 0, fontSize: 13, fontWeight: 600 }}
-              aria-label="AI Lineup"
+              aria-label="Auto-fill lineup"
             >
-              ✨ AI Lineup
+              ✨ Auto-fill lineup
             </button>
           )}
           {issuesChip}
@@ -1406,9 +1406,9 @@ export default function GameDayPage() {
               style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 8,
                 background: 'linear-gradient(135deg, #7b3fa8, #00c853)', color: '#fff',
                 border: 'none', cursor: 'pointer', flexShrink: 0, fontSize: 12, fontWeight: 600 }}
-              aria-label="AI Lineup"
+              aria-label="Auto-fill lineup"
             >
-              ✨ AI
+              Auto-fill
             </button>
           )}
           <button
@@ -1954,7 +1954,7 @@ export default function GameDayPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 20 }}>✨</span>
-                <div style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>AI Lineup Planner</div>
+                <div style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>Auto-fill lineup</div>
               </div>
               <button onClick={() => setShowAILineup(false)}
                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>
@@ -2056,7 +2056,7 @@ export default function GameDayPage() {
                         color: isAbsentAll ? '#E24B4A' : 'rgba(255,255,255,0.35)',
                         fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
                       }}>
-                        {isAbsentAll ? 'OUT' : 'Out?'}
+                        {isAbsentAll ? 'Absent' : 'Absent?'}
                       </button>
                     </div>
                   )
@@ -2123,7 +2123,7 @@ export default function GameDayPage() {
                 return (
                   <div key={q} style={{ background: '#13131f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 12 }}>
                     <div style={{ color: '#00c853', fontSize: 14, fontWeight: 700, marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                      {freeMode ? 'Free subs — on the field' : `Q${q}`} — {qFormation?.label || 'No formation'}
+                      {freeMode ? 'Sub anytime — on the field' : `Q${q}`} — {qFormation?.label || 'No formation'}
                     </div>
                     {/* Mini field */}
                     <div style={{ background: '#0a2e14', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, height: 180, position: 'relative', marginBottom: 10, overflow: 'hidden' }}>
