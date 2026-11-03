@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import html2canvas from 'html2canvas'
 import { supabase } from '../../lib/supabase'
 import { useApp } from '../../contexts/AppContext'
 import { useToast } from '../UI/Toast'
@@ -744,6 +743,7 @@ export default function PracticePage() {
       const el = document.getElementById('practice-export')
       el.style.left = '0'
       el.style.position = 'absolute'
+      const { default: html2canvas } = await import('html2canvas')
       const canvas = await html2canvas(el, { backgroundColor: '#0d0d1a', scale: 2, useCORS: true, allowTaint: false, windowWidth: 800 })
       el.style.left = '-9999px'
       el.style.position = 'fixed'

@@ -4,7 +4,7 @@ import { useToast } from '../UI/Toast'
 
 // ── YouTube thumbnail extractor ──────────────────────────────────
 function ytThumb(url) {
-  const m = url.match(/(?:youtube\.com\/watch\?.*v=|youtu\.be\/)([\w-]+)/)
+  const m = url.match(/(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]+)/)
   return m ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : null
 }
 

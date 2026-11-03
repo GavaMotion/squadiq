@@ -500,7 +500,12 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
               </svg>
             </div>
             <p className="text-white font-semibold text-base mb-1">No team yet</p>
-            <p className="text-gray-500 text-sm">Tap the team name in the header to create your first team.</p>
+            <p className="text-gray-500 text-sm mb-4">Create your team to start planning lineups and practices.</p>
+            <button onClick={onCreateTeam}
+              className="px-5 py-2.5 rounded-xl text-white text-sm font-semibold"
+              style={{ background: 'var(--team-primary, #1a5c2e)' }}>
+              + Create your team
+            </button>
           </div>
         )}
 

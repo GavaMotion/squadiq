@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import html2canvas from 'html2canvas'
 import theme from '../../theme'
 import { supabase } from '../../lib/supabase'
 import { useTeamPresence } from '../../hooks/useTeamPresence'
@@ -1044,6 +1043,7 @@ export default function GameDayPage() {
       const el = document.getElementById('gameday-export')
       el.style.left = '0'
       el.style.position = 'absolute'
+      const { default: html2canvas } = await import('html2canvas')
       const canvas = await html2canvas(el, { backgroundColor: '#0d0d1a', scale: 2, useCORS: true, allowTaint: false })
       el.style.left = '-9999px'
       el.style.position = 'fixed'
