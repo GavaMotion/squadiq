@@ -1,7 +1,8 @@
 import { Component, useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
-import { isOffline, readCached } from '../../lib/offline'
+import { readCached, applyPendingChanges } from '../../lib/offline'
 import { useApp } from '../../contexts/AppContext'
+import { useToast } from '../UI/Toast'
 import theme from '../../theme'
 import { getFormationList, getFormationById, getPlayersOnField } from '../../lib/formations'
 import { getContrastTextColor } from '../../lib/utils'
@@ -212,7 +213,8 @@ function PlayerCircle({ p, isOpp, color, textColor, size, isSelected, onPointerD
 
 // ── Main component ────────────────────────────────────────────────
 export default function SketchPage() {
-  const { team, players, gdPlanStates, gdActivePlanId } = useApp()
+  const { team, players, gdPlanStates, gdActivePlanId, saveWithOfflineSupport } = useApp()
+  const { addToast } = useToast()
 
   // ── Sketch tabs ────────────────────────────────────────────────
   const [sketches,        setSketches]        = useState([])
@@ -257,7 +259,8 @@ export default function SketchPage() {
 
   // ── Refs ───────────────────────────────────────────────────────
   const fieldRef          = useRef(null)
-  const saveTimerRef      = useRef(null)
+  const saveTimersRef     = useRef({})  // one debounce timer per sketch
+  const sketchMetaRef     = useRef({ teamId: null, sketches: [] })
   const sketchStatesRef   = useRef(sketchStates)
   const activeSketchIdRef = useRef(activeSketchId)
   const saveSnapshotRef   = useRef(null)
@@ -268,6 +271,7 @@ export default function SketchPage() {
 
   useEffect(() => { sketchStatesRef.current   = sketchStates   }, [sketchStates])
   useEffect(() => { activeSketchIdRef.current = activeSketchId }, [activeSketchId])
+  sketchMetaRef.current = { teamId: team?.id || null, sketches }
 
   // ── Snapshot helpers (read refs so safe in stale closures) ─────
   function saveSnapshot() {
@@ -614,34 +618,32 @@ export default function SketchPage() {
       )
 
       if (error) throw error
+      // Edits made with no signal live in the pending queue; replay them so a
+      // reload on the sideline shows the latest drawing.
+      const rows = applyPendingChanges('strategy_sketches', data)
 
       // Pre-populate my formation from GD Q1 plan
       const gdQ1FormId = gdPlanStates?.[gdActivePlanId]?.quarters?.[1]?.formation?.id || null
 
-      // With no signal the insert below can't come back with a row, so leave
-      // the empty state alone rather than showing a sketch that isn't saved.
-      if ((!data || data.length === 0) && isOffline()) {
-        setSketches([])
-      } else if (!data || data.length === 0) {
+      // No sketch yet: make one with a client-minted uuid and create it (or
+      // queue it) through the save-or-queue path, online or not.
+      if (rows.length === 0) {
         const initState = buildInitialState()
-        const { data: newSketch } = await supabase.from('strategy_sketches')
-          .insert({ team_id: team.id, name: 'Sketch 1', ...stateToDb(initState) })
-          .select().single()
-        if (newSketch) {
-          setSketches([newSketch])
-          setSketchStates({ [newSketch.id]: initState })
-          setActiveSketchId(newSketch.id)
-          if (gdQ1FormId) setMyFormationIds({ [newSketch.id]: gdQ1FormId })
-        }
+        const newSketch = { id: crypto.randomUUID(), team_id: team.id, name: 'Sketch 1', ...stateToDb(initState) }
+        setSketches([newSketch])
+        setSketchStates({ [newSketch.id]: initState })
+        setActiveSketchId(newSketch.id)
+        if (gdQ1FormId) setMyFormationIds({ [newSketch.id]: gdQ1FormId })
+        saveWithOfflineSupport('strategy_sketches', 'create', newSketch, 'id', newSketch.id)
       } else {
-        setSketches(data)
+        setSketches(rows)
         const states = {}
-        data.forEach(s => { states[s.id] = dbToState(s) })
+        rows.forEach(s => { states[s.id] = dbToState(s) })
         setSketchStates(states)
-        setActiveSketchId(data[0].id)
+        setActiveSketchId(rows[0].id)
         if (gdQ1FormId) {
           const initMyForms = {}
-          data.forEach(s => { initMyForms[s.id] = gdQ1FormId })
+          rows.forEach(s => { initMyForms[s.id] = gdQ1FormId })
           setMyFormationIds(initMyForms)
         }
       }
@@ -656,18 +658,51 @@ export default function SketchPage() {
   }
 
   // ── Save ───────────────────────────────────────────────────────
+  // Each sketch has its own timer: with one shared timer, switching sketches
+  // within 1.2s cancelled the first sketch's pending save.
   function scheduleSave(id) {
     const sid = id || activeSketchIdRef.current
     if (!sid || String(sid).startsWith('local-')) return
-    clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = setTimeout(async () => {
-      const state = sketchStatesRef.current[sid]
-      if (!state) return
-      try {
-        await supabase.from('strategy_sketches').update(stateToDb(state)).eq('id', sid)
-      } catch { /* silent */ }
-    }, 1200)
+    clearTimeout(saveTimersRef.current[sid])
+    saveTimersRef.current[sid] = setTimeout(() => saveSketchNow(sid), 1200)
   }
+
+  async function saveSketchNow(sid) {
+    clearTimeout(saveTimersRef.current[sid])
+    delete saveTimersRef.current[sid]
+    const state = sketchStatesRef.current[sid]
+    if (!state) return
+    // Goes through the offline queue: no signal → saved locally and synced
+    // later. A save the server rejects is reported instead of swallowed.
+    // Upsert with team and name, not update: if the sketch's create is still
+    // queued, an update would hit no row and the drawing would be lost.
+    const { teamId, sketches: list } = sketchMetaRef.current
+    if (!teamId) return
+    const name = list.find(x => x.id === sid)?.name || 'Sketch'
+    const { ok, queued } = await saveWithOfflineSupport('strategy_sketches', 'upsert',
+      { id: sid, team_id: teamId, name, ...stateToDb(state) }, 'id', sid)
+    if (!ok) addToast('Could not save sketch — changes may be lost', 'error')
+    else if (queued && !sessionStorage.getItem('offlineQueueNotice')) {
+      sessionStorage.setItem('offlineQueueNotice', '1')
+      addToast('Saved locally — will sync to the cloud when back online', 'info', 4000)
+    }
+  }
+
+  // A phone can kill a backgrounded tab before the 1.2s debounce fires:
+  // flush every pending sketch save the moment the page hides.
+  useEffect(() => {
+    function flush() {
+      for (const sid of Object.keys(saveTimersRef.current)) saveSketchNow(sid)
+    }
+    function onVisibility() { if (document.visibilityState === 'hidden') flush() }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', flush)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', flush)
+      flush()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function updateSketch(updater) {
     const sid = activeSketchIdRef.current
@@ -684,24 +719,17 @@ export default function SketchPage() {
       oppPlayers: buildDefaultOppBench(getDefaultOppCount()),
     }
     const name   = `Sketch ${sketches.length + 1}`
-    const tempId = `local-${Date.now()}`
+    // Real uuid up front (demo mode stays local): a sketch waiting on the
+    // server for its id never saved at all when the signal was weak.
+    const tempId = team?.id ? crypto.randomUUID() : `local-${Date.now()}`
     setSketches(prev => [...prev, { id: tempId, name }])
     setSketchStates(prev => ({ ...prev, [tempId]: blank }))
     setActiveSketchId(tempId)
 
     if (!team?.id) return  // demo mode — keep the sketch local, nothing to persist
-    try {
-      const { data } = await supabase.from('strategy_sketches')
-        .insert({ team_id: team.id, name, ...stateToDb(blank) }).select().single()
-      if (data) {
-        setSketches(prev => prev.map(s => s.id === tempId ? data : s))
-        setSketchStates(prev => {
-          const s = prev[tempId]; const next = { ...prev, [data.id]: s }
-          delete next[tempId]; return next
-        })
-        setActiveSketchId(cur => cur === tempId ? data.id : cur)
-      }
-    } catch { /* silent */ }
+    const { ok } = await saveWithOfflineSupport('strategy_sketches', 'create',
+      { id: tempId, team_id: team.id, name, ...stateToDb(blank) }, 'id', tempId)
+    if (!ok) addToast('Could not save the new sketch — check your connection', 'error')
   }
 
   function commitRename(id) {
@@ -709,7 +737,7 @@ export default function SketchPage() {
     setSketches(prev => prev.map(s => s.id === id ? { ...s, name } : s))
     setEditingTabId(null)
     if (!String(id).startsWith('local-')) {
-      supabase.from('strategy_sketches').update({ name }).eq('id', id)
+      saveWithOfflineSupport('strategy_sketches', 'update', { name }, 'id', id)
     }
   }
 
@@ -720,8 +748,9 @@ export default function SketchPage() {
     setSketches(remaining)
     setSketchStates(prev => { const n = { ...prev }; delete n[id]; return n })
     if (id === activeSketchId) setActiveSketchId(remaining[0].id)
+    clearTimeout(saveTimersRef.current[id]); delete saveTimersRef.current[id]
     if (!String(id).startsWith('local-')) {
-      supabase.from('strategy_sketches').delete().eq('id', id)
+      saveWithOfflineSupport('strategy_sketches', 'delete', null, 'id', id)
     }
   }
 
