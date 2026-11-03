@@ -41,13 +41,14 @@ function MiniTag({ player, badge, isMobile, onDragStart, fromSource, isDragging 
       </span>
       {badge && (
         <span style={{
-          fontSize:   8,
+          fontSize:   9,
           fontWeight: 700,
-          color:      '#fca5a5',
-          background: 'rgba(220,50,50,0.3)',
+          color:      '#fecaca',
+          background: 'rgba(220,50,50,0.35)',
           borderRadius: 3,
-          padding:    '1px 3px',
+          padding:    '1px 4px',
           lineHeight: 1.2,
+          whiteSpace: 'nowrap',
         }}>
           {badge}
         </span>
@@ -78,11 +79,11 @@ function DropSection({ dropAttr, label, players, fromSource, badge, isOver, isMo
     >
       <span style={{
         flexShrink:    0,
-        fontSize:      8,
+        fontSize:      10,
         fontWeight:    700,
-        textTransform: 'uppercase',
-        letterSpacing: '0.12em',
-        color:         isOver ? 'rgba(220,80,80,0.9)' : 'rgba(220,50,50,0.55)',
+        lineHeight:    1.2,
+        textAlign:     'center',
+        color:         isOver ? '#fca5a5' : 'rgba(252,165,165,0.85)',
         transition:    'color 0.12s',
       }}>
         {label}
@@ -102,14 +103,17 @@ function DropSection({ dropAttr, label, players, fromSource, badge, isOver, isMo
 
       {players.length === 0 && (
         <span style={{
-          fontSize:   8,
-          color:      'rgba(220,50,50,0.25)',
-          textAlign:  'center',
-          lineHeight: 1.4,
-          marginTop:  4,
-          padding:    '0 4px',
+          alignSelf:    'stretch',
+          fontSize:     10,
+          color:        'rgba(255,255,255,0.55)',
+          textAlign:    'center',
+          lineHeight:   1.3,
+          marginTop:    2,
+          padding:      '10px 4px',
+          border:       `1.5px dashed ${isOver ? 'rgba(252,165,165,0.9)' : 'rgba(255,255,255,0.28)'}`,
+          borderRadius: 7,
         }}>
-          Drop here
+          Drag a player here
         </span>
       )}
     </div>
@@ -148,10 +152,10 @@ export default function OutPanel({
       {/* OUT ALL section */}
       <DropSection
         dropAttr="out-all"
-        label="OUT"
+        label="Out all game"
         players={outAllPlayers}
         fromSource="outall"
-        badge="ALL"
+        badge="All game"
         isOver={outAllIsOver}
         isMobile={isMobile}
         onDragStart={onDragStart}
@@ -184,10 +188,10 @@ export default function OutPanel({
       {/* OUT Q section */}
       <DropSection
         dropAttr="out-quarter"
-        label={`Q${viewedQuarter}`}
+        label={`Out Q${viewedQuarter} only`}
         players={outQPlayers}
         fromSource="outq"
-        badge={`Q${viewedQuarter}`}
+        badge={`Q${viewedQuarter} only`}
         isOver={outQIsOver}
         isMobile={isMobile}
         onDragStart={onDragStart}
