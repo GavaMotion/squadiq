@@ -1278,7 +1278,7 @@ export default function GameDayPage() {
         border: `1px solid ${issueColor[issuesLevel]}88`, cursor: 'pointer', flexShrink: 0,
         fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}
     >
-      ⚠ {lineupIssues.length}
+      ⚠ {lineupIssues.length} to check
     </button>
   )
 
@@ -1411,7 +1411,6 @@ export default function GameDayPage() {
               ✨ AI
             </button>
           )}
-          {issuesChip}
           <button
             onClick={() => setShowShareSheet(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
@@ -1484,9 +1483,13 @@ export default function GameDayPage() {
           style={{ height: 34, flexShrink: 0, background: '#0d1117', gap: 8 }}
         >
           <ModeSwitch mode="quarters" onChange={handleModeChange} compact />
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
-            planning by quarter
-          </span>
+          {issuesChip ? (
+            <div style={{ marginLeft: 'auto' }}>{issuesChip}</div>
+          ) : (
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+              planning by quarter
+            </span>
+          )}
         </div>
       )}
       {!freeMode && isWide && (
