@@ -378,6 +378,19 @@ export default function GameDayPage() {
       }))
       scheduleSave(planId)
     }
+    // A running game clock is never stopped by one stray tap: always ask.
+    const fs = planStates[planId]?.freeSubs
+    if (fs && isRunning(fs)) {
+      setConfirm({
+        icon: '⏱',
+        title: 'Stop the game clock?',
+        message: `The clock is running (${fmtMs(gameMs(fs, Date.now()))}). Switching to quarter planning stops it. Playing time so far is kept.`,
+        confirmLabel: 'Stop clock & switch',
+        cancelLabel: 'Keep clock running',
+        onConfirm: apply,
+      })
+      return
+    }
     // Explaining the switch is worth one interruption, not one per switch.
     if (ackedToday(MODE_SWITCH_ACK)) { apply(); return }
     setConfirm({
