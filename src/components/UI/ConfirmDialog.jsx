@@ -13,7 +13,9 @@
  *   confirmLabel  text on the confirming button
  *   cancelLabel   text on the dismissing button (default "Cancel")
  *   tone          'accent' (default, cyan) | 'danger' | 'brand'
- *   onConfirm / onCancel
+ *   altLabel      optional second choice; when set, the buttons stack
+ *                 (confirm, alt, cancel) so all three fit on a phone
+ *   onConfirm / onAlt / onCancel
  */
 const TONES = {
   accent: { line: 'rgba(0,184,212,0.35)', soft: 'rgba(0,184,212,0.12)', solid: '#00b8d4', text: '#04222a' },
@@ -23,8 +25,9 @@ const TONES = {
 
 export default function ConfirmDialog({
   icon = '?', title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel',
-  tone = 'accent', onConfirm, onCancel,
+  tone = 'accent', altLabel, onAlt, onConfirm, onCancel,
 }) {
+  const stacked = !!altLabel
   const t = TONES[tone] || TONES.accent
 
   return (
@@ -71,7 +74,7 @@ export default function ConfirmDialog({
           {message}
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginTop: 2 }}>
+        <div style={{ display: 'flex', flexDirection: stacked ? 'column-reverse' : 'row', gap: 10, marginTop: 2 }}>
           <button
             onClick={onCancel}
             style={{
@@ -83,6 +86,18 @@ export default function ConfirmDialog({
           >
             {cancelLabel}
           </button>
+          {stacked && (
+            <button
+              onClick={onAlt}
+              style={{
+                flex: 1, background: t.soft, border: `1px solid ${t.line}`, borderRadius: 10,
+                padding: 12, color: '#fff', fontSize: 14, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {altLabel}
+            </button>
+          )}
           <button
             onClick={onConfirm}
             style={{

@@ -869,14 +869,32 @@ export default function GameDayPage() {
   }
 
   // ─── OUT handlers ─────────────────────────────────────────────
-  // "Out all game" dropped while looking at a later quarter (kid got hurt or
-  // went home mid-game): keep the quarters before it that the kid is already
-  // placed in, so their playing time isn't erased, and mark them out from the
-  // viewed quarter on. Dropped on Q1, or never placed earlier → out all game.
+  // "Out all game" dropped while looking at a later quarter, for a kid already
+  // placed in earlier quarters: ask whether to keep those quarters (out from
+  // here on — got hurt, went home) or clear them (out for the whole game).
+  // Dropped on Q1, or never placed earlier → out all game, no question.
   function handleOutAll(playerId, fromQuarter = 1) {
     const placedEarlier = [1, 2, 3, 4].filter(q =>
       q < fromQuarter && Object.values(quarters?.[q]?.slots || {}).includes(playerId))
     if (placedEarlier.length > 0) {
+      const name = playerMap[playerId]?.name || 'This player'
+      const kept = placedEarlier.map(q => `Q${q}`).join(' and ')
+      setConfirm({
+        icon: '🚪',
+        title: `Take ${name} out?`,
+        message: `${name} is already planned in ${kept}. Not coming at all? Take them off the whole game. Left during the game? Keep ${kept} so their playing time counts.`,
+        // Usually done while planning, before kick-off → whole game is the main choice.
+        confirmLabel: `Out all game (clear ${kept})`,
+        altLabel: `Keep ${kept}, out from Q${fromQuarter} on`,
+        onConfirm: () => outWholeGame(playerId),
+        onAlt: () => outFromQuarter(playerId, fromQuarter, kept, name),
+      })
+      return
+    }
+    outWholeGame(playerId)
+  }
+
+  function outFromQuarter(playerId, fromQuarter, kept, name) {
       updateActivePlanState(state => {
         const newOutAll = new Set(state.outAllIds)
         newOutAll.delete(playerId)
@@ -895,11 +913,10 @@ export default function GameDayPage() {
         return { ...state, outAllIds: newOutAll, outQIds: newOutQ, quarters: newQuarters }
       })
       scheduleSave()
-      const name = playerMap[playerId]?.name || 'Player'
-      const kept = placedEarlier.map(q => `Q${q}`).join(', ')
       addToast(`${name} out from Q${fromQuarter} on · ${kept} kept`, 'info', 3000)
-      return
-    }
+  }
+
+  function outWholeGame(playerId) {
     updateActivePlanState(state => {
       const newOutAll = new Set(state.outAllIds)
       const newOutQ   = { 1: new Set(state.outQIds[1]), 2: new Set(state.outQIds[2]), 3: new Set(state.outQIds[3]), 4: new Set(state.outQIds[4]) }
@@ -1838,6 +1855,7 @@ export default function GameDayPage() {
         <ConfirmDialog
           {...confirm}
           onConfirm={() => { confirm.onConfirm?.(); setConfirm(null) }}
+          onAlt={() => { confirm.onAlt?.(); setConfirm(null) }}
           onCancel={() => setConfirm(null)}
         />
       )}
