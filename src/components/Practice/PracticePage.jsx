@@ -421,6 +421,14 @@ export default function PracticePage() {
   }, [dragState]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleDrillDrop(e, drag) {
+    if (drag.source === 'plan') {
+      // Dropping a plan drill on another one moves it to that spot.
+      isOverPlanRef.current = false
+      const target = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('[data-plan-drill-id]')
+      const toId = target?.getAttribute('data-plan-drill-id')
+      if (toId && toId !== drag.planDrillId) reorderDrills(drag.planDrillId, toId)
+      return
+    }
     if (drag.source !== 'library') {
       isOverPlanRef.current = false
       return
