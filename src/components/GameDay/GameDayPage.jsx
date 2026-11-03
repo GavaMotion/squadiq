@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import theme from '../../theme'
 import { supabase } from '../../lib/supabase'
 import { useTeamPresence } from '../../hooks/useTeamPresence'
-import { useApp, emptyPlan, buildBlankPlanState, planStateToQuarterData, migrateQuarterPlan } from '../../contexts/AppContext'
+import { useApp, emptyPlan, buildBlankPlanState, buildPlanState, planStateToQuarterData, migrateQuarterPlan } from '../../contexts/AppContext'
+import { samePlanContent, writePlanBase } from '../../lib/planMerge'
 import { useToast } from '../UI/Toast'
 import { getContrastTextColor, ackToday, ackedToday, MODE_SWITCH_ACK } from '../../lib/utils'
 import {
@@ -249,6 +250,11 @@ export default function GameDayPage() {
   const outQIds                = activePlanState?.outQIds                || { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set() }
   const outOfPositionByQuarter = activePlanState?.outOfPositionByQuarter || {}
   const [showIssues, setShowIssues] = useState(false)
+  // Earlier versions sheet (see '─── Earlier versions' below)
+  const [historyFor, setHistoryFor] = useState(null)        // planId
+  const [versions,   setVersions]   = useState(null)        // null = loading
+  const [historyErr, setHistoryErr] = useState('')
+  const [myUserId,   setMyUserId]   = useState(null)
 
   // ── Free Subs mode ────────────────────────────────────────────
   // A free-subs plan has no quarters: it keeps one lineup (stored in the Q1
@@ -534,7 +540,8 @@ export default function GameDayPage() {
     }
     setSaving(true)
     try {
-      const { ok, queued } = await saveWithOfflineSupport('saved_game_plans', 'upsert', planData, 'id', planId)
+      const { ok, queued, merged } = await saveWithOfflineSupport('saved_game_plans', 'merge', planData, 'id', planId)
+      if (merged) adoptMergedPlan(planId, merged, planData)
       if (queued) {
         if (!sessionStorage.getItem('offlineQueueNotice')) {
           sessionStorage.setItem('offlineQueueNotice', '1')
@@ -548,6 +555,39 @@ export default function GameDayPage() {
       setSaving(false)
     }
   }, [plans, addToast, saveWithOfflineSupport, teamIdRef, teamRef])
+
+  // The server's plan can hold another coach's edits that this phone just
+  // merged with its own. Show the merged lineup — but only if the coach hasn't
+  // changed anything since that save left; otherwise their newer edit stays on
+  // screen and the next save merges again.
+  function adoptMergedPlan(planId, merged, sent) {
+    if (samePlanContent(merged, sent)) return
+    const current = planStatesRef.current[planId]
+    if (!current) return
+    const nowRow = {
+      quarter_data:   planStateToQuarterData(current),
+      absent_players: [...(current.outAllIds || new Set())],
+      formation_id:   sent.formation_id,
+    }
+    if (!samePlanContent(nowRow, sent)) return
+    const plan = plans.find(p => p.id === planId) || {}
+    const validIds = new Set((players || []).map(p => p.id))
+    const next = buildPlanState({ ...plan, ...merged }, validIds, teamRef.current)
+    setPlanStates(prev => ({ ...prev, [planId]: next }))
+    planStatesRef.current = { ...planStatesRef.current, [planId]: next }
+  }
+  const adoptRef = useRef(adoptMergedPlan)
+  adoptRef.current = adoptMergedPlan
+
+  // Edits queued offline are merged when the signal comes back (AppContext).
+  useEffect(() => {
+    function onMerged(e) {
+      const { id, row, sent } = e.detail || {}
+      if (id && row && sent) adoptRef.current(id, row, sent)
+    }
+    window.addEventListener('squadiq:plan-merged', onMerged)
+    return () => window.removeEventListener('squadiq:plan-merged', onMerged)
+  }, [])
 
   // Saves are debounced by 1.2s, and a phone can kill a backgrounded tab
   // without warning — which during a live game would drop the very sub that
@@ -618,6 +658,7 @@ export default function GameDayPage() {
   // queued and synced later; only a real rejection reaches the coach.
   async function insertPlanRow(row) {
     if (!row.team_id) return true  // demo mode (no team): local only
+    writePlanBase(row.id, row)
     const { ok, queued } = await saveWithOfflineSupport('saved_game_plans', 'create', row, 'id', row.id)
     if (!ok) addToast('Could not save the new plan — check your connection', 'error')
     else if (queued && !sessionStorage.getItem('offlineQueueNotice')) {
@@ -1205,6 +1246,78 @@ export default function GameDayPage() {
 
   const draggingPlayerId = dragState?.playerId || null
 
+  // ─── Earlier versions ─────────────────────────────────────────
+  // The server keeps the plan as it was before each coach's save
+  // (saved_game_plan_versions). A merge can keep the "wrong" choice for a spot
+  // both coaches changed; this is the way back, and restoring is itself
+  // undoable because the plan it replaces becomes a version too.
+  // (state for this lives with the other hooks, above the render guards)
+
+  async function openHistory(planId) {
+    setHistoryFor(planId); setVersions(null); setHistoryErr('')
+    if (!navigator.onLine) { setHistoryErr('Earlier versions need a connection.'); setVersions([]); return }
+    try {
+      const [{ data: u }, { data, error }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from('saved_game_plan_versions')
+          .select('id, quarter_data, absent_players, formation_id, saved_at, replaced_by')
+          .eq('plan_id', planId).order('saved_at', { ascending: false }).limit(40),
+      ])
+      if (error) throw error
+      setMyUserId(u?.user?.id || null)
+      setVersions(data || [])
+    } catch {
+      setHistoryErr('Could not load earlier versions.'); setVersions([])
+    }
+  }
+
+  async function restoreVersion(v) {
+    const planId = historyFor
+    if (!planId) return
+    // Make the restored plan win everywhere: start the merge from the server's
+    // current copy, so every spot that differs counts as this phone's change.
+    try {
+      const { data: server } = await supabase.from('saved_game_plans')
+        .select('quarter_data, absent_players, formation_id').eq('id', planId).maybeSingle()
+      if (server) writePlanBase(planId, server)
+    } catch { /* falls back to the stored base */ }
+    const plan = plans.find(p => p.id === planId) || {}
+    const validIds = new Set((players || []).map(p => p.id))
+    const next = buildPlanState({ ...plan, quarter_data: v.quarter_data, absent_players: v.absent_players || [],
+      formation_id: v.formation_id || plan.formation_id }, validIds, teamRef.current)
+    setPlanStates(prev => ({ ...prev, [planId]: next }))
+    planStatesRef.current = { ...planStatesRef.current, [planId]: next }
+    clearTimeout(saveTimersRef.current[planId])
+    await doSavePlan(planId)
+    setHistoryFor(null)
+    addToast(`Restored the ${formatVersionTime(v.saved_at)} version. The plan it replaced is in Earlier versions too.`, 'success', 4000)
+  }
+
+  function formatVersionTime(iso) {
+    const d = new Date(iso)
+    const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    const today = new Date()
+    const yest = new Date(); yest.setDate(today.getDate() - 1)
+    if (d.toDateString() === today.toDateString()) return `today ${time}`
+    if (d.toDateString() === yest.toDateString()) return `yesterday ${time}`
+    return `${d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}, ${time}`
+  }
+
+  function describeVersion(v) {
+    const qd = v.quarter_data || {}
+    const byId = new Map((players || []).map(p => [p.id, p]))
+    const placed = new Set()
+    for (const q of [1, 2, 3, 4]) {
+      for (const id of Object.values((qd[q] || qd[String(q)] || {}).slots || {})) if (id) placed.add(id)
+    }
+    const absent = (v.absent_players || []).map(id => byId.get(id)?.name?.split(' ')[0]).filter(Boolean)
+    const parts = []
+    if (qd.mode === 'free') parts.push('Sub anytime')
+    parts.push(`${placed.size} player${placed.size === 1 ? '' : 's'} in the lineup`)
+    if (absent.length) parts.push(`absent: ${absent.join(', ')}`)
+    return parts.join(' · ')
+  }
+
   // ─── Lineup check ─────────────────────────────────────────────
   // Recomputed from the plan on every render (no network, works offline), so
   // it is never stale: drag a kid into place and the issue disappears.
@@ -1460,6 +1573,7 @@ export default function GameDayPage() {
         onRename={handleRenamePlan}
         planModes={planModes}
         onToggleMode={handleToggleMode}
+        onHistory={team?.id ? openHistory : null}
       />
 
       {/* ══ Row 3: Free Subs clock, or quarter tabs + field controls ══ */}
@@ -1932,6 +2046,56 @@ export default function GameDayPage() {
             <div style={{ marginTop: 12, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
               This list updates as you move players. Red needs fixing; amber is worth a look.
             </div>
+          </div>
+        </div>
+      )}
+
+      {historyFor && (
+        <div
+          onClick={() => setHistoryFor(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999,
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+        >
+          <div
+            role="dialog" aria-label="Earlier versions"
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0',
+              padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))', width: '100%', maxWidth: 480,
+              maxHeight: '80dvh', overflowY: 'auto' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Earlier versions</div>
+              <button onClick={() => setHistoryFor(null)} aria-label="Close"
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: 20, cursor: 'pointer', padding: 4 }}>✕</button>
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 10 }}>
+              {plans.find(p => p.id === historyFor)?.name || 'This plan'} as it was before later saves. Restoring one replaces the current plan, which is kept here too.
+            </div>
+            {versions === null ? (
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, padding: '8px 0' }}>Loading…</div>
+            ) : historyErr ? (
+              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, padding: '8px 0' }}>{historyErr}</div>
+            ) : versions.length === 0 ? (
+              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, padding: '8px 0' }}>No earlier versions yet. They appear once the plan has been changed.</div>
+            ) : versions.map(v => (
+              <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 4px',
+                borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>
+                    {formatVersionTime(v.saved_at).replace(/^./, c => c.toUpperCase())}
+                    {v.replaced_by && myUserId && v.replaced_by !== myUserId && (
+                      <span style={{ color: 'rgba(255,255,255,0.55)', fontWeight: 400 }}> · then changed by another coach</span>
+                    )}
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 }}>{describeVersion(v)}</div>
+                </div>
+                <button onClick={() => restoreVersion(v)}
+                  style={{ flexShrink: 0, padding: '7px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)',
+                    background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Restore
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ import { getDefaultFormation, getFormationById, getFormationList, getGameLengthM
 import { createFreeSubs, parseFreeSubs, serializeFreeSubs } from '../lib/freeSubs'
 import { getContrastTextColor } from '../lib/utils'
 import { PLANS } from '../version'
+import { mergePlanRows, readPlanBase, writePlanBase } from '../lib/planMerge'
 import {
   isOffline, cacheData, getCachedData, getCachedAge, readCached,
   readPendingChanges, writePendingChanges, applyPendingChanges, isNetworkError,
@@ -236,9 +237,18 @@ export function AppProvider({ userId, children }) {
   const validIdsRef       = useRef(new Set())
   const pendingChangesRef = useRef([])
 
+  // How many edits are waiting to sync — shown in the offline pill so a coach
+  // knows their changes haven't reached the other coach yet.
+  const [pendingCount, setPendingCount] = useState(0)
+  function persistQueue() {
+    writePendingChanges(pendingChangesRef.current)
+    setPendingCount(pendingChangesRef.current.length)
+  }
+
   // Load pending changes from localStorage on mount
   useEffect(() => {
     pendingChangesRef.current = readPendingChanges()
+    setPendingCount(pendingChangesRef.current.length)
   }, [])
 
   // ── Game Day persistent state ─────────────────────────────────
@@ -371,6 +381,18 @@ export function AppProvider({ userId, children }) {
       // coach just made rather than the last state that reached the server.
       let gdAllPlans = applyPendingChanges('saved_game_plans', savedPlans)
 
+      // Remember each plan as the server has it, as the starting point for
+      // working out what this phone changes (src/lib/planMerge.js). A plan with
+      // edits still waiting to sync keeps the base it already had, or those
+      // edits would look like the server's and be lost.
+      {
+        const waiting = new Set(readPendingChanges()
+          .filter(c => c.table === 'saved_game_plans').map(c => c.matchValue))
+        for (const row of savedPlans || []) {
+          if (!waiting.has(row.id)) writePlanBase(row.id, row)
+        }
+      }
+
       // A team with no plan gets one with a client-minted uuid, written through
       // the save-or-queue path. It used to fall back to 'local-plan-1' when
       // offline or when the insert failed on a weak signal, and a `local-`
@@ -385,6 +407,7 @@ export function AppProvider({ userId, children }) {
           absent_players: [],
         }
         gdAllPlans = [firstPlan]
+        writePlanBase(firstPlan.id, firstPlan)
         saveWithOfflineSupport('saved_game_plans', 'create', firstPlan, 'id', firstPlan.id)
       }
 
@@ -774,13 +797,58 @@ export function AppProvider({ userId, children }) {
         // its place would send the server an UPDATE with no row to apply it
         // to — and the change would be lost on sync.
         prior.data = { ...prior.data, ...data }
-        writePendingChanges(pendingChangesRef.current)
+        persistQueue()
         return
       }
     }
 
     pendingChangesRef.current.push({ id: crypto.randomUUID(), table, operation, data, matchField, matchValue })
-    writePendingChanges(pendingChangesRef.current)
+    persistQueue()
+  }
+
+  // A game plan save sends only what this phone changed since it last saw the
+  // server's copy, merged onto whatever is there now — so a second coach's
+  // edits survive. See src/lib/planMerge.js. The write is conditional on the
+  // row not having changed since it was read; if another phone got in
+  // between, read again and re-merge.
+  async function mergeSaveGamePlan(row) {
+    const id = row.id
+    let merged = row
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const { data: server, error } = await supabase.from('saved_game_plans')
+        .select('id, quarter_data, absent_players, formation_id, updated_at')
+        .eq('id', id).maybeSingle()
+      if (error) throw error
+      if (!server) {
+        // Not on the server: created offline (its 'create' already ran or is
+        // folded into this row), or deleted by another coach. Writing it back
+        // loses nothing.
+        const { error: e } = await supabase.from('saved_game_plans').upsert(row, { onConflict: 'id' })
+        if (e) throw e
+        writePlanBase(id, row)
+        return row
+      }
+      const base = readPlanBase(id) || server
+      merged = { ...mergePlanRows(base, row, server) }
+      const now = new Date().toISOString()
+      let q = supabase.from('saved_game_plans')
+        .update({ ...merged, updated_at: now })
+        .eq('id', id)
+      q = server.updated_at ? q.eq('updated_at', server.updated_at) : q.is('updated_at', null)
+      const { data: upd, error: e2 } = await q.select('id')
+      if (e2) throw e2
+      if (upd && upd.length > 0) {
+        writePlanBase(id, merged)
+        return merged
+      }
+    }
+    // Lost the race four times running — write the last merge outright rather
+    // than drop this coach's edits.
+    const { error: e3 } = await supabase.from('saved_game_plans')
+      .update({ ...merged, updated_at: new Date().toISOString() }).eq('id', id)
+    if (e3) throw e3
+    writePlanBase(id, merged)
+    return merged
   }
 
   async function saveWithOfflineSupport(table, operation, data, matchField, matchValue) {
@@ -789,6 +857,10 @@ export function AppProvider({ userId, children }) {
       return { ok: true, queued: true }
     }
     try {
+      if (operation === 'merge') {
+        const merged = await mergeSaveGamePlan(data)
+        return { ok: true, queued: false, merged }
+      }
       let error, result
       const q = supabase.from(table)
       if (operation === 'update')      ({ data: result, error } = await q.update(data).eq(matchField, matchValue).select())
@@ -825,7 +897,13 @@ export function AppProvider({ userId, children }) {
       try {
         let error
         const q = supabase.from(change.table)
-        if (change.operation === 'update')      ({ error } = await q.update(change.data).eq(change.matchField, change.matchValue))
+        if (change.operation === 'merge') {
+          const merged = await mergeSaveGamePlan(change.data)
+          // Tell an open Game Day the server's plan now includes the other
+          // coach's edits too, so the screen shows the merged lineup.
+          window.dispatchEvent(new CustomEvent('squadiq:plan-merged', { detail: { id: change.data.id, row: merged, sent: change.data } }))
+        }
+        else if (change.operation === 'update')     ({ error } = await q.update(change.data).eq(change.matchField, change.matchValue))
         else if (change.operation === 'insert') ({ error } = await q.insert(change.data))
         else if (change.operation === 'upsert') ({ error } = await q.upsert(change.data, { onConflict: 'id' }))
         else if (change.operation === 'create') ({ error } = await q.upsert(change.data, { onConflict: 'id', ignoreDuplicates: true }))
@@ -835,7 +913,7 @@ export function AppProvider({ userId, children }) {
         pendingChangesRef.current = pendingChangesRef.current.filter(c => c.id !== change.id)
       } catch { failed++ }
     }
-    writePendingChanges(pendingChangesRef.current)
+    persistQueue()
     return { synced, failed }
   }, [])
 
@@ -921,7 +999,7 @@ export function AppProvider({ userId, children }) {
     loadError,
     refreshPlayers,
     saveWithOfflineSupport,
-    syncPendingChanges,
+    syncPendingChanges, pendingCount,
 
     // Game Day
     gdPlans,        setGdPlans,

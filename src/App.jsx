@@ -610,7 +610,7 @@ const isInStandalone = window.matchMedia('(display-mode: standalone)').matches
 
 // ── Inner content (rendered inside AppProvider) ──────────────────
 function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
-  const { createTeam, syncPendingChanges, activeTeamId, team, teams, ownedTeams, maxTeams, isTrialExpired, daysLeftInTrial, subscription, setSubscription, claimNewAssistants, dataLoaded } = useApp()
+  const { createTeam, syncPendingChanges, pendingCount, activeTeamId, team, teams, ownedTeams, maxTeams, isTrialExpired, daysLeftInTrial, subscription, setSubscription, claimNewAssistants, dataLoaded } = useApp()
   const { session } = useAuth()
   const user = session?.user
   const { addToast } = useToast()
@@ -786,7 +786,7 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
             width: 6, height: 6, borderRadius: '50%',
             background: '#f4a13b', display: 'inline-block',
           }} />
-          offline
+          offline{pendingCount > 0 ? ` · ${pendingCount} change${pendingCount === 1 ? '' : 's'} waiting` : ''}
         </div>
       )}
       {isWide && <AppHeader onSignOut={onSignOut} />}

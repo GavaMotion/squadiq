@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import theme from '../../theme'
 
 // ── Single tab ────────────────────────────────────────────────────
-function PlanTab({ plan, isActive, isSaving, compact, mode, onSelect, onDuplicate, onRename, onDelete, onToggleMode, tabRef }) {
+function PlanTab({ plan, isActive, isSaving, compact, mode, onSelect, onDuplicate, onRename, onDelete, onToggleMode, onHistory, tabRef }) {
   const isFree = mode === 'free'
   const [menuOpen, setMenuOpen]   = useState(false)
   const [editing, setEditing]     = useState(false)
@@ -184,6 +184,7 @@ function PlanTab({ plan, isActive, isSaving, compact, mode, onSelect, onDuplicat
                 action: () => { onToggleMode(plan.id); setMenuOpen(false) },
                 accent: !isFree,
               },
+              ...(onHistory ? [{ label: 'Earlier versions', action: () => { onHistory(plan.id); setMenuOpen(false) } }] : []),
             ].map(({ label, action, accent }) => (
               <button
                 key={label}
@@ -217,7 +218,7 @@ function PlanTab({ plan, isActive, isSaving, compact, mode, onSelect, onDuplicat
 export default function PlanTabs({
   plans, activePlanId, saving, compact,
   onSelect, onCreate, onDuplicate, onDelete, onRename,
-  planModes = {}, onToggleMode = () => {},
+  planModes = {}, onToggleMode = () => {}, onHistory = null,
   trailing = null,
 }) {
   const tabRefs = useRef({})
@@ -261,6 +262,7 @@ export default function PlanTabs({
             onDelete={onDelete}
             mode={planModes[plan.id]}
             onToggleMode={onToggleMode}
+            onHistory={onHistory}
             tabRef={el => { tabRefs.current[plan.id] = el }}
           />
         ))}
