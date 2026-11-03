@@ -126,7 +126,8 @@ function closeAll(stints, atMs) {
  * on the field freely and the first stints open at 0:00 when the clock starts.
  */
 export function reconcileStints(fs, onFieldIds, atMs) {
-  if (!fs || !fs.kickedOff || fs.ended) return fs.stints
+  if (!fs) return []
+  if (!fs.kickedOff || fs.ended) return fs.stints
   const next = fs.stints.map(s => ({ ...s }))
 
   // Close the stints of anyone who has left the field.

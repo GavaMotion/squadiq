@@ -103,7 +103,7 @@ export default function ConfirmDialog({
             style={{
               flex: 1, background: t.solid, border: 'none', borderRadius: 10,
               padding: 12, color: t.text, fontSize: 14, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
+              cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
             {confirmLabel}

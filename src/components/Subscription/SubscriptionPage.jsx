@@ -6,6 +6,14 @@ import { supabase } from '../../lib/supabase'
 import { PRICE_IDS } from '../../lib/stripe'
 import { useApplePay } from '../../hooks/useApplePay'
 import { isAndroidTWA } from '../../lib/platform'
+import { PLANS } from '../../version'
+
+// Yearly saving, from the real prices rather than a typed-in number. Web and
+// Android: 12 × $4.99 vs $39.99 → 33%. App Store prices differ: 12 × $5.99 vs
+// $59.99 → 17%.
+const pct = (m, y) => Math.round((1 - y / (m * 12)) * 100)
+const YEARLY_SAVING_WEB = pct(PLANS.solo.monthlyPrice, PLANS.solo.yearlyPrice)
+const YEARLY_SAVING_APPLE = pct(5.99, 59.99)
 import TermsOfService from '../Legal/TermsOfService'
 import PrivacyPolicy   from '../Legal/PrivacyPolicy'
 
@@ -219,7 +227,7 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
                 color:      billingPeriod === period ? '#fff'    : 'rgba(255,255,255,0.45)',
               }}
             >
-              {period === 'monthly' ? 'Monthly' : 'Yearly · save 17%'}
+              {period === 'monthly' ? 'Monthly' : `Yearly · save ${useApple ? YEARLY_SAVING_APPLE : YEARLY_SAVING_WEB}%`}
             </button>
           ))}
         </div>
