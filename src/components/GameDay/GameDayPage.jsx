@@ -1512,7 +1512,7 @@ export default function GameDayPage() {
               }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                Q{q}
+                Quarter {q}
                 {quarterIssue(q) && <span aria-label="has issues" style={{ width: 6, height: 6, borderRadius: '50%', background: issueColor[quarterIssue(q)] }} />}
               </span>
             </button>
@@ -1582,10 +1582,11 @@ export default function GameDayPage() {
         }}>
           {/* Vertical quarter strip — mobile only, and only for quarter plans */}
           {!isWide && !freeMode && (
-            <div style={{ width: 28, display: 'flex', flexDirection: 'column', flexShrink: 0, zIndex: 2 }}>
+            <div style={{ width: 32, display: 'flex', flexDirection: 'column', flexShrink: 0, zIndex: 2 }}>
               {[1, 2, 3, 4].map(q => {
                 const active   = q === viewedQuarter
-                const hasData  = Object.values(quarters?.[q]?.slots || {}).some(Boolean)
+                const slotVals = Object.values(quarters?.[q]?.slots || {})
+                const placed   = slotVals.filter(Boolean).length
                 return (
                   <button
                     key={q}
@@ -1607,11 +1608,16 @@ export default function GameDayPage() {
                       borderRight:    active ? 'none' : '1px solid rgba(255,255,255,0.06)',
                     }}
                   >
-                    Q{q}
-                    {quarterIssue(q) ? (
+                    <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.04em', opacity: 0.85, lineHeight: 1 }}>QTR</span>
+                    <span style={{ fontSize: 17, lineHeight: 1 }} aria-label={`Quarter ${q}`}>{q}</span>
+                    {slotVals.length > 0 && (
+                      <span aria-label={`${placed} of ${slotVals.length} positions filled`}
+                        style={{ fontSize: 9, fontWeight: 600, lineHeight: 1, opacity: 0.9, fontVariantNumeric: 'tabular-nums' }}>
+                        {placed}/{slotVals.length}
+                      </span>
+                    )}
+                    {quarterIssue(q) && (
                       <span aria-label="has issues" style={{ width: 6, height: 6, borderRadius: '50%', background: issueColor[quarterIssue(q)] }} />
-                    ) : hasData && !active && (
-                      <span style={{ fontSize: 8, lineHeight: 1, opacity: 0.8 }}>✓</span>
                     )}
                   </button>
                 )
