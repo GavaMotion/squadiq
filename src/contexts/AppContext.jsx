@@ -10,21 +10,54 @@ import {
 } from '../lib/offline'
 
 // ── Game Day helpers — exported so GameDayPage can import them ───
-// Carry players across a formation swap by matching position labels.
+// Carry players across a formation swap. Matching only on identical labels
+// benched everyone whose position didn't exist in the new shape (an LB going
+// into a back three, a CDM into a 4-4-2). Now, in order:
+//   1. same label (LB → LB)
+//   2. same line — defence, midfield, attack — nearest spot on the field
+//   3. any free outfield spot, nearest first
+// The keeper only ever moves to GK, and nobody else is put in goal. Players
+// are only benched when the new shape has fewer spots.
+const POSITION_LINE = {
+  GK: 'gk',
+  LB: 'def', CB: 'def', RB: 'def',
+  CDM: 'mid', CM: 'mid', LM: 'mid', RM: 'mid', CAM: 'mid',
+  LW: 'att', RW: 'att', ST: 'att',
+}
+function slotLine(slot) {
+  return POSITION_LINE[slot?.label] || (slot?.y >= 55 ? 'def' : slot?.y >= 35 ? 'mid' : 'att')
+}
+
 export function migrateQuarterPlan(oldPlan, oldSlots, newSlots) {
-  const pool = {}
-  for (const [slotId, playerId] of Object.entries(oldPlan)) {
+  const placed = []  // { playerId, slot } in old slot order
+  for (const [slotId, playerId] of Object.entries(oldPlan || {})) {
     if (!playerId) continue
     const oldSlot = oldSlots.find(s => s.id === slotId)
-    if (!oldSlot) continue
-    if (!pool[oldSlot.label]) pool[oldSlot.label] = []
-    pool[oldSlot.label].push(playerId)
+    if (oldSlot) placed.push({ playerId, slot: oldSlot })
   }
-  const newPlan = {}
-  for (const slot of newSlots) {
-    const bucket = pool[slot.label]
-    newPlan[slot.id] = (bucket && bucket.length) ? bucket.shift() : null
+  const newPlan = Object.fromEntries(newSlots.map(s => [s.id, null]))
+  const free = new Set(newSlots.map(s => s.id))
+  let waiting = placed
+  const dist = (a, b) => Math.hypot((a.x ?? 50) - (b.x ?? 50), (a.y ?? 50) - (b.y ?? 50))
+
+  // Within each pass, closest pairs are settled first, so a winger takes the
+  // spot on their own side rather than whatever was left over.
+  function pass(fits) {
+    const pairs = []
+    for (const p of waiting) for (const ns of newSlots) {
+      if (free.has(ns.id) && fits(p.slot, ns)) pairs.push({ p, ns, d: dist(p.slot, ns) })
+    }
+    pairs.sort((a, b) => a.d - b.d)
+    const done = new Set()
+    for (const { p, ns } of pairs) {
+      if (done.has(p) || !free.has(ns.id)) continue
+      newPlan[ns.id] = p.playerId; free.delete(ns.id); done.add(p)
+    }
+    waiting = waiting.filter(p => !done.has(p))
   }
+  pass((o, n) => o.label === n.label)
+  pass((o, n) => slotLine(o) !== 'gk' && slotLine(o) === slotLine(n))
+  pass((o, n) => slotLine(o) !== 'gk' && slotLine(n) !== 'gk')
   return newPlan
 }
 
