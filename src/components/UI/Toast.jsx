@@ -17,8 +17,11 @@ export function ToastProvider({ children }) {
     setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
 
+  // A message about the screen you just left is noise on the next one.
+  const clearToasts = useCallback(() => setToasts([]), [])
+
   return (
-    <ToastContext.Provider value={{ addToast }}>
+    <ToastContext.Provider value={{ addToast, clearToasts }}>
       {children}
       <div style={{
         position: 'fixed',

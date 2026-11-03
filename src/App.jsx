@@ -807,8 +807,8 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
       </div>
       <TabBar active={tab} onChange={setTab} compact={!isWide} />
 
-      {/* Install banner — shows once for 6s */}
-      {showInstallBanner && (
+      {/* Install banner — shows once for 6s, never over the Lineup bench */}
+      {showInstallBanner && tab !== 'lineup' && (
         <div style={{
           position: 'fixed', bottom: 70, left: 16, right: 16,
           background: '#1a1a2e', border: '1px solid rgba(0,200,83,0.3)',
@@ -899,7 +899,7 @@ export default function App() {
   if (pathname === '/terms')   return <TermsOfService onBack={() => window.history.back()} />
 
   const { session, signOut } = useAuth()
-  const { addToast } = useToast()
+  const { addToast, clearToasts } = useToast()
   // Remember which tab was open. A reload — an accidental one mid-game, or
   // the phone killing a backgrounded tab — should not land the coach back on
   // My Team while the game is running.
@@ -910,9 +910,10 @@ export default function App() {
     } catch { return 'team' }
   })
   const setTab = useCallback(next => {
+    clearToasts()
     setTabRaw(next)
     try { sessionStorage.setItem('activeTab', next) } catch { /* private mode */ }
-  }, [])
+  }, [clearToasts])
   const [showSplash, setShowSplash] = useState(() => {
     const seen = sessionStorage.getItem('splashShown')
     if (!seen) { sessionStorage.setItem('splashShown', 'true'); return true }
