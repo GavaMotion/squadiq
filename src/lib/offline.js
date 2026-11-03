@@ -117,6 +117,7 @@ export function applyPendingChanges(table, rows) {
       continue
     }
     const i = out.findIndex(r => r.id === id)
+    if (i >= 0 && c.operation === 'create') continue  // create never overwrites
     if (i >= 0) out[i] = { ...out[i], ...c.data }
     else if (c.operation !== 'update') out.push({ id, ...c.data })
   }

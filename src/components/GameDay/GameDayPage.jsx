@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import html2canvas from 'html2canvas'
 import theme from '../../theme'
 import { supabase } from '../../lib/supabase'
-import { isOffline } from '../../lib/offline'
 import { useTeamPresence } from '../../hooks/useTeamPresence'
 import { useApp, emptyPlan, buildBlankPlanState, planStateToQuarterData, migrateQuarterPlan } from '../../contexts/AppContext'
 import { useToast } from '../UI/Toast'
@@ -512,6 +511,7 @@ export default function GameDayPage() {
     const planData = {
       id:             planId,
       team_id:        teamIdRef.current,
+      ...(plan?.name ? { name: plan.name } : {}),
       quarter_data:   planStateToQuarterData(state),
       absent_players: [...(state.outAllIds || new Set())],
       formation_id:   formationId,
@@ -577,12 +577,12 @@ export default function GameDayPage() {
 
     const df        = getDefaultFormation(teamRef.current || '')
     const blankState = buildBlankPlanState(df)
-    // With no signal the insert can't return an id, and a plan left on a
-    // `local-` id is skipped by every later save — the coach would fill in a
-    // lineup that quietly vanishes on reload. Mint the uuid here instead and
-    // queue the row, so the plan is real from the moment it is created.
-    const offline   = isOffline()
-    const tempId    = offline ? crypto.randomUUID() : `local-new-${Date.now()}`
+    // The id is minted here, online or not. Waiting for the server to hand one
+    // back left the plan on a `local-` id whenever the signal was weak but the
+    // phone still said "online" — every later save skipped it, and the lineup
+    // vanished on reload. A uuid from the start goes through the same
+    // save-or-queue path as every other change.
+    const tempId = crypto.randomUUID()
 
     setPlans(prev => [...prev, { id: tempId, name, formation_id: df.id, quarter_data: {}, absent_players: [] }])
     setPlanStates(prev => ({ ...prev, [tempId]: blankState }))
@@ -591,38 +591,25 @@ export default function GameDayPage() {
     setViewedQuarterRaw(1)
     try { localStorage.setItem(`gameday-active-${teamIdRef.current}`, tempId) } catch {}
 
-    if (offline) {
-      await saveWithOfflineSupport('saved_game_plans', 'upsert', {
-        id: tempId, team_id: teamIdRef.current, name,
-        formation_id: df.id,
-        quarter_data: planStateToQuarterData(blankState),
-        absent_players: [],
-      }, 'id', tempId)
-      return
-    }
+    await insertPlanRow({
+      id: tempId, team_id: teamIdRef.current, name,
+      formation_id: df.id,
+      quarter_data: planStateToQuarterData(blankState),
+      absent_players: [],
+    })
+  }
 
-    const { data } = await supabase
-      .from('saved_game_plans')
-      .insert({
-        team_id: teamIdRef.current, name,
-        formation_id: df.id,
-        quarter_data: planStateToQuarterData(blankState),
-        absent_players: [],
-      })
-      .select().single()
-
-    if (data) {
-      setPlans(prev => prev.map(p => p.id === tempId ? data : p))
-      setPlanStates(prev => {
-        const s = prev[tempId]
-        const next = { ...prev, [data.id]: s }
-        delete next[tempId]
-        return next
-      })
-      setActivePlanId(cur => cur === tempId ? data.id : cur)
-      if (activePlanRef.current === tempId) activePlanRef.current = data.id
-      try { localStorage.setItem(`gameday-active-${teamIdRef.current}`, data.id) } catch {}
+  // Create a plan row through the save-or-queue path. A network failure is
+  // queued and synced later; only a real rejection reaches the coach.
+  async function insertPlanRow(row) {
+    if (!row.team_id) return true  // demo mode (no team): local only
+    const { ok, queued } = await saveWithOfflineSupport('saved_game_plans', 'create', row, 'id', row.id)
+    if (!ok) addToast('Could not save the new plan — check your connection', 'error')
+    else if (queued && !sessionStorage.getItem('offlineQueueNotice')) {
+      sessionStorage.setItem('offlineQueueNotice', '1')
+      addToast('Saved locally — will sync to the cloud when back online', 'info', 4000)
     }
+    return ok
   }
 
   // ─── Duplicate plan ───────────────────────────────────────────
@@ -633,8 +620,7 @@ export default function GameDayPage() {
     const orig     = plans.find(p => p.id === planId)
     const srcState = planStatesRef.current[planId]
     const dupName  = `Copy of ${orig?.name || 'Plan'}`
-    const offline  = isOffline()
-    const tempId   = offline ? crypto.randomUUID() : `local-dup-${Date.now()}`
+    const tempId   = crypto.randomUUID()
     const df       = getDefaultFormation(teamRef.current || '')
 
     const dupState = srcState
@@ -658,42 +644,14 @@ export default function GameDayPage() {
     activePlanRef.current = tempId
     setViewedQuarterRaw(1)
 
-    if (offline) {
-      await saveWithOfflineSupport('saved_game_plans', 'upsert', {
-        id: tempId, team_id: teamIdRef.current, name: dupName,
-        formation_id: dupState.quarters?.[1]?.formationId || df.id,
-        quarter_data: planStateToQuarterData(dupState),
-        absent_players: [...(dupState.outAllIds || new Set())],
-      }, 'id', tempId)
-      try { localStorage.setItem(`gameday-active-${teamIdRef.current}`, tempId) } catch {}
-      addToast('Plan duplicated', 'success', 1500)
-      return
-    }
-
-    const { data } = await supabase
-      .from('saved_game_plans')
-      .insert({
-        team_id: teamIdRef.current,
-        name: dupName,
-        formation_id: dupState.quarters?.[1]?.formationId || df.id,
-        quarter_data: planStateToQuarterData(dupState),
-        absent_players: [...(dupState.outAllIds || new Set())],
-      })
-      .select().single()
-
-    if (data) {
-      setPlans(prev => prev.map(p => p.id === tempId ? data : p))
-      setPlanStates(prev => {
-        const s = prev[tempId]
-        const next = { ...prev, [data.id]: s }
-        delete next[tempId]
-        return next
-      })
-      setActivePlanId(cur => cur === tempId ? data.id : cur)
-      if (activePlanRef.current === tempId) activePlanRef.current = data.id
-      try { localStorage.setItem(`gameday-active-${teamIdRef.current}`, data.id) } catch {}
-      addToast('Plan duplicated', 'success', 1500)
-    }
+    try { localStorage.setItem(`gameday-active-${teamIdRef.current}`, tempId) } catch {}
+    const ok = await insertPlanRow({
+      id: tempId, team_id: teamIdRef.current, name: dupName,
+      formation_id: dupState.quarters?.[1]?.formationId || df.id,
+      quarter_data: planStateToQuarterData(dupState),
+      absent_players: [...(dupState.outAllIds || new Set())],
+    })
+    if (ok) addToast('Plan duplicated', 'success', 1500)
   }
 
   // ─── Rename plan ──────────────────────────────────────────────
@@ -712,7 +670,7 @@ export default function GameDayPage() {
 
     if (remaining.length === 0) {
       const df      = getDefaultFormation(teamRef.current || '')
-      const tempId  = isOffline() ? crypto.randomUUID() : `local-new-${Date.now()}`
+      const tempId  = crypto.randomUUID()
       const blank   = buildBlankPlanState(df)
 
       setPlans([{ id: tempId, name: 'Game Plan 1' }])
@@ -721,40 +679,13 @@ export default function GameDayPage() {
       activePlanRef.current = tempId
       setViewedQuarterRaw(1)
 
-      try {
-        if (isOffline()) {
-          await saveWithOfflineSupport('saved_game_plans', 'upsert', {
-            id: tempId, team_id: teamIdRef.current, name: 'Game Plan 1',
-            formation_id: df.id,
-            quarter_data: planStateToQuarterData(blank),
-            absent_players: [],
-          }, 'id', tempId)
-          try { localStorage.setItem(`gameday-active-${teamIdRef.current}`, tempId) } catch {}
-          if (!String(planId).startsWith('local-')) {
-            saveWithOfflineSupport('saved_game_plans', 'delete', null, 'id', planId)
-          }
-          addToast('Plan deleted', 'success', 2000)
-          return
-        }
-        const { data } = await supabase.from('saved_game_plans')
-          .insert({
-            team_id: teamIdRef.current, name: 'Game Plan 1',
-            formation_id: df.id,
-            quarter_data: planStateToQuarterData(blank),
-            absent_players: [],
-          })
-          .select().single()
-        if (data) {
-          setPlans([data])
-          setPlanStates(prev => {
-            const s = prev[tempId]
-            return { [data.id]: s }
-          })
-          setActivePlanId(data.id)
-          activePlanRef.current = data.id
-          try { localStorage.setItem(`gameday-active-${teamIdRef.current}`, data.id) } catch {}
-        }
-      } catch {}
+      try { localStorage.setItem(`gameday-active-${teamIdRef.current}`, tempId) } catch {}
+      await insertPlanRow({
+        id: tempId, team_id: teamIdRef.current, name: 'Game Plan 1',
+        formation_id: df.id,
+        quarter_data: planStateToQuarterData(blank),
+        absent_players: [],
+      })
 
       if (!String(planId).startsWith('local-')) {
         saveWithOfflineSupport('saved_game_plans', 'delete', null, 'id', planId)

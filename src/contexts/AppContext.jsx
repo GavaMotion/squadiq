@@ -338,31 +338,21 @@ export function AppProvider({ userId, children }) {
       // coach just made rather than the last state that reached the server.
       let gdAllPlans = applyPendingChanges('saved_game_plans', savedPlans)
 
-      if (gdAllPlans.length === 0 && !isOffline()) {
-        const baseForm = getDefaultFormation(teamData)
-        const blankState = buildBlankPlanState(baseForm)
-        try {
-          const { data: newPlan } = await supabase
-            .from('saved_game_plans')
-            .insert({
-              team_id: teamData.id, name: 'Game Plan 1',
-              formation_id: baseForm.id,
-              quarter_data: planStateToQuarterData(blankState),
-              absent_players: [],
-            })
-            .select().single()
-          if (newPlan) gdAllPlans = [newPlan]
-        } catch { /* use local fallback below */ }
-      }
+      // A team with no plan gets one with a client-minted uuid, written through
+      // the save-or-queue path. It used to fall back to 'local-plan-1' when
+      // offline or when the insert failed on a weak signal, and a `local-`
+      // plan is skipped by every save: the coach's first lineup never synced.
       if (gdAllPlans.length === 0) {
         const baseForm = getDefaultFormation(teamData)
         const blankState = buildBlankPlanState(baseForm)
-        gdAllPlans = [{
-          id: 'local-plan-1', name: 'Game Plan 1',
+        const firstPlan = {
+          id: crypto.randomUUID(), team_id: teamData.id, name: 'Game Plan 1',
           formation_id: baseForm.id,
           quarter_data: planStateToQuarterData(blankState),
           absent_players: [],
-        }]
+        }
+        gdAllPlans = [firstPlan]
+        saveWithOfflineSupport('saved_game_plans', 'create', firstPlan, 'id', firstPlan.id)
       }
 
       setGdPlans(gdAllPlans)
@@ -391,17 +381,11 @@ export function AppProvider({ userId, children }) {
         allPracticePlans = applyPendingChanges('practice_plans', savedPractice)
       }
 
-      if (allPracticePlans.length === 0 && !isOffline()) {
-        try {
-          const { data: newPlan } = await supabase
-            .from('practice_plans')
-            .insert({ team_id: teamData.id, name: 'Practice 1' })
-            .select().single()
-          if (newPlan) allPracticePlans = [newPlan]
-        } catch { /* silent */ }
-      }
+      // Same as the first game plan: a real uuid, saved or queued.
       if (allPracticePlans.length === 0) {
-        allPracticePlans = [{ id: 'local-plan-1', name: 'Practice 1' }]
+        const firstPractice = { id: crypto.randomUUID(), team_id: teamData.id, name: 'Practice 1' }
+        allPracticePlans = [firstPractice]
+        saveWithOfflineSupport('practice_plans', 'create', firstPractice, 'id', firstPractice.id)
       }
 
       setPracticePlans(allPracticePlans)
@@ -777,6 +761,9 @@ export function AppProvider({ userId, children }) {
       if (operation === 'update')      ({ data: result, error } = await q.update(data).eq(matchField, matchValue).select())
       else if (operation === 'insert') ({ data: result, error } = await q.insert(data).select())
       else if (operation === 'upsert') ({ data: result, error } = await q.upsert(data, { onConflict: 'id' }).select())
+      // 'create' writes a new row with a client-minted id but never overwrites:
+      // if a later save of the same row got there first, that save wins.
+      else if (operation === 'create') ({ data: result, error } = await q.upsert(data, { onConflict: 'id', ignoreDuplicates: true }).select())
       else if (operation === 'delete') ({ data: result, error } = await q.delete().eq(matchField, matchValue))
       if (error) throw error
       return { ok: true, queued: false }
@@ -808,6 +795,7 @@ export function AppProvider({ userId, children }) {
         if (change.operation === 'update')      ({ error } = await q.update(change.data).eq(change.matchField, change.matchValue))
         else if (change.operation === 'insert') ({ error } = await q.insert(change.data))
         else if (change.operation === 'upsert') ({ error } = await q.upsert(change.data, { onConflict: 'id' }))
+        else if (change.operation === 'create') ({ error } = await q.upsert(change.data, { onConflict: 'id', ignoreDuplicates: true }))
         else if (change.operation === 'delete') ({ error } = await q.delete().eq(change.matchField, change.matchValue))
         if (error) throw error
         synced++
