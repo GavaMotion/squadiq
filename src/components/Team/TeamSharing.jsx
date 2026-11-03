@@ -300,7 +300,7 @@ export default function TeamSharing({ team }) {
               }}>
                 {invite.code}
               </div>
-              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
+              <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11 }}>
                 Expires {new Date(invite.expires_at).toLocaleDateString()}
               </div>
             </div>
@@ -350,7 +350,7 @@ export default function TeamSharing({ team }) {
                     }}>
                       {m.display_name || m.user_email || 'Assistant coach'}
                     </div>
-                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
+                    <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11 }}>
                       {dormant
                         ? 'Dormant — no seat on your plan'
                         : m.last_seen_at

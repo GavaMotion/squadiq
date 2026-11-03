@@ -125,7 +125,7 @@ export default function AddPlayerModal({ onSave, onClose, onDelete, initial }) {
                     }}
                   >
                     <span style={{ fontSize: 13, fontWeight: 700 }}>{pos.label}</span>
-                    <span style={{ fontSize: 9, opacity: 0.75, lineHeight: 1.2 }}>{pos.desc}</span>
+                    <span style={{ fontSize: 11, opacity: 0.75, lineHeight: 1.2 }}>{pos.desc}</span>
                   </button>
                 )
               })}

@@ -2010,7 +2010,7 @@ export default function GameDayPage() {
                           fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {player.name}
                         </div>
-                        <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>
+                        <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11 }}>
                           {(player.positions || []).join(', ')}
                         </div>
                       </div>
@@ -2025,7 +2025,7 @@ export default function GameDayPage() {
                                 const cur = prev[player.id] || []
                                 return { ...prev, [player.id]: isOut ? cur.filter(x => x !== q) : [...cur, q] }
                               })} style={{
-                                width: 22, height: 22, borderRadius: 4, fontSize: 8, fontWeight: 700, cursor: 'pointer',
+                                width: 26, height: 26, borderRadius: 4, fontSize: 10, fontWeight: 700, cursor: 'pointer',
                                 border: `1px solid ${isOut ? 'rgba(220,50,50,0.6)' : 'rgba(255,255,255,0.13)'}`,
                                 background: isOut ? 'rgba(220,50,50,0.2)' : 'transparent',
                                 color: isOut ? '#E24B4A' : 'rgba(255,255,255,0.35)',
@@ -2066,7 +2066,7 @@ export default function GameDayPage() {
 
             {/* Absence summary */}
             {(aiAbsentAll.size > 0 || Object.values(aiAbsentQuarters).some(q => q.length > 0)) && (
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center', flexShrink: 0 }}>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', textAlign: 'center', flexShrink: 0 }}>
                 {aiAbsentAll.size > 0 && `${aiAbsentAll.size} player(s) out all game`}
                 {aiAbsentAll.size > 0 && Object.values(aiAbsentQuarters).some(q => q.length > 0) && ' · '}
                 {Object.values(aiAbsentQuarters).filter(q => q.length > 0).length > 0 &&

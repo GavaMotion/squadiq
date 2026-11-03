@@ -373,7 +373,7 @@ export default function StandingsPage({ team }) {
                         cursor: 'pointer',
                       }}
                     >
-                      <td style={{ padding: '7px 4px', color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>{i + 1}</td>
+                      <td style={{ padding: '7px 4px', color: 'rgba(255,255,255,0.55)', textAlign: 'center' }}>{i + 1}</td>
                       <td style={{ padding: '7px 4px', color: isMe ? '#00c853' : '#fff', fontWeight: isMe ? 700 : 400, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {isMe && <span style={{ marginRight: 4 }}>⚽</span>}
                         {row.team}
@@ -389,14 +389,14 @@ export default function StandingsPage({ team }) {
               </tbody>
             </table>
           </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '6px 0' }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', textAlign: 'center', padding: '6px 0' }}>
             Tap a row to highlight your team
           </div>
         </>
       )}
 
       {standingsList.length === 0 && !loading && (
-        <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 13, padding: '50px 0', lineHeight: 2, whiteSpace: 'pre-line' }}>
+        <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.55)', fontSize: 13, padding: '50px 0', lineHeight: 2, whiteSpace: 'pre-line' }}>
           Paste a MatchTrak or TeamSideline{'\n'}standings URL above to get started.
         </div>
       )}

@@ -328,7 +328,7 @@ function TeamSwitcher() {
                         {t.division}
                         {teamRole(t) === 'assistant' && (
                           <span style={{
-                            marginLeft: 6, fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+                            marginLeft: 6, fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
                             border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4,
                             padding: '1px 4px',
                           }}>
@@ -500,15 +500,6 @@ function AppHeader({ onSignOut }) {
   )
 }
 
-// ── Per-tab active colors ─────────────────────────────────────────
-const TAB_COLORS = {
-  team:      '#D4537E',
-  lineup:    '#00c853',
-  sketch:    '#FF6B2B',
-  practice:  '#00BCD4',
-  standings: '#F5C842',
-}
-
 // Tabs that may be restored on reload — anything else falls back to My Team.
 const TAB_IDS = new Set(['team', 'lineup', 'sketch', 'practice', 'standings'])
 
@@ -579,7 +570,8 @@ function TabBar({ active, onChange, compact }) {
     >
       {tabs.map(tab => {
         const isActive = active === tab.id
-        const tabColor = isActive ? (TAB_COLORS[tab.id] || '#00c853') : '#6b7280'
+        // One selected colour for every tab: five colours read as five meanings.
+        const tabColor = isActive ? '#00c853' : '#9ca3af'
         return (
           <button
             key={tab.id}
@@ -596,7 +588,7 @@ function TabBar({ active, onChange, compact }) {
             <span style={{ color: tabColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {tab.renderIcon(tabColor)}
             </span>
-            <span style={{ color: tabColor, fontSize: compact ? 9.5 : 11, fontWeight: 500, lineHeight: 1 }}>
+            <span style={{ color: tabColor, fontSize: 11, fontWeight: isActive ? 700 : 500, lineHeight: 1 }}>
               {tab.label}
             </span>
             {isActive && (
@@ -825,7 +817,7 @@ function AppContent({ tab, setTab, onSignOut, onShowOnboarding }) {
           <button onClick={handleInstallApp} style={{ background: '#00c853', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
             Install
           </button>
-          <button onClick={dismissInstallBanner} aria-label="Dismiss" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 18, cursor: 'pointer', padding: '0 2px', flexShrink: 0 }}>
+          <button onClick={dismissInstallBanner} aria-label="Dismiss" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', fontSize: 18, cursor: 'pointer', padding: '0 2px', flexShrink: 0 }}>
             ✕
           </button>
         </div>

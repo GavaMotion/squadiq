@@ -13,14 +13,14 @@ function QBox({ q, state }) {
   const out     = state === 'out'
   return (
     <div style={{
-      width:          14,
-      height:         13,
+      width:          16,
+      height:         16,
       borderRadius:   3,
       flexShrink:     0,
       display:        'flex',
       alignItems:     'center',
       justifyContent: 'center',
-      fontSize:       9,
+      fontSize:       11,
       fontWeight:     700,
       lineHeight:     1,
       fontVariantNumeric: 'tabular-nums',
@@ -240,7 +240,7 @@ export default function PlayerTagGrid({
           <>
             <div style={{
               padding:       '5px 8px 2px',
-              fontSize:      9,
+              fontSize:      11,
               fontWeight:    700,
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
@@ -275,7 +275,7 @@ export default function PlayerTagGrid({
         }}>
           <div style={{
             padding:       '5px 8px 2px',
-            fontSize:      9,
+            fontSize:      11,
             fontWeight:    700,
             textTransform: 'uppercase',
             letterSpacing: '0.08em',

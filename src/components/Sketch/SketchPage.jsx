@@ -1033,7 +1033,7 @@ export default function SketchPage() {
       </div>
 
       {/* Hint for renaming */}
-      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', paddingLeft: 2, paddingBottom: 4 }}>
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', paddingLeft: 2, paddingBottom: 4 }}>
         Double-tap or long-press a tab to rename
       </div>
 
@@ -1225,7 +1225,7 @@ export default function SketchPage() {
       }}>
         {/* Opp formation dropdown */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, flexShrink: 0 }}>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', lineHeight: 1 }}>Formation</span>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1 }}>Formation</span>
           <select
             value={oppFormationId || ''}
             onChange={e => handleOppFormationChange(e.target.value)}
@@ -1361,7 +1361,7 @@ export default function SketchPage() {
       }}>
         {/* My formation dropdown */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, flexShrink: 0 }}>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', lineHeight: 1 }}>Formation</span>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1 }}>Formation</span>
           <select
             value={myFormationId || ''}
             onChange={e => handleMyFormationChange(e.target.value)}

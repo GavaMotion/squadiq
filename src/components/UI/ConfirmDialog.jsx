@@ -59,8 +59,8 @@ export default function ConfirmDialog({
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{
-              fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
-              textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)',
+              fontSize: 11, fontWeight: 800, letterSpacing: '0.1em',
+              textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)',
             }}>
               SquadIQ
             </div>

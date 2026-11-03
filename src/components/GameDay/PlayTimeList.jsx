@@ -41,7 +41,7 @@ export default function PlayTimeList({ players, freeSubs, nowMs, totalMs, isMobi
   const rowList = (
     <div style={{ overflowY: 'auto', flex: 1, minHeight: 0, WebkitOverflowScrolling: 'touch' }}>
       {rows.length === 0 && (
-        <div style={{ padding: '14px 12px', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+        <div style={{ padding: '14px 12px', fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
           No players available.
         </div>
       )}
@@ -120,7 +120,7 @@ export default function PlayTimeList({ players, freeSubs, nowMs, totalMs, isMobi
           >
             <span style={{
               writingMode: 'vertical-rl', transform: 'rotate(180deg)',
-              fontSize: 9, fontWeight: 800, letterSpacing: '0.12em',
+              fontSize: 11, fontWeight: 800, letterSpacing: '0.12em',
               textTransform: 'uppercase', color: theme.freeAccentBright,
             }}>
               Playing time
@@ -149,12 +149,12 @@ export default function PlayTimeList({ players, freeSubs, nowMs, totalMs, isMobi
                 borderBottom: '1px solid rgba(255,255,255,0.05)',
               }}>
                 <span style={{
-                  fontSize: 9, fontWeight: 800, letterSpacing: '0.09em',
+                  fontSize: 11, fontWeight: 800, letterSpacing: '0.09em',
                   textTransform: 'uppercase', color: theme.freeAccentBright,
                 }}>
                   Playing time
                 </span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
                   spread {spread}
                 </span>
                 <span style={{ flex: 1 }} />
@@ -198,12 +198,12 @@ export default function PlayTimeList({ players, freeSubs, nowMs, totalMs, isMobi
         }}
       >
         <span style={{
-          fontSize: 9, fontWeight: 800, letterSpacing: '0.09em',
+          fontSize: 11, fontWeight: 800, letterSpacing: '0.09em',
           textTransform: 'uppercase', color: theme.freeAccentBright,
         }}>
           Playing time
         </span>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
           least first · spread {spread}
         </span>
         <span style={{ flex: 1 }} />

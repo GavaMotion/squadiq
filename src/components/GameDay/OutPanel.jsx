@@ -41,7 +41,7 @@ function MiniTag({ player, badge, isMobile, onDragStart, fromSource, isDragging 
       </span>
       {badge && (
         <span style={{
-          fontSize:   9,
+          fontSize:   10,
           fontWeight: 700,
           color:      '#fecaca',
           background: 'rgba(220,50,50,0.35)',

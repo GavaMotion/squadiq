@@ -319,7 +319,7 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
             </div>
           </div>
         ) : (
-          <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
+          <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11 }}>
             Secure payment via Stripe · Cancel anytime
           </div>
         )}
@@ -351,7 +351,7 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
             onClick={onClose}
             style={{
               background: 'none', border: 'none',
-              color: 'rgba(255,255,255,0.3)', fontSize: 12, cursor: 'pointer',
+              color: 'rgba(255,255,255,0.55)', fontSize: 12, cursor: 'pointer',
             }}
           >
             Not now
