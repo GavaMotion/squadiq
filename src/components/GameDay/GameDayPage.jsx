@@ -2099,9 +2099,9 @@ export default function GameDayPage() {
               </div>
               <div style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{new Date().toLocaleDateString()}</div>
             </div>
-            {/* 4 quarters */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-              {[1, 2, 3, 4].map(q => {
+            {/* 4 quarters — or, in Free Subs, the one lineup plus minutes so far */}
+            <div style={{ display: 'grid', gridTemplateColumns: freeMode ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 16 }}>
+              {(freeMode ? [1] : [1, 2, 3, 4]).map(q => {
                 const qState     = quarters?.[q]
                 const qFormation = qState?.formation
                 const qSlots     = qState?.slots || {}
@@ -2114,7 +2114,7 @@ export default function GameDayPage() {
                 return (
                   <div key={q} style={{ background: '#13131f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 12 }}>
                     <div style={{ color: '#00c853', fontSize: 14, fontWeight: 700, marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                      Q{q} — {qFormation?.label || 'No formation'}
+                      {freeMode ? 'Free subs — on the field' : `Q${q}`} — {qFormation?.label || 'No formation'}
                     </div>
                     {/* Mini field */}
                     <div style={{ background: '#0a2e14', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, height: 180, position: 'relative', marginBottom: 10, overflow: 'hidden' }}>
@@ -2167,7 +2167,7 @@ export default function GameDayPage() {
                           <div key={p.id} style={{ fontSize: 11, color: 'rgba(220,50,50,0.6)', marginBottom: 3 }}>
                             {p.jersey_number} {p.name}
                             {outAllIds.has(p.id) && (
-                              <span style={{ fontSize: 9, color: 'rgba(220,50,50,0.4)', marginLeft: 4 }}>(all quarters)</span>
+                              <span style={{ fontSize: 9, color: 'rgba(220,50,50,0.4)', marginLeft: 4 }}>{freeMode ? '(all game)' : '(all quarters)'}</span>
                             )}
                           </div>
                         ))}
@@ -2176,6 +2176,25 @@ export default function GameDayPage() {
                   </div>
                 )
               })}
+              {freeMode && (
+                <div style={{ background: '#13131f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 12 }}>
+                  <div style={{ color: '#00c853', fontSize: 14, fontWeight: 700, marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                    Playing time so far — {fmtMs(freeNowMs)} played
+                  </div>
+                  {availableForFreeList
+                    .map(p => ({ p, ms: playedMsFor(freeSubs?.stints || [], p.id, freeNowMs) }))
+                    .sort((a, b) => b.ms - a.ms)
+                    .map(({ p, ms }) => (
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#fff', marginBottom: 4 }}>
+                        <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, flexShrink: 0, color: 'rgba(255,255,255,0.6)' }}>
+                          {p.jersey_number}
+                        </span>
+                        <span style={{ flex: 1 }}>{p.name}</span>
+                        <span style={{ fontFamily: 'monospace', color: 'rgba(255,255,255,0.75)' }}>{fmtMs(ms)}</span>
+                      </div>
+                    ))}
+                </div>
+              )}
             </div>
             {/* AYSO warning — the three-quarter rule does not apply in free subs */}
             {!freeMode && atRisk.length > 0 && (
@@ -2183,7 +2202,7 @@ export default function GameDayPage() {
                 ⚠ Short of fair playing time: {atRisk.map(p => p.name).join(', ')}
               </div>
             )}
-            <div style={{ marginTop: 16, color: 'rgba(255,255,255,0.55)', fontSize: 12, textAlign: 'center' }}>Made with <b style={{ color: '#00c853' }}>SquadIQ</b> · free for coaches at squadiq.online</div>
+            <div style={{ marginTop: 16, color: 'rgba(255,255,255,0.55)', fontSize: 12, textAlign: 'center' }}>Made with <b style={{ color: '#00c853' }}>SquadIQ</b> · squadiq.online</div>
           </div>
         )
       })()}
