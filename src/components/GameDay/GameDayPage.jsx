@@ -856,7 +856,37 @@ export default function GameDayPage() {
   }
 
   // ─── OUT handlers ─────────────────────────────────────────────
-  function handleOutAll(playerId) {
+  // "Out all game" dropped while looking at a later quarter (kid got hurt or
+  // went home mid-game): keep the quarters before it that the kid is already
+  // placed in, so their playing time isn't erased, and mark them out from the
+  // viewed quarter on. Dropped on Q1, or never placed earlier → out all game.
+  function handleOutAll(playerId, fromQuarter = 1) {
+    const placedEarlier = [1, 2, 3, 4].filter(q =>
+      q < fromQuarter && Object.values(quarters?.[q]?.slots || {}).includes(playerId))
+    if (placedEarlier.length > 0) {
+      updateActivePlanState(state => {
+        const newOutAll = new Set(state.outAllIds)
+        newOutAll.delete(playerId)
+        const newOutQ = { 1: new Set(state.outQIds[1]), 2: new Set(state.outQIds[2]), 3: new Set(state.outQIds[3]), 4: new Set(state.outQIds[4]) }
+        const newQuarters = { ...state.quarters }
+        for (const q of [1, 2, 3, 4]) {
+          if (q < fromQuarter) continue
+          const qState = state.quarters[q]
+          const newSlots = { ...qState.slots }
+          for (const [sid, pid] of Object.entries(newSlots)) {
+            if (pid === playerId) newSlots[sid] = null
+          }
+          newQuarters[q] = { ...qState, slots: newSlots }
+          newOutQ[q].add(playerId)
+        }
+        return { ...state, outAllIds: newOutAll, outQIds: newOutQ, quarters: newQuarters }
+      })
+      scheduleSave()
+      const name = playerMap[playerId]?.name || 'Player'
+      const kept = placedEarlier.map(q => `Q${q}`).join(', ')
+      addToast(`${name} out from Q${fromQuarter} on · ${kept} kept`, 'info', 3000)
+      return
+    }
     updateActivePlanState(state => {
       const newOutAll = new Set(state.outAllIds)
       const newOutQ   = { 1: new Set(state.outQIds[1]), 2: new Set(state.outQIds[2]), 3: new Set(state.outQIds[3]), 4: new Set(state.outQIds[4]) }
@@ -982,7 +1012,7 @@ export default function GameDayPage() {
     }
 
     if (dropTarget.type === 'out-all') {
-      handleOutAll(playerId)
+      handleOutAll(playerId, vq)
       return
     }
 
