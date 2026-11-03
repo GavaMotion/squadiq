@@ -206,6 +206,18 @@ export default function GameDayPage() {
       else            triggerShakeRef.current?.(ds.playerId)
     }
 
+    // The phone can take the gesture away (incoming call, notification pull,
+    // system back swipe): pointerup never comes, so the ghost and the lifted
+    // player would stay stuck. Drop nothing, put everything back.
+    function onCancel() {
+      if (!dragRef.current) return
+      if (ghostRef.current) ghostRef.current.style.display = 'none'
+      setDragState(null)
+      dragRef.current = null
+      setHoverSlotId(null)
+      setHoverDrop(null)
+    }
+
     // Bench tags allow vertical panning so the bench can be scrolled, which
     // means the browser would happily scroll underneath an active drag. While
     // one is running, the drag owns the gesture.
@@ -215,10 +227,14 @@ export default function GameDayPage() {
 
     window.addEventListener('pointermove', onMove, { passive: true })
     window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onCancel)
+    window.addEventListener('blur', onCancel)
     window.addEventListener('touchmove', onTouchMove, { passive: false })
     return () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onCancel)
+      window.removeEventListener('blur', onCancel)
       window.removeEventListener('touchmove', onTouchMove)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
