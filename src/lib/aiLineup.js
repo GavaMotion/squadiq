@@ -36,6 +36,14 @@ const SLOT_COMPAT = {
   RF: ['ST', 'RW/LW'],
 }
 
+// True when the kid has positions set and none of them suits this slot.
+// Kids with no positions set are never called out of position.
+export function isOutOfPosition(player, slotLabel) {
+  if (!player || !(player.positions || []).length) return false
+  if (!SLOT_COMPAT[slotLabel]) return false
+  return getRating(player, slotLabel) <= 0
+}
+
 function getRating(player, slotLabel) {
   const ratings   = player.position_ratings || {}
   const positions = player.positions        || []

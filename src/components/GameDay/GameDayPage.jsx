@@ -26,7 +26,7 @@ import PlanTabs from './PlanTabs'
 import PlanBadge from '../UI/PlanBadge'
 import { LineupSkeleton } from '../UI/Skeleton'
 import ConfirmDialog from '../UI/ConfirmDialog'
-import { generateAILineup } from '../../lib/aiLineup'
+import { generateAILineup, isOutOfPosition } from '../../lib/aiLineup'
 import { targetQuarters } from '../../lib/playtime'
 import {
   createFreeSubs, endGame, fmtMs, gameMs, isRunning, pauseAt, pauseClock,
@@ -234,6 +234,7 @@ export default function GameDayPage() {
   const outAllIds              = activePlanState?.outAllIds              || new Set()
   const outQIds                = activePlanState?.outQIds                || { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set() }
   const outOfPositionByQuarter = activePlanState?.outOfPositionByQuarter || {}
+  const [showIssues, setShowIssues] = useState(false)
 
   // ── Free Subs mode ────────────────────────────────────────────
   // A free-subs plan has no quarters: it keeps one lineup (stored in the Q1
@@ -1162,11 +1163,11 @@ export default function GameDayPage() {
 
     setShowAILineup(false)
 
-    if (combinedOutOfPosition.length > 0) {
-      const names = [...new Set(combinedOutOfPosition.map(o => `#${o.jerseyNumber} ${o.playerName}`))]
-      addToast(`⚠ ${names.length === 1 ? names[0] : names.length + ' players'} placed out of position`, 'warning', 5000)
-    } else if (combinedWarnings.length > 0) {
-      addToast(`⚠ ${combinedWarnings[0]}`, 'warning', 4000)
+    // Details live in the ⚠ chip in the header (recomputed from the plan),
+    // so the toast only says whether there is anything to look at.
+    const toCheck = combinedOutOfPosition.length + combinedWarnings.length
+    if (toCheck > 0) {
+      addToast('✨ Lineup ready · tap ⚠ at the top to see what to check', 'warning', 4000)
     } else {
       addToast(
         `✨ Lineup generated for ${quartersToGenerate.length === 4 ? 'all 4 quarters' : `Q${quartersToGenerate[0]}`}`,
@@ -1196,6 +1197,83 @@ export default function GameDayPage() {
   }
 
   const draggingPlayerId = dragState?.playerId || null
+
+  // ─── Lineup check ─────────────────────────────────────────────
+  // Recomputed from the plan on every render (no network, works offline), so
+  // it is never stale: drag a kid into place and the issue disappears.
+  // Each issue: { level: 'red' | 'amber', kind, quarter?, playerId?, text }
+  function computeLineupIssues() {
+    if (freeMode || !quarters) return []
+    const QS = [1, 2, 3, 4]
+    const filledIn = q => Object.values(quarters?.[q]?.slots || {}).filter(Boolean)
+    if (!QS.some(q => filledIn(q).length)) return []
+    const issues = []
+    const byId = Object.fromEntries((players || []).map(p => [p.id, p]))
+    const isOut = (id, q) => outAllIds.has(id) || outQIds[q]?.has(id)
+    const present = (players || []).filter(p => !outAllIds.has(p.id) && !QS.every(q => outQIds[q]?.has(p.id)))
+
+    // Playing time. A kid is only named when below the share the field
+    // allows, so 12 kids in 7v7 don't all show up for something no one can fix.
+    const totalSpots = QS.reduce((n, q) => n + (quarters?.[q]?.formation?.slots?.length || 0), 0)
+    const share = present.length ? Math.floor(totalSpots / present.length) : 0
+    let squeezed = 0
+    present.forEach(p => {
+      const outCount = QS.filter(q => outQIds[q]?.has(p.id)).length
+      const target   = targetQuarters(outCount)
+      const played   = QS.filter(q => filledIn(q).includes(p.id)).length
+      if (played >= target) return
+      if (played === 0 || played < Math.min(target, share)) {
+        issues.push({ level: played === 0 ? 'red' : 'amber', kind: 'time', playerId: p.id,
+          text: played === 0 ? `${p.name} isn't playing any quarter` : `${p.name} plays ${played} of ${target} quarters` })
+      } else squeezed++
+    })
+    if (squeezed) {
+      issues.push({ level: 'amber', kind: 'room',
+        text: `${present.length} kids for ${totalSpots} spots: ${squeezed} can't reach their full quarters` })
+    }
+
+    QS.forEach(q => {
+      const qState = quarters?.[q]
+      const slotsQ = qState?.slots || {}
+      if (!filledIn(q).length) return
+      const onField = new Set(filledIn(q))
+      const spare = present.filter(p => !isOut(p.id, q) && !onField.has(p.id)).length
+      ;(qState?.formation?.slots || []).forEach(slot => {
+        const id = slotsQ[slot.id]
+        if (!id) {
+          issues.push({ level: spare ? 'red' : 'amber', kind: 'empty', quarter: q,
+            text: spare ? `Q${q}: ${slot.label} is empty` : `Q${q}: ${slot.label} is empty (not enough kids)` })
+          return
+        }
+        const kid = byId[id]
+        if (kid && isOutOfPosition(kid, slot.label)) {
+          issues.push({ level: 'amber', kind: 'position', quarter: q, playerId: id,
+            text: `Q${q}: ${kid.name} is playing ${slot.label} (usually ${(kid.positions || []).join('/')})` })
+        }
+      })
+    })
+    const rank = { red: 0, amber: 1 }
+    return issues.sort((a, b) => rank[a.level] - rank[b.level] || (a.quarter || 0) - (b.quarter || 0))
+  }
+  const lineupIssues = computeLineupIssues()
+  const issuesLevel  = lineupIssues.some(i => i.level === 'red') ? 'red' : 'amber'
+  const issueColor   = { red: '#ef4444', amber: '#EF9F27' }
+  const quarterIssue = q => {
+    const qi = lineupIssues.filter(i => i.quarter === q)
+    return qi.length ? (qi.some(i => i.level === 'red') ? 'red' : 'amber') : null
+  }
+  const issuesChip = !freeMode && lineupIssues.length > 0 && (
+    <button
+      onClick={() => setShowIssues(true)}
+      aria-label={`${lineupIssues.length} lineup ${lineupIssues.length === 1 ? 'issue' : 'issues'} to check`}
+      style={{ display: 'flex', alignItems: 'center', gap: 4, height: 28, padding: '0 9px', borderRadius: 14,
+        background: `${issueColor[issuesLevel]}22`, color: issueColor[issuesLevel],
+        border: `1px solid ${issueColor[issuesLevel]}88`, cursor: 'pointer', flexShrink: 0,
+        fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}
+    >
+      ⚠ {lineupIssues.length}
+    </button>
+  )
 
   // ─── Render ───────────────────────────────────────────────────
   return (
@@ -1272,6 +1350,7 @@ export default function GameDayPage() {
               ✨ AI Lineup
             </button>
           )}
+          {issuesChip}
           <button
             onClick={() => setShowShareSheet(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
@@ -1325,6 +1404,7 @@ export default function GameDayPage() {
               ✨ AI
             </button>
           )}
+          {issuesChip}
           <button
             onClick={() => setShowShareSheet(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
@@ -1424,7 +1504,10 @@ export default function GameDayPage() {
                 fontSize:     14,
               }}
             >
-              Q{q}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                Q{q}
+                {quarterIssue(q) && <span aria-label="has issues" style={{ width: 6, height: 6, borderRadius: '50%', background: issueColor[quarterIssue(q)] }} />}
+              </span>
             </button>
           ))}
           <div style={{ width: 1, background: '#1f2937', flexShrink: 0, margin: '10px 0' }} />
@@ -1518,7 +1601,9 @@ export default function GameDayPage() {
                     }}
                   >
                     Q{q}
-                    {hasData && !active && (
+                    {quarterIssue(q) ? (
+                      <span aria-label="has issues" style={{ width: 6, height: 6, borderRadius: '50%', background: issueColor[quarterIssue(q)] }} />
+                    ) : hasData && !active && (
                       <span style={{ fontSize: 8, lineHeight: 1, opacity: 0.8 }}>✓</span>
                     )}
                   </button>
@@ -1555,7 +1640,7 @@ export default function GameDayPage() {
                 draggingPlayerId={draggingPlayerId}
                 hoverSlotId={hoverSlotId}
                 isDragging={draggingPlayerId !== null}
-                outOfPositionPlayerIds={outOfPositionByQuarter[viewedQuarter] || new Set()}
+                outOfPositionPlayerIds={new Set(lineupIssues.filter(i => i.kind === 'position' && i.quarter === viewedQuarter).map(i => i.playerId))}
               />
             )}
           </div>
@@ -1790,6 +1875,50 @@ export default function GameDayPage() {
       )}
 
       {/* AI Lineup modal — single screen */}
+      {showIssues && (
+        <div
+          onClick={() => setShowIssues(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999,
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+        >
+          <div
+            role="dialog" aria-label="Lineup check"
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0',
+              padding: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))', width: '100%', maxWidth: 480,
+              maxHeight: '80dvh', overflowY: 'auto' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Lineup check</div>
+              <button onClick={() => setShowIssues(false)} aria-label="Close"
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: 20, cursor: 'pointer', padding: 4 }}>✕</button>
+            </div>
+            {lineupIssues.length === 0 ? (
+              <div style={{ color: '#00c853', fontSize: 14, padding: '8px 0' }}>✓ Everything looks good</div>
+            ) : lineupIssues.map((issue, i) => {
+              const tappable = !!issue.quarter
+              return (
+                <button
+                  key={i}
+                  disabled={!tappable}
+                  onClick={() => { if (tappable) { setViewedQuarter(issue.quarter); setShowIssues(false) } }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
+                    padding: '11px 4px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    color: 'rgba(255,255,255,0.88)', fontSize: 14, cursor: tappable ? 'pointer' : 'default', fontFamily: 'inherit' }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: issueColor[issue.level] }} />
+                  <span style={{ flex: 1 }}>{issue.text}</span>
+                  {tappable && <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Go ›</span>}
+                </button>
+              )
+            })}
+            <div style={{ marginTop: 12, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+              This list updates as you move players. Red needs fixing; amber is worth a look.
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAILineup && (
         <div
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
