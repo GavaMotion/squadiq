@@ -60,7 +60,7 @@ function SplashScreen({ onDone }) {
     return () => clearTimeout(timerRef.current)
   }, [imageLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const coverSrc = isLandscape ? '/cover_H.png' : '/cover_V.png'
+  const coverSrc = isLandscape ? '/cover_H.webp' : '/cover_V.webp'
 
   return (
     <div style={{

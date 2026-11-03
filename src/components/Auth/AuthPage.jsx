@@ -130,7 +130,7 @@ export default function AuthPage() {
       {/* Blurred background image */}
       <div style={{
         position: 'absolute', inset: 0,
-        backgroundImage: 'url(/cover_V.png)',
+        backgroundImage: 'url(/cover_V.webp)',
         backgroundSize: 'cover', backgroundPosition: 'center',
         filter: 'blur(12px)', transform: 'scale(1.1)', opacity: 0.4,
       }} />
