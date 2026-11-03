@@ -4,23 +4,41 @@ import { playtimeLevel, targetQuarters } from '../../lib/playtime'
 import PlayTimeBar from './PlayTimeBar'
 import { fmtMs, isOnField, playedMsFor } from '../../lib/freeSubs'
 
-// ── Quarter dot ───────────────────────────────────────────────────
-function QDot({ state }) {
+// ── Quarter box ───────────────────────────────────────────────────
+// One numbered box per quarter: filled = playing that quarter, red and
+// struck through = out, empty outline = on the bench. Reviewers read the old
+// unlabelled dots as decoration; a number says "quarter" without a key.
+function QBox({ q, state }) {
+  const playing = state === 'assigned'
+  const out     = state === 'out'
   return (
     <div style={{
-      width:        5,
-      height:       5,
-      borderRadius: '50%',
-      flexShrink:   0,
-      background:   state === 'assigned' ? '#00c853' : 'transparent',
-      border:       `1.5px solid ${
-        state === 'assigned' ? '#00c853' :
-        state === 'out'      ? 'rgba(255,80,80,0.7)' :
-                               'rgba(255,255,255,0.25)'
+      width:          14,
+      height:         13,
+      borderRadius:   3,
+      flexShrink:     0,
+      display:        'flex',
+      alignItems:     'center',
+      justifyContent: 'center',
+      fontSize:       9,
+      fontWeight:     700,
+      lineHeight:     1,
+      fontVariantNumeric: 'tabular-nums',
+      background:     playing ? '#00c853' : 'transparent',
+      color:          playing ? '#04210f' : out ? 'rgba(255,110,110,0.95)' : 'rgba(255,255,255,0.55)',
+      textDecoration: out ? 'line-through' : 'none',
+      border:         `1px solid ${
+        playing ? '#00c853' :
+        out     ? 'rgba(255,90,90,0.8)' :
+                  'rgba(255,255,255,0.3)'
       }`,
-    }} />
+    }}>
+      {q}
+    </div>
   )
 }
+
+const Q_STATE_WORD = { assigned: 'playing', out: 'out', none: 'bench' }
 
 // ── Single draggable player tag ───────────────────────────────────
 function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, target, isMobile, dimmed, onDragStart, isDragging, isShaking, freeSubs }) {
@@ -98,8 +116,9 @@ function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, target, 
           </span>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: 2 }}>
-          {quarterStates.map((st, i) => <QDot key={i} state={st} />)}
+        <div style={{ display: 'flex', gap: 2 }}
+          aria-label={quarterStates.map((st, i) => `Q${i + 1} ${Q_STATE_WORD[st] || 'bench'}`).join(', ')}>
+          {quarterStates.map((st, i) => <QBox key={i} q={i + 1} state={st} />)}
         </div>
       )}
     </div>
