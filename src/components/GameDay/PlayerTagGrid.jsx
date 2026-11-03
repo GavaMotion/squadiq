@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import theme from '../../theme'
-import { playtimeLevel } from '../../lib/playtime'
+import { playtimeLevel, targetQuarters } from '../../lib/playtime'
 import PlayTimeBar from './PlayTimeBar'
 import { fmtMs, isOnField, playedMsFor } from '../../lib/freeSubs'
 
@@ -23,12 +23,12 @@ function QDot({ state }) {
 }
 
 // ── Single draggable player tag ───────────────────────────────────
-function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile, dimmed, onDragStart, isDragging, isShaking, freeSubs }) {
+function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, target, isMobile, dimmed, onDragStart, isDragging, isShaking, freeSubs }) {
   // Free subs has no three-quarter rule to warn about, so the outline just
   // says whether this player is on the field right now.
   const borderColor = freeSubs
     ? (isOnFieldNow ? theme.freeAccent : 'rgba(255,255,255,0.14)')
-    : { ok: '#00c853', near: '#EF9F27', short: '#ef4444' }[playtimeLevel(totalPlanned)]
+    : { ok: '#00c853', near: '#EF9F27', short: '#ef4444' }[playtimeLevel(totalPlanned, target)]
 
   const w = isMobile ? 75 : 84
   const h = freeSubs ? (isMobile ? 74 : 82) : (isMobile ? 62 : 70)
@@ -107,7 +107,7 @@ function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, isMobile
 }
 
 // ── Tag wrap row ──────────────────────────────────────────────────
-function TagRow({ players, getQStates, getTotalPlanned, onFieldSet, isMobile, dimmed, onDragStart, draggingPlayerId, shakingPlayerId, freeSubs }) {
+function TagRow({ players, getQStates, getTotalPlanned, getTarget, onFieldSet, isMobile, dimmed, onDragStart, draggingPlayerId, shakingPlayerId, freeSubs }) {
   return (
     <div style={{
       display:      'flex',
@@ -124,6 +124,7 @@ function TagRow({ players, getQStates, getTotalPlanned, onFieldSet, isMobile, di
           quarterStates={getQStates(player.id)}
           isOnFieldNow={onFieldSet.has(player.id)}
           totalPlanned={getTotalPlanned(player.id)}
+          target={getTarget(player.id)}
           isMobile={isMobile}
           dimmed={dimmed}
           onDragStart={onDragStart}
@@ -157,6 +158,10 @@ export default function PlayerTagGrid({
       if ((outQIds[q] || new Set()).has(pid)) return 'out'
       return Object.values(quarterPlans[q] || {}).some(id => id === pid) ? 'assigned' : 'none'
     })
+  }
+
+  function getTarget(pid) {
+    return targetQuarters([1, 2, 3, 4].filter(q => (outQIds?.[q] || new Set()).has(pid)).length)
   }
 
   function getTotalPlanned(pid) {
@@ -229,6 +234,7 @@ export default function PlayerTagGrid({
               players={activePlayers}
               getQStates={getQuarterStates}
               getTotalPlanned={getTotalPlanned}
+            getTarget={getTarget}
               onFieldSet={onFieldInViewed}
               isMobile={isMobile}
               dimmed={false}
@@ -278,6 +284,7 @@ export default function PlayerTagGrid({
               players={benchPlayers}
               getQStates={getQuarterStates}
               getTotalPlanned={getTotalPlanned}
+            getTarget={getTarget}
               onFieldSet={onFieldInViewed}
               isMobile={isMobile}
               dimmed={true}

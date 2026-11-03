@@ -27,6 +27,7 @@ import PlanBadge from '../UI/PlanBadge'
 import { LineupSkeleton } from '../UI/Skeleton'
 import ConfirmDialog from '../UI/ConfirmDialog'
 import { generateAILineup } from '../../lib/aiLineup'
+import { targetQuarters } from '../../lib/playtime'
 import {
   createFreeSubs, endGame, fmtMs, gameMs, isRunning, pauseAt, pauseClock,
   playedMsFor, reconcileStints, resetClock, resumeGame, startClock,
@@ -84,9 +85,20 @@ export default function GameDayPage() {
   const [aiAbsentAll,      setAiAbsentAll]      = useState(new Set())
   const [aiAbsentQuarters, setAiAbsentQuarters] = useState({})
 
+  // Open the AI Lineup sheet pre-filled with the OUT marks the coach has
+  // already set, so the generator respects them and Apply doesn't erase them.
+  // The sheet is then the single source of truth for who is out.
   function openAILineup() {
-    setAiAbsentAll(new Set())
-    setAiAbsentQuarters({})
+    const st = planStates[activePlanId] || {}
+    setAiAbsentAll(new Set(st.outAllIds || []))
+    const byPlayer = {}
+    for (const q of [1, 2, 3, 4]) {
+      for (const id of st.outQIds?.[q] || []) {
+        if (st.outAllIds?.has?.(id)) continue
+        byPlayer[id] = [...(byPlayer[id] || []), q]
+      }
+    }
+    setAiAbsentQuarters(byPlayer)
     setShowAILineup(true)
   }
 
@@ -1011,7 +1023,9 @@ export default function GameDayPage() {
         if (inField) played++
       }
       // A kid planned for zero quarters is the worst case, so include 0.
-      return played < 3
+      // A kid OUT for any quarter only needs half the game (two quarters).
+      const outCount = [1, 2, 3, 4].filter(q => outQIds[q]?.has(p.id)).length
+      return played < targetQuarters(outCount)
     })
   }
 
@@ -1081,10 +1095,8 @@ export default function GameDayPage() {
       ? [1, 2, 3, 4]
       : [parseInt(aiQuarterMode.replace('Q', '').replace(' only', ''))]
 
-    const allAbsentIds = new Set([
-      ...(planStates[activePlanId]?.outAllIds || []),
-      ...aiAbsentAll,
-    ])
+    // aiAbsentAll was seeded from the plan's OUT-all list when the sheet opened
+    const allAbsentIds = new Set(aiAbsentAll)
 
     // Build a per-quarter formation map so generateAILineup can run all
     // quarters in a SINGLE call — that's what lets rotation track
@@ -1094,6 +1106,15 @@ export default function GameDayPage() {
       const qFormationId = planStates[activePlanId]?.quarters?.[q]?.formationId
       const qFormation   = getFormationById(qFormationId) || formation
       if (qFormation) formationsByQuarter[q] = qFormation
+    }
+
+    // Quarters planned outside the ones being generated still count
+    const priorCounts = {}
+    for (const q of [1, 2, 3, 4]) {
+      if (quartersToGenerate.includes(q)) continue
+      for (const id of Object.values(planStates[activePlanId]?.quarters?.[q]?.slots || {})) {
+        if (id) priorCounts[id] = (priorCounts[id] || 0) + 1
+      }
     }
 
     const {
@@ -1106,6 +1127,7 @@ export default function GameDayPage() {
       absentQuarters:  aiAbsentQuarters,
       formationsByQuarter,
       quarters:        quartersToGenerate,
+      priorCounts,
     })
     markGoodMoment('ai-lineup')
 
@@ -1128,13 +1150,11 @@ export default function GameDayPage() {
         [activePlanId]: {
           ...current,
           quarters: updatedQuarters,
-          outAllIds: new Set([...(current.outAllIds || []), ...aiAbsentAll]),
-          outQIds: {
-            1: new Set(Object.entries(aiAbsentQuarters).filter(([, qs]) => qs.includes(1)).map(([id]) => id)),
-            2: new Set(Object.entries(aiAbsentQuarters).filter(([, qs]) => qs.includes(2)).map(([id]) => id)),
-            3: new Set(Object.entries(aiAbsentQuarters).filter(([, qs]) => qs.includes(3)).map(([id]) => id)),
-            4: new Set(Object.entries(aiAbsentQuarters).filter(([, qs]) => qs.includes(4)).map(([id]) => id)),
-          },
+          outAllIds: new Set(aiAbsentAll),
+          // Built from the player list (not Object.entries) so ids keep their type
+          outQIds: Object.fromEntries([1, 2, 3, 4].map(q => [q, new Set(
+            players.filter(p => !aiAbsentAll.has(p.id) && (aiAbsentQuarters[p.id] || []).includes(q)).map(p => p.id)
+          )])),
           outOfPositionByQuarter,
         },
       }
@@ -2023,7 +2043,7 @@ export default function GameDayPage() {
             {/* AYSO warning — the three-quarter rule does not apply in free subs */}
             {!freeMode && atRisk.length > 0 && (
               <div style={{ marginTop: 16, padding: '10px 14px', background: 'rgba(133,79,11,0.2)', border: '1px solid rgba(239,159,39,0.3)', borderRadius: 8, fontSize: 12, color: '#EF9F27' }}>
-                ⚠ Under 3 quarters: {atRisk.map(p => p.name).join(', ')}
+                ⚠ Short of fair playing time: {atRisk.map(p => p.name).join(', ')}
               </div>
             )}
             <div style={{ marginTop: 16, color: 'rgba(255,255,255,0.55)', fontSize: 12, textAlign: 'center' }}>Made with <b style={{ color: '#00c853' }}>SquadIQ</b> · free for coaches at squadiq.online</div>
