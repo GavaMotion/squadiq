@@ -2,13 +2,13 @@ import { useState } from 'react'
 
 export const POSITIONS = [
   { id: 'GK',    label: 'GK',    desc: 'Goalkeeper' },
-  { id: 'CB',    label: 'CB',    desc: 'Centre Back' },
-  { id: 'RB/LB', label: 'RB/LB', desc: 'Right/Left Back' },
-  { id: 'CDM',   label: 'CDM',   desc: 'Def. Mid' },
-  { id: 'CM',    label: 'CM',    desc: 'Centre Mid' },
-  { id: 'CAM',   label: 'CAM',   desc: 'Att. Mid' },
-  { id: 'RM/LM', label: 'RM/LM', desc: 'Right/Left Mid' },
-  { id: 'RW/LW', label: 'RW/LW', desc: 'Right/Left Wing' },
+  { id: 'CB',    label: 'CB',    desc: 'Center back' },
+  { id: 'RB/LB', label: 'RB/LB', desc: 'Right/left back' },
+  { id: 'CDM',   label: 'CDM',   desc: 'Defensive mid' },
+  { id: 'CM',    label: 'CM',    desc: 'Center mid' },
+  { id: 'CAM',   label: 'CAM',   desc: 'Attacking mid' },
+  { id: 'RM/LM', label: 'RM/LM', desc: 'Right/left mid' },
+  { id: 'RW/LW', label: 'RW/LW', desc: 'Right/left wing' },
   { id: 'ST',    label: 'ST',    desc: 'Striker' },
 ]
 

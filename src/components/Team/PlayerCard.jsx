@@ -1,4 +1,5 @@
 import theme from '../../theme'
+import { positionName } from '../../lib/positions'
 
 // Colors for all current and legacy position values
 const POSITION_STYLES = {
@@ -49,6 +50,7 @@ export default function PlayerCard({ player, onEdit }) {
             return (
               <span
                 key={pos}
+                title={pos}
                 style={{
                   fontSize: 10,
                   fontWeight: 600,
@@ -59,7 +61,7 @@ export default function PlayerCard({ player, onEdit }) {
                   border: `1px solid ${s.border}`,
                 }}
               >
-                {pos}
+                {positionName(pos)}
               </span>
             )
           })}

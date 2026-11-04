@@ -27,6 +27,7 @@ import { LineupSkeleton } from '../UI/Skeleton'
 import ConfirmDialog from '../UI/ConfirmDialog'
 import { generateAILineup, isOutOfPosition } from '../../lib/aiLineup'
 import { targetQuarters, teamRule } from '../../lib/playtime'
+import { positionName, positionWithCode, positionList } from '../../lib/positions'
 import {
   autoStopAtFullTime, createFreeSubs, endGame, fmtMs, gameMs, isRunning, pauseAt, pauseClock,
   playedMsFor, reconcileStints, resetClock, resumeGame, startClock,
@@ -1421,13 +1422,13 @@ export default function GameDayPage() {
         const id = slotsQ[slot.id]
         if (!id) {
           issues.push({ level: spare ? 'red' : 'amber', kind: 'empty', quarter: q,
-            text: spare ? `Q${q}: ${slot.label} is empty` : `Q${q}: ${slot.label} is empty (not enough kids)` })
+            text: spare ? `Q${q}: ${positionWithCode(slot.label)} is empty` : `Q${q}: ${positionWithCode(slot.label)} is empty (not enough kids)` })
           return
         }
         const kid = byId[id]
         if (kid && isOutOfPosition(kid, slot.label)) {
           issues.push({ level: 'amber', kind: 'position', quarter: q, playerId: id,
-            text: `Q${q}: ${kid.name} is playing ${slot.label} (usually ${(kid.positions || []).join('/')})` })
+            text: `Q${q}: ${kid.name} is at ${positionWithCode(slot.label).replace(/^./, c => c.toLowerCase())}, usually ${positionList(kid.positions)}` })
         }
       })
     })
@@ -2276,8 +2277,8 @@ export default function GameDayPage() {
                           fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {player.name}
                         </div>
-                        <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11 }}>
-                          {(player.positions || []).join(', ')}
+                        <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {(player.positions || []).map(positionName).join(', ')}
                         </div>
                       </div>
 
