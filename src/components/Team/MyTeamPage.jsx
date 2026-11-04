@@ -280,12 +280,14 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
         setPlayers(prev => [...prev, row].sort((a, b) => a.jersey_number - b.jersey_number))
         setPlayerCount(prev => prev + 1)
       }
-    } catch (err) {
-      setError(err.message)
-      addToast('Could not add player', 'error')
-    } finally {
+      // Close only once it saved, so a failed save keeps what the coach typed.
       setShowModal(false)
       setEditingPlayer(null)
+    } catch (err) {
+      setError(err.message)
+      addToast(editingPlayer
+        ? 'Could not save this player. Your changes are still in the form, try again.'
+        : 'Could not add this player. What you typed is still in the form, try again.', 'error', 6000)
     }
   }
 

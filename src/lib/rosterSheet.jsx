@@ -112,7 +112,7 @@ export function RosterPrintSheet({ team, players }) {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, fontSize: 10, color: soft }}>
         <span>Referee must sign reverse side.</span>
-        <span>Made with SquadIQ · free for coaches at squadiq.online</span>
+        <span>Made with SquadIQ · squadiq.online</span>
       </div>
     </div>
   )

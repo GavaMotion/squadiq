@@ -1131,7 +1131,7 @@ export default function PracticePage() {
                 </div>
               )
             })}
-            <div style={{ marginTop: 24, color: 'rgba(255,255,255,0.55)', fontSize: 12, textAlign: 'center' }}>Made with <b style={{ color: '#00c853' }}>SquadIQ</b> · free for coaches at squadiq.online</div>
+            <div style={{ marginTop: 24, color: 'rgba(255,255,255,0.55)', fontSize: 12, textAlign: 'center' }}>Made with <b style={{ color: '#00c853' }}>SquadIQ</b> · squadiq.online</div>
           </div>
         )
       })()}

@@ -126,7 +126,7 @@ export function PlayTimeSheet({ team, players, freeSubs, nowMs }) {
         <span>Coach: ______________________</span>
       </div>
       <div style={{ marginTop: 10, fontSize: 10, color: soft, textAlign: 'center' }}>
-        Made with <b style={{ color: primary }}>SquadIQ</b> · fair playing time, free for coaches at squadiq.online
+        Made with <b style={{ color: primary }}>SquadIQ</b> · fair playing time · squadiq.online
       </div>
     </div>
   )
