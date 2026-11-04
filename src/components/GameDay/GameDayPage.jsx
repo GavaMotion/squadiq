@@ -1402,7 +1402,7 @@ export default function GameDayPage() {
       const played   = QS.filter(q => filledIn(q).includes(p.id)).length
       if (played >= target) return
       if (played === 0 || played < Math.min(target, share)) {
-        issues.push({ level: played === 0 ? 'red' : 'amber', kind: 'time', playerId: p.id,
+        issues.push({ level: 'red', kind: 'time', playerId: p.id,
           text: played === 0 ? `${p.name} isn't playing any quarter` : `${p.name} plays ${played} of ${target} quarters` })
       } else squeezed++
     })
@@ -1440,6 +1440,27 @@ export default function GameDayPage() {
   const quarterIssue = q => {
     const qi = lineupIssues.filter(i => i.quarter === q)
     return qi.length ? (qi.some(i => i.level === 'red') ? 'red' : 'amber') : null
+  }
+  // Where a row takes you: its own quarter, or for a kid short of time the
+  // first quarter they sit on the bench (the place to put them in). The kid's
+  // card shakes so the coach can find them.
+  function issueTarget(issue) {
+    if (issue.quarter) return issue.quarter
+    if (!issue.playerId) return null
+    const benchQ = [1, 2, 3, 4].find(q =>
+      !outAllIds.has(issue.playerId) && !outQIds[q]?.has(issue.playerId) &&
+      !Object.values(quarters?.[q]?.slots || {}).includes(issue.playerId))
+    return benchQ || null
+  }
+  function goToIssue(issue) {
+    const q = issueTarget(issue)
+    if (!q) return
+    setViewedQuarter(q)
+    setShowIssues(false)
+    if (issue.playerId) {
+      setTimeout(() => setShakingPlayerId(issue.playerId), 250)
+      setTimeout(() => setShakingPlayerId(null), 1250)
+    }
   }
   const issuesChip = !freeMode && lineupIssues.length > 0 && (
     <button
@@ -2091,24 +2112,33 @@ export default function GameDayPage() {
             {lineupIssues.length === 0 ? (
               <div style={{ color: '#00c853', fontSize: 14, padding: '8px 0' }}>✓ Everything looks good</div>
             ) : lineupIssues.map((issue, i) => {
-              const tappable = !!issue.quarter
+              const target = issueTarget(issue)
+              const tappable = !!target
+              const fix = issue.level === 'red'
               return (
                 <button
                   key={i}
                   disabled={!tappable}
-                  onClick={() => { if (tappable) { setViewedQuarter(issue.quarter); setShowIssues(false) } }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
-                    padding: '11px 4px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  onClick={() => goToIssue(issue)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', minHeight: 48,
+                    padding: '10px 4px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)',
                     color: 'rgba(255,255,255,0.88)', fontSize: 14, cursor: tappable ? 'pointer' : 'default', fontFamily: 'inherit' }}
                 >
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: issueColor[issue.level] }} />
+                  <span style={{ flexShrink: 0, minWidth: 50, textAlign: 'center', fontSize: 11, fontWeight: 700,
+                    letterSpacing: '0.04em', padding: '3px 6px', borderRadius: 6,
+                    color: issueColor[issue.level], background: `${issueColor[issue.level]}22`,
+                    border: `1px solid ${issueColor[issue.level]}88` }}>
+                    {fix ? 'FIX' : 'CHECK'}
+                  </span>
                   <span style={{ flex: 1 }}>{issue.text}</span>
-                  {tappable && <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Go ›</span>}
+                  {tappable && <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, whiteSpace: 'nowrap' }}>Q{target} ›</span>}
                 </button>
               )
             })}
-            <div style={{ marginTop: 12, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
-              This list updates as you move players. Red needs fixing; amber is worth a look.
+            <div style={{ marginTop: 12, fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
+              <b style={{ color: issueColor.red }}>Fix</b> breaks the playing-time rule or leaves a spot empty.{' '}
+              <b style={{ color: issueColor.amber }}>Check</b> is worth a look. Tap a row to go there.
+              This list updates as you move players.
             </div>
           </div>
         </div>
