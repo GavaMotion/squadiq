@@ -190,7 +190,7 @@ function NewPlanModal({ onSave, onCancel }) {
 }
 
 // ── Drill tag ─────────────────────────────────────────────────────
-function DrillTag({ drill, planDrillId, isPlan, isFavorite, onInfo, onFavorite, onRemove, onPointerDown, isDragging }) {
+function DrillTag({ drill, planDrillId, isPlan, isFavorite, onInfo, onFavorite, onRemove, onAdd, onPointerDown, isDragging }) {
   const cat      = drill.category || drill.skill_category || ''
   const color    = tagColor(cat)
   const catMeta  = CATEGORY_META[cat] || { label: cat || 'Drill' }
@@ -210,9 +210,20 @@ function DrillTag({ drill, planDrillId, isPlan, isFavorite, onInfo, onFavorite, 
         opacity: isDragging ? 0.3 : 1,
       }}
     >
-      {/* Line 1: name only — full width */}
-      <div style={{ color: '#fff', fontSize: 12, fontWeight: 600, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', width: '100%', lineHeight: 1.2 }}>
-        {name}
+      {/* Line 1: name (+ an Add button on library drills, so dragging isn't the only way in) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+        <div style={{ color: '#fff', fontSize: 12, fontWeight: 600, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', flex: 1, minWidth: 0, lineHeight: 1.2 }}>
+          {name}
+        </div>
+        {onAdd && (
+          <button type="button" aria-label={`Add ${name} to plan`}
+            onPointerDown={e => { e.stopPropagation() }}
+            onClick={e => { e.stopPropagation(); onAdd() }}
+            style={{ flexShrink: 0, minHeight: 30, minWidth: 30, padding: '0 8px', borderRadius: 8, fontSize: typeof window !== 'undefined' && window.innerWidth < 360 ? 18 : 12, fontWeight: 700, lineHeight: 1,
+              background: 'rgba(0,200,83,0.16)', border: '1px solid rgba(0,200,83,0.7)', color: '#4ade80', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            {typeof window !== 'undefined' && window.innerWidth < 360 ? '+' : '+ Add'}
+          </button>
+        )}
       </div>
       {/* Line 2: dot + category · duration + icons */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -862,7 +873,7 @@ export default function PracticePage() {
                 <div data-drop="plan" style={{ height: '100%', minHeight: 180, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   border: '2px dashed rgba(255,255,255,0.1)', borderRadius: 12 }}>
                   <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', padding: '0 16px' }}>
-                    Drag drills here to build your plan
+                    Tap + Add on a drill, or drag it here
                   </p>
                 </div>
               ) : (
@@ -984,6 +995,7 @@ export default function PracticePage() {
                       isFavorite={favoriteDrillNames.has(drill.name)}
                       onInfo={() => openDetailDrill(drill, 'library')}
                       onFavorite={() => toggleFavorite(drill.name)}
+                      onAdd={activePlanId ? () => { addDrillToPlan(drill); addToast(`Added ${drill.name}`, 'success', 1500) } : null}
                       onPointerDown={e => onDrillPointerDown(e, drill, 'library')}
                       isDragging={dragState?.source === 'library' && dragState?.drill?.id === drill.id}
                       isMobile={isMobile}
