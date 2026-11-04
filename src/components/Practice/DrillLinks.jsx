@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../UI/Toast'
-
-// ── YouTube thumbnail extractor ──────────────────────────────────
-function ytThumb(url) {
-  const m = url.match(/(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]+)/)
-  return m ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : null
-}
+import { youTubeThumb as ytThumb } from '../../lib/youtube'
 
 function isYouTube(url) {
   return /youtube\.com|youtu\.be/.test(url)

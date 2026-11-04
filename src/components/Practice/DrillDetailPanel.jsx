@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { CATEGORY_META, PHASE_META } from '../../lib/drills'
 import DrillLinks from './DrillLinks'
+import { youTubeId, youTubeEmbed, isYouTubeShort } from '../../lib/youtube'
 
 // ── SVG field diagrams ────────────────────────────────────────────
 function Cone({ x, y, size = 7, color = '#f59e0b' }) {
@@ -353,16 +354,10 @@ export default function DrillDetailPanel({ drill, source, teamId, onClose, onAdd
 
   const isYT = url => /youtube\.com|youtu\.be/.test(url)
   const isIG = url => /instagram\.com/.test(url)
-  const ytThumb = url => {
-    const m = url.match(/(?:youtube\.com\/watch\?.*v=|youtu\.be\/)([\w-]+)/)
-    return m ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : null
-  }
-  // Build a URL suitable for embedding inside an in-app player (no external title bar shown)
-  const embedUrl = url => {
-    const m = url.match(/(?:youtube\.com\/watch\?.*v=|youtu\.be\/)([\w-]+)/)
-    if (m) return `https://www.youtube.com/embed/${m[1]}?autoplay=1&rel=0`
-    return url
-  }
+  // Only YouTube plays inside the app; other sites refuse to be framed,
+  // so their links open in the browser instead.
+  const embedUrl = url => youTubeEmbed(url)
+  const isShortVideo = isYouTubeShort(drill.videoUrl)
 
   return (
     <>
@@ -520,7 +515,7 @@ export default function DrillDetailPanel({ drill, source, teamId, onClose, onAdd
 
           {/* Video link */}
           {drill.videoUrl && (() => {
-            const ytId = drill.videoUrl.match(/(?:youtube\.com\/watch\?.*v=|youtu\.be\/)([\w-]+)/)?.[1]
+            const ytId = youTubeId(drill.videoUrl)
             if (ytId) {
               return (
                 <button
@@ -554,7 +549,7 @@ export default function DrillDetailPanel({ drill, source, teamId, onClose, onAdd
             return (
               <button
                 type="button"
-                onClick={() => setVideoOpen(true)}
+                onClick={() => window.open(drill.videoUrl, '_blank', 'noopener,noreferrer')}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10, width: '100%', cursor: 'pointer',
                   padding: '10px 14px', borderRadius: 10,
@@ -583,7 +578,7 @@ export default function DrillDetailPanel({ drill, source, teamId, onClose, onAdd
           })()}
 
           {/* In-app video player overlay — keeps playback inside the app so no external site title is shown */}
-          {videoOpen && (
+          {videoOpen && youTubeId(drill.videoUrl) && (
             <div
               onClick={() => setVideoOpen(false)}
               style={{
@@ -609,13 +604,16 @@ export default function DrillDetailPanel({ drill, source, teamId, onClose, onAdd
               </button>
               <div
                 onClick={e => e.stopPropagation()}
-                style={{ width: '100%', maxWidth: 900, aspectRatio: '16 / 9', borderRadius: 10, overflow: 'hidden', background: '#000' }}
+                style={isShortVideo
+                  ? { height: 'min(80vh, 640px)', maxWidth: '100%', aspectRatio: '9 / 16', borderRadius: 10, overflow: 'hidden', background: '#000' }
+                  : { width: '100%', maxWidth: 900, aspectRatio: '16 / 9', borderRadius: 10, overflow: 'hidden', background: '#000' }}
               >
                 <iframe
                   src={embedUrl(drill.videoUrl)}
                   title="Drill video"
                   style={{ width: '100%', height: '100%', border: 'none' }}
                   allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                  referrerPolicy="strict-origin-when-cross-origin"
                   allowFullScreen
                 />
               </div>

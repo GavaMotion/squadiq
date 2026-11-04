@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useApp } from '../../contexts/AppContext'
 import { CATEGORY_META, CATEGORY_ORDER, DIVISIONS_ORDER } from '../../lib/drills'
+import { youTubeId } from '../../lib/youtube'
 
 const PHASE_OPTIONS = [
   { value: 'warm-up',          label: 'Warm-Up' },
@@ -13,10 +14,7 @@ function isValidUrl(str) {
   try { new URL(str); return true } catch { return false }
 }
 
-function getYouTubeId(url) {
-  const m = url.match(/(?:youtube\.com\/watch\?.*v=|youtu\.be\/)([\w-]+)/)
-  return m ? m[1] : null
-}
+const getYouTubeId = youTubeId
 
 // ── Dynamic list field (coaching points / variations) ─────────────
 function DynamicList({ items, onChange, placeholder }) {
