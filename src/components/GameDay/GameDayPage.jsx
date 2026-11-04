@@ -75,6 +75,11 @@ export default function GameDayPage() {
   const [isWide,          setIsWide]           = useState(
     () => typeof window !== 'undefined' && window.innerWidth >= 768
   )
+  // Narrow phones (iPhone SE, 320–375px) can't fit wordmark + team name +
+  // formation + Auto-fill + Share in one row; the team name was pushed out.
+  const [viewW,           setViewW]            = useState(
+    () => typeof window !== 'undefined' ? window.innerWidth : 1024
+  )
   const [showShareSheet,  setShowShareSheet]  = useState(false)
   const [isExporting,     setIsExporting]     = useState(false)
   const [shakingPlayerId, setShakingPlayerId] = useState(null)
@@ -154,6 +159,7 @@ export default function GameDayPage() {
     function onResize() {
       const w = window.innerWidth
       setIsWide(w >= 768)
+      setViewW(w)
     }
     window.addEventListener('resize', onResize, { passive: true })
     return () => window.removeEventListener('resize', onResize)
@@ -1524,10 +1530,12 @@ export default function GameDayPage() {
           background: 'var(--bg-secondary)',
           borderBottom: '1px solid #1f2937',
         }}>
-          <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 400, flexShrink: 0, letterSpacing: '-0.01em' }}>
-            Squad<span style={{ fontWeight: 700, color: '#00c853' }}>IQ</span>
-          </span>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 0 }}>
+          {viewW >= 400 && (
+            <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 400, flexShrink: 0, letterSpacing: '-0.01em' }}>
+              Squad<span style={{ fontWeight: 700, color: '#00c853' }}>IQ</span>
+            </span>
+          )}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: viewW >= 400 ? 'center' : 'flex-start', gap: 6, minWidth: 0 }}>
             <div style={{
               width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
               background: team?.color_primary || 'var(--team-primary, #1a5c2e)',
@@ -1558,7 +1566,8 @@ export default function GameDayPage() {
           )}
           <button
             onClick={() => setShowShareSheet(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
+            aria-label="Share"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: viewW >= 375 ? '6px 12px' : '6px 8px', borderRadius: 8,
               background: 'none', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', flexShrink: 0 }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1566,7 +1575,7 @@ export default function GameDayPage() {
               <polyline points="16 6 12 2 8 6"/>
               <line x1="12" y1="2" x2="12" y2="15"/>
             </svg>
-            Share
+            {viewW >= 375 && 'Share'}
           </button>
         </div>
       )}
