@@ -28,7 +28,7 @@ import ConfirmDialog from '../UI/ConfirmDialog'
 import { generateAILineup, isOutOfPosition } from '../../lib/aiLineup'
 import { targetQuarters, teamRule } from '../../lib/playtime'
 import {
-  createFreeSubs, endGame, fmtMs, gameMs, isRunning, pauseAt, pauseClock,
+  autoStopAtFullTime, createFreeSubs, endGame, fmtMs, gameMs, isRunning, pauseAt, pauseClock,
   playedMsFor, reconcileStints, resetClock, resumeGame, startClock,
   totalMs as freeTotalMs,
 } from '../../lib/freeSubs'
@@ -316,8 +316,19 @@ export default function GameDayPage() {
   const [confirm,     setConfirm]     = useState(null)
   const [staleClock,  setStaleClock]  = useState(null)
   const staleAskedRef = useRef(new Set())
+
+  // Full time: the clock stops itself (see autoStopAtFullTime). Runs on every
+  // tick and when a plan is opened, so a game left running while the phone
+  // was in a pocket comes back stopped at exactly full time.
   useEffect(() => {
-    if (!freeMode || !freeSubs || !isRunning(freeSubs)) return
+    if (!freeMode || !isRunning(freeSubs) || freeSubs.overtime) return
+    if (!autoStopAtFullTime(freeSubs, Date.now())) return
+    updateFreeSubs(fs => autoStopAtFullTime(fs, Date.now()) || fs)
+  }, [freeMode, freeSubs, clockNow]) // eslint-disable-line
+
+  useEffect(() => {
+    // Only a clock the coach chose to keep running past full time can run away now.
+    if (!freeMode || !freeSubs || !isRunning(freeSubs) || !freeSubs.overtime) return
     const planId = activePlanId
     if (!planId || staleAskedRef.current.has(planId)) return
     const elapsed = gameMs(freeSubs, Date.now())
@@ -382,7 +393,17 @@ export default function GameDayPage() {
       },
     })
   }
-  function handleFreeLength(min) { updateFreeSubs(fs => ({ ...fs, gameLengthMin: min })) }
+  function handleFreeLength(min) {
+    updateFreeSubs(fs => {
+      const next = { ...fs, gameLengthMin: min }
+      // Shortening below the time already played must not cut those minutes:
+      // the coach is right here, so treat it as playing on.
+      if (fs.kickedOff && gameMs(fs, Date.now()) >= freeTotalMs(next)) next.overtime = true
+      // Lengthening after the automatic stop: the game isn't over after all.
+      if (fs.autoStopped && gameMs(fs, Date.now()) < freeTotalMs(next)) next.autoStopped = false
+      return next
+    })
+  }
 
   function enterFreeMode(planId = activePlanId) {
     const mins = getGameLengthMin(teamRef.current?.division || '')
@@ -1630,6 +1651,7 @@ export default function GameDayPage() {
           onLengthChange={handleFreeLength}
           onExitMode={() => exitFreeMode()}
           onResumeGame={handleFreeResume}
+          onKeepPlaying={handleFreeStart}
         />
       )}
       {!freeMode && !isWide && (

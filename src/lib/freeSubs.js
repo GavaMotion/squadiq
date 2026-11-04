@@ -19,6 +19,8 @@ export function createFreeSubs(gameLengthMin) {
     kickedOff:    false,
     ended:        false,
     preEnd:       null,   // snapshot taken at End, so End can be undone
+    overtime:     false,  // coach chose to play past full time; no auto-stop
+    autoStopped:  false,  // the clock stopped itself at full time
     stints:       [],
   }
 }
@@ -42,7 +44,10 @@ export function totalMs(fs) {
 
 export function startClock(fs, now = Date.now()) {
   if (!fs || fs.ended || isRunning(fs)) return fs
-  return { ...fs, runningSince: now, kickedOff: true }
+  // Starting again at or past full time means the coach is playing on
+  // (stoppage time, a longer game), so the clock must not stop itself again.
+  const overtime = fs.overtime || gameMs(fs, now) >= totalMs(fs)
+  return { ...fs, runningSince: now, kickedOff: true, overtime, autoStopped: false }
 }
 
 export function pauseClock(fs, now = Date.now()) {
@@ -106,7 +111,33 @@ export function pauseAt(fs, atMs) {
 
 export function resetClock(fs) {
   if (!fs) return fs
-  return { ...fs, runningSince: null, accumulated: 0, kickedOff: false, ended: false, preEnd: null, stints: [] }
+  return { ...fs, runningSince: null, accumulated: 0, kickedOff: false, ended: false, preEnd: null,
+    overtime: false, autoStopped: false, stints: [] }
+}
+
+/**
+ * Coaches forget the app at the final whistle. A running clock that reaches
+ * full time stops itself there, exactly at full time, even if the phone was
+ * locked or the app closed when it happened: minutes are worked out from the
+ * clock times, so nothing played after full time is ever counted.
+ * Returns null when nothing needs to change.
+ */
+export function autoStopAtFullTime(fs, now = Date.now()) {
+  if (!isRunning(fs) || fs.overtime) return null
+  const total = totalMs(fs)
+  if (gameMs(fs, now) < total) return null
+  // Like a normal Pause: kids still on the field keep their stint open (it
+  // only counts while the clock runs). Closing them, as pauseAt does, made the
+  // page reopen them at once and print an empty "70:00–70:00" stint.
+  return {
+    ...fs,
+    runningSince: null,
+    accumulated:  total,
+    autoStopped:  true,
+    stints: fs.stints
+      .filter(s => s.in < total)
+      .map(s => (s.out !== null && s.out > total ? { ...s, out: total } : s)),
+  }
 }
 
 // ── Stints ───────────────────────────────────────────────────────
@@ -209,6 +240,8 @@ export function serializeFreeSubs(fs) {
     accumulated:   fs.accumulated,
     kickedOff:     !!fs.kickedOff,
     ended:         !!fs.ended,
+    overtime:      !!fs.overtime,
+    autoStopped:   !!fs.autoStopped,
     preEnd:        fs.preEnd
       ? {
           accumulated: fs.preEnd.accumulated,
@@ -228,6 +261,8 @@ export function parseFreeSubs(raw, fallbackLengthMin, validIds) {
     accumulated:  Number(raw.accumulated) || 0,
     kickedOff:    !!raw.kickedOff,
     ended:        !!raw.ended,
+    overtime:     !!raw.overtime,
+    autoStopped:  !!raw.autoStopped,
     preEnd: raw.preEnd
       ? {
           accumulated: Number(raw.preEnd.accumulated) || 0,
