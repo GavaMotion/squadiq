@@ -433,7 +433,11 @@
       .spacer { display: none; }
       .search { min-width: 0; flex: 1 1 100%; }
     }
-  </style>
+    .feedback { margin: 0 0 18px; }
+  .fb-row { border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 10px 12px; margin-top: 8px; background: rgba(255,255,255,.03); }
+  .fb-meta { font-size: 12px; opacity: .6; margin-bottom: 4px; }
+  .fb-msg { white-space: pre-wrap; font-size: 14px; }
+</style>
 </head>
 <body>
   <header>
@@ -452,6 +456,11 @@
   <div class="subtitle">Read-only user dashboard · localhost only</div>
 
   <div class="summary" id="summary"></div>
+
+  <section class="feedback" id="feedback" hidden>
+    <div class="charts-head"><span class="h">Coach feedback</span><span class="note" id="feedback-note"></span></div>
+    <div id="feedback-list"></div>
+  </section>
 
   <section class="charts" id="charts">
     <div class="charts-head">
@@ -879,6 +888,24 @@
     })
   }
 
+  async function loadFeedback() {
+    try {
+      const r = await fetch('/api/feedback')
+      if (!r.ok) throw new Error(await r.text() || ('HTTP ' + r.status))
+      const rows = await r.json()
+      const box = $('feedback')
+      box.hidden = false
+      $('feedback-note').textContent = rows.length ? rows.length + ' note' + (rows.length === 1 ? '' : 's') + ' from the rating card' : 'none yet'
+      $('feedback-list').innerHTML = rows.map(f => `<div class="fb-row">
+          <div class="fb-meta">${escapeHtml(new Date(f.created_at).toLocaleString())} · ${escapeHtml(f.email || f.user_id)} · ${escapeHtml(f.platform || '')} ${escapeHtml(f.app_version || '')}</div>
+          <div class="fb-msg">${escapeHtml(f.message)}</div>
+        </div>`).join('')
+    } catch (e) {
+      $('feedback').hidden = false
+      $('feedback-note').textContent = 'could not load: ' + e.message
+    }
+  }
+
   async function load() {
     errBox.style.display = 'none'
     const refreshBtn = $('refresh')
@@ -889,6 +916,7 @@
       allUsers = await r.json()
       $('last-updated').textContent = 'updated ' + new Date().toLocaleTimeString()
       rerender()
+      loadFeedback()
     } catch (e) {
       errBox.textContent = 'Failed to load users: ' + e.message
       errBox.style.display = 'block'

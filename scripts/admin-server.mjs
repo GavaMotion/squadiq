@@ -337,6 +337,22 @@ const server = createServer(async (req, res) => {
       res.end(JSON.stringify({ mtime: SRC_MTIME }))
       return
     }
+    // Notes coaches sent from the rating card ("Tell us what to improve").
+    if (req.url === '/api/feedback') {
+      const { data, error } = await supabase.from('app_feedback')
+        .select('id, user_id, team_id, message, source, platform, app_version, created_at')
+        .order('created_at', { ascending: false }).limit(200)
+      if (error) throw error
+      const ids = [...new Set((data || []).map(f => f.user_id))]
+      const emails = {}
+      await Promise.all(ids.map(async id => {
+        const { data: u } = await supabase.auth.admin.getUserById(id)
+        emails[id] = u?.user?.email || null
+      }))
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify((data || []).map(f => ({ ...f, email: emails[f.user_id] }))))
+      return
+    }
     if (req.url === '/api/users' || req.url.startsWith('/api/users?')) {
       const users = await loadUsers()
       res.writeHead(200, { 'content-type': 'application/json' })

@@ -27,7 +27,7 @@ function write(v) {
 export function shouldAskForRating() {
   if (!ratingPlatform()) return false
   const s = read()
-  if (s.rated || (s.asks || 0) >= 2) return false
+  if (s.rated || s.feedback || (s.asks || 0) >= 2) return false
   return !s.last || Date.now() - s.last > GAP_MS
 }
 
@@ -49,7 +49,13 @@ export function requestNativeReview() {
   callBridge('requestReview').catch(() => {})
 }
 
-// Android: the card's "Rate SquadIQ" opens the Play listing.
+// A coach who sent us a note is not asked again: they already answered.
+export function markFeedbackSent() {
+  const s = read()
+  write({ ...s, feedback: true })
+}
+
+// Android: the card's "Rate on Google Play" opens the Play listing.
 export function openStoreReview() {
   const s = read()
   write({ ...s, rated: true })
