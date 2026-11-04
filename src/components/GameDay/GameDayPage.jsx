@@ -1077,6 +1077,25 @@ export default function GameDayPage() {
     })
   }
 
+  // Playing-time warnings are for the coach, never for parents: the shared
+  // image carries no warning, so check here and let the coach decide first.
+  function requestShare(format) {
+    const short = freeMode ? [] : getAtRiskPlayers()
+    if (short.length === 0) return shareGameDay(format)
+    setShowShareSheet(false)
+    const names = short.map(p => p.name)
+    const list = names.length === 1 ? names[0]
+      : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1]
+    setConfirm({
+      icon: '⚠',
+      title: 'Below the playing-time rule',
+      message: `${list} ${names.length === 1 ? 'is' : 'are'} planned for less than the rule asks. Parents won't see any warning on the image.`,
+      confirmLabel: 'Share anyway',
+      cancelLabel: 'Fix lineup',
+      onConfirm: () => shareGameDay(format),
+    })
+  }
+
   async function shareGameDay(format) {
     setShowShareSheet(false)
     setIsExporting(true)
@@ -1978,10 +1997,10 @@ export default function GameDayPage() {
           <div style={{ background: '#1a1a2e', border: '1px solid rgba(0,200,83,0.25)', borderRadius: '16px 16px 0 0', padding: '20px 20px 32px', width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 10 }}
             onClick={e => e.stopPropagation()}>
             <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Share Lineup</div>
-            <button onClick={() => shareGameDay('image')} style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(0,200,83,0.12)', border: '1px solid rgba(0,200,83,0.3)', color: '#00c853', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
+            <button onClick={() => requestShare('image')} style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(0,200,83,0.12)', border: '1px solid rgba(0,200,83,0.3)', color: '#00c853', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
               📷 Save as image
             </button>
-            <button onClick={() => shareGameDay('pdf')} style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
+            <button onClick={() => requestShare('pdf')} style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
               📄 Export as PDF
             </button>
             {freeMode && (
@@ -2253,7 +2272,6 @@ export default function GameDayPage() {
       {/* Hidden export layout */}
       {(() => {
         const activePlan = plans.find(p => p.id === activePlanId)
-        const atRisk = getAtRiskPlayers()
         return (
           <div id="gameday-export" style={{ position: 'fixed', left: '-9999px', top: 0, width: 1200, background: '#0d0d1a', padding: 24, fontFamily: 'sans-serif', boxSizing: 'border-box' }}>
             {/* Header */}
@@ -2369,12 +2387,6 @@ export default function GameDayPage() {
                 </div>
               )}
             </div>
-            {/* AYSO warning — the three-quarter rule does not apply in free subs */}
-            {!freeMode && atRisk.length > 0 && (
-              <div style={{ marginTop: 16, padding: '10px 14px', background: 'rgba(133,79,11,0.2)', border: '1px solid rgba(239,159,39,0.3)', borderRadius: 8, fontSize: 12, color: '#EF9F27' }}>
-                ⚠ Short of fair playing time: {atRisk.map(p => p.name).join(', ')}
-              </div>
-            )}
             <div style={{ marginTop: 16, color: 'rgba(255,255,255,0.55)', fontSize: 12, textAlign: 'center' }}>Made with <b style={{ color: '#00c853' }}>SquadIQ</b> · squadiq.online</div>
           </div>
         )
