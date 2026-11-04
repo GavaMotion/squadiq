@@ -1194,23 +1194,23 @@ export default function SketchPage() {
           )}
         </div>
         <button onClick={handleClearArrows} title="Clear all arrows" aria-label="Clear all arrows"
-          style={{ height: isMobile ? 44 : 28, padding: isMobile ? '0 5px' : '0 10px', borderRadius: 6, fontSize: isMobile ? 13 : 11, fontWeight: 600, background: '#7f1d1d', color: '#fff', border: '1px solid #991b1b', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 3 : 6 }}>
+          style={{ height: isMobile ? 44 : 28, padding: isMobile ? '0 5px' : '0 10px', borderRadius: 6, fontSize: isMobile ? 13 : 11, fontWeight: 600, background: '#7f1d1d', color: '#fff', border: '1px solid #991b1b', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 2 : 6 }}>
           <svg width={isMobile ? 16 : 14} height={isMobile ? 16 : 14} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 3">
             <line x1="5" y1="19" x2="17" y2="7" />
             <polyline points="10 7 17 7 17 14" strokeDasharray="0" />
             <line x1="18" y1="18" x2="23" y2="23" strokeDasharray="0" strokeWidth="2.6" />
             <line x1="23" y1="18" x2="18" y2="23" strokeDasharray="0" strokeWidth="2.6" />
           </svg>
-          {isMobile ? <span style={TOOL_CAPTION}>Clear arrows</span> : 'Clear arrows'}
+          {isMobile ? <span style={{ ...TOOL_CAPTION, textAlign: 'center' }}>Clear<br />arrows</span> : 'Clear arrows'}
         </button>
         <button onClick={handleResetPositions} title="Move every player back to the bench" aria-label="Clear field: move every player back to the bench"
-          style={{ height: isMobile ? 44 : 28, padding: isMobile ? '0 5px' : '0 10px', borderRadius: 6, fontSize: isMobile ? 13 : 11, fontWeight: 600, background: '#581c87', color: '#fff', border: '1px solid #6b21a8', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 3 : 6 }}>
+          style={{ height: isMobile ? 44 : 28, padding: isMobile ? '0 5px' : '0 10px', borderRadius: 6, fontSize: isMobile ? 13 : 11, fontWeight: 600, background: '#581c87', color: '#fff', border: '1px solid #6b21a8', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 2 : 6 }}>
           <svg width={isMobile ? 16 : 14} height={isMobile ? 16 : 14} viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="2.6" strokeLinecap="round">
             <circle cx="12" cy="12" r="6" stroke="none" />
             <line x1="18" y1="18" x2="23" y2="23" />
             <line x1="23" y1="18" x2="18" y2="23" />
           </svg>
-          {isMobile ? <span style={TOOL_CAPTION}>Clear field</span> : 'Clear field'}
+          {isMobile ? <span style={{ ...TOOL_CAPTION, textAlign: 'center' }}>Clear<br />field</span> : 'Clear field'}
         </button>
       </div>
 
