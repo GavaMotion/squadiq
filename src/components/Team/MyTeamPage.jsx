@@ -594,6 +594,24 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
                     </button>
                   </div>
                 </form>
+                {teams.length > 0 && (
+                  <div style={{ marginTop: 28, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowDelete(true)}
+                      style={{
+                        width: '100%', minHeight: 44, borderRadius: 10, cursor: 'pointer',
+                        background: 'transparent', border: '1px solid rgba(239,68,68,0.45)',
+                        color: '#f87171', fontSize: 14, fontWeight: 600,
+                      }}
+                    >
+                      Delete this team…
+                    </button>
+                    <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, marginTop: 6, textAlign: 'center' }}>
+                      Removes the roster, plans, sketches and standings for good.
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               /* ── Team banner ── */
@@ -641,7 +659,9 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
                   )}
                 </div>
 
-                {/* Edit + Delete buttons row */}
+                {/* Edit button. Delete lives at the bottom of the edit form, far
+                    from here: side by side, coaches nearly deleted a team
+                    while reaching for Edit. */}
                 <div style={{ display: 'flex', gap: 0, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
                   {!isAssistant && (
                   <button
@@ -650,7 +670,6 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
                       flex: 1, padding: '10px', background: 'none', border: 'none',
                       color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                      borderRight: '1px solid rgba(255,255,255,0.12)',
                     }}
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'none')}
@@ -661,24 +680,6 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
                     </svg>
                     Edit Team
                   </button>
-                  )}
-                  {!isAssistant && teams.length > 0 && (
-                    <button
-                      onClick={() => setShowDelete(true)}
-                      style={{
-                        flex: 1, padding: '10px', background: 'none', border: 'none',
-                        color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.18)'; e.currentTarget.style.color = '#fca5a5' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Delete Team
-                    </button>
                   )}
                 </div>
               </div>
