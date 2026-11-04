@@ -409,10 +409,10 @@ export default function GameDayPage() {
     if (fs && isRunning(fs)) {
       setConfirm({
         icon: '⏱',
-        title: 'Stop the game clock?',
-        message: `The clock is running (${fmtMs(gameMs(fs, Date.now()))}). Switching to quarter planning stops it. Playing time so far is kept.`,
+        title: 'Switch to quarters?',
+        message: `The game clock is running (${fmtMs(gameMs(fs, Date.now()))}). Quarters don't use a clock, so switching stops it. Playing time so far is kept.`,
         confirmLabel: 'Stop clock & switch',
-        cancelLabel: 'Keep clock running',
+        cancelLabel: 'Stay in Sub anytime',
         onConfirm: apply,
       })
       return

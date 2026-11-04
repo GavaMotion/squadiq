@@ -5,6 +5,7 @@ import theme from '../../theme'
 function PlanTab({ plan, isActive, isSaving, compact, mode, onSelect, onDuplicate, onRename, onDelete, onToggleMode, onHistory, tabRef }) {
   const isFree = mode === 'free'
   const [menuOpen, setMenuOpen]   = useState(false)
+  const [menuPos, setMenuPos]     = useState({ top: 0, left: 0 })
   const [editing, setEditing]     = useState(false)
   const [editName, setEditName]   = useState(plan.name)
   const menuRef  = useRef(null)
@@ -146,9 +147,19 @@ function PlanTab({ plan, isActive, isSaving, compact, mode, onSelect, onDuplicat
       {/* ── Three-dot menu (Rename + Duplicate only) ── */}
       <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
         <button
-          onClick={e => { e.stopPropagation(); setMenuOpen(v => !v) }}
+          onClick={e => {
+            e.stopPropagation()
+            // The tab bar scrolls sideways, which clips anything that hangs
+            // below it — so the menu is placed on the screen, not in the bar.
+            const r = e.currentTarget.getBoundingClientRect()
+            setMenuPos({ top: r.bottom + 2, left: Math.max(8, Math.min(r.left, window.innerWidth - 188)) })
+            setMenuOpen(v => !v)
+          }}
+          aria-label="Plan options"
+          aria-expanded={menuOpen}
           style={{
-            width:      22,
+            width:      32,
+            minHeight:  36,
             height:     '100%',
             display:    'flex',
             alignItems: 'center',
@@ -165,14 +176,14 @@ function PlanTab({ plan, isActive, isSaving, compact, mode, onSelect, onDuplicat
 
         {menuOpen && (
           <div style={{
-            position:  'absolute',
-            top:       '100%',
-            left:      0,
-            zIndex:    100,
+            position:  'fixed',
+            top:       menuPos.top,
+            left:      menuPos.left,
+            zIndex:    1000,
             background:'var(--bg-panel)',
             border:    '1px solid var(--border-subtle)',
             borderRadius: 8,
-            minWidth:  140,
+            minWidth:  180,
             boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
             overflow:  'hidden',
           }}>
@@ -189,7 +200,7 @@ function PlanTab({ plan, isActive, isSaving, compact, mode, onSelect, onDuplicat
               <button
                 key={label}
                 onClick={action}
-                style={{ display:'block', width:'100%', padding:'8px 14px', textAlign:'left', fontSize:13, color: accent ? theme.freeAccentBright : '#d1d5db', background:'none', cursor:'pointer' }}
+                style={{ display:'block', width:'100%', padding:'12px 16px', textAlign:'left', fontSize:14, color: accent ? theme.freeAccentBright : '#d1d5db', background:'none', cursor:'pointer' }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#374151')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'none')}
               >
