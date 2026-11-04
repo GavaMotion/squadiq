@@ -32,7 +32,7 @@ const theme = {
   fieldZoneLabelGk:   'rgba(80,50,180,0.25)',
 
   // ─── Game Day — empty position slots ────────────────────
-  slotBorderFwd:    'rgba(230, 27, 0, 0.8)',
+  slotBorderFwd:    'rgba(20,184,166,0.85)',
   slotBorderMid:    'rgba(50,100,220,0.8)',
   slotBorderDef:    'rgba(220,150,50,0.8)',
   slotBorderGk:     'rgba(80,50,180,0.9)',
@@ -40,7 +40,7 @@ const theme = {
   slotText:         'rgba(255,255,255,0.6)',
 
   // ─── Game Day — filled position slot ────────────────────
-  slotFilledFwd:    '#f80e0e',
+  slotFilledFwd:    '#0f9488',   // teal: red is kept for 'below the playing-time rule'
   slotFilledMid:    '#3264dc',
   slotFilledDef:    '#dc9632',
   slotFilledGk:     '#c50e9d',
