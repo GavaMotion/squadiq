@@ -64,7 +64,11 @@ function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, target, 
         justifyContent: 'center',
         gap:            3,
         padding:        '3px 4px',
-        background:     isOnFieldNow
+        // A kid playing the whole game gets a lighter green card, so they
+        // stand apart from three-quarter kids without another outline colour.
+        background:     !freeSubs && totalPlanned >= 4
+          ? 'rgba(0,200,83,0.32)'
+          : isOnFieldNow
           ? (freeSubs ? theme.freeAccentDim : 'rgba(0,200,83,0.15)')
           : 'rgba(255,255,255,0.07)',
         border:         `2px solid ${borderColor}`,

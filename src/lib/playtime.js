@@ -34,5 +34,5 @@ export const PLAYTIME_COLORS = {
   below: '#ef4444',
   half:  '#cbd5e1',
   three: '#00c853',
-  all:   '#c084fc',
+  all:   '#00c853',  // same outline as three; the card fill is lighter instead
 }
