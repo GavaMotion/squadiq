@@ -32,7 +32,7 @@ export function playtimeLevel(totalPlanned, target = 2) {
 
 export const PLAYTIME_COLORS = {
   below: '#ef4444',
-  half:  '#cbd5e1',
+  half:  '#22d3ee',
   three: '#00c853',
   all:   '#00c853',  // same outline as three; the card fill is lighter instead
 }
