@@ -32,7 +32,7 @@ export function playtimeLevel(totalPlanned, target = 2) {
 
 export const PLAYTIME_COLORS = {
   below: '#ef4444',
-  half:  '#60a5fa',
+  half:  '#cbd5e1',
   three: '#00c853',
-  all:   '#22d3ee',
+  all:   '#c084fc',
 }
