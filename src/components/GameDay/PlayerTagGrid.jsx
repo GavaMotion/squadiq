@@ -221,28 +221,12 @@ export default function PlayerTagGrid({
   const activePlayers = sortPlayers(availablePlayers.filter(p => onFieldInViewed.has(p.id)))
   const benchPlayers  = sortPlayers(availablePlayers.filter(p => !onFieldInViewed.has(p.id)))
 
-  return (
-    <div
-      data-drop="bench"
-      style={{
-        minWidth:      0,
-        display:       'flex',
-        flexDirection: 'column',
-        background:    benchIsOver
-          ? (freeSubs ? 'rgba(0,184,212,0.05)' : 'rgba(0,200,83,0.04)')
-          : (freeSubs ? theme.freePanelBg : '#0d1117'),
-        borderTop:     '1px solid rgba(255,255,255,0.06)',
-        transition:    'background 0.15s',
-        ...(fillHeight ? { flex: 1, minHeight: 0 } : {}),
-      }}
-    >
-      <div style={{
-        paddingBottom: 8,
-        ...(fillHeight ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } : {}),
-      }}>
+  // On a phone the field list repeats the pitch just above it and pushed the
+  // bench below the fold — and the bench is what a coach reaches for during
+  // a sub. So phones list the bench first.
+  const benchFirst = !!isMobile
 
-        {/* ── Active quarter players ── */}
-        {activePlayers.length > 0 && (
+  const fieldSection = activePlayers.length > 0 && (
           <>
             <div style={{
               padding:       '5px 8px 2px',
@@ -269,15 +253,16 @@ export default function PlayerTagGrid({
               freeSubs={freeSubs}
             />
           </>
-        )}
+  )
 
-        {/* ── Bench Q[N] section ── */}
+  const benchSection = (
         <div style={{
-          margin:     activePlayers.length > 0 ? '6px 0 0' : 0,
-          borderTop:  activePlayers.length > 0 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+          margin:     !benchFirst && activePlayers.length > 0 ? '6px 0 0' : 0,
+          borderTop:  !benchFirst && activePlayers.length > 0 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+          borderBottom: benchFirst ? '1px solid rgba(255,255,255,0.08)' : 'none',
           background: 'rgba(255,255,255,0.04)',
           minHeight:  40,
-          ...(fillHeight ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } : {}),
+          ...(fillHeight && !benchFirst ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } : { flexShrink: 0 }),
         }}>
           <div style={{
             padding:       '5px 8px 2px',
@@ -292,7 +277,7 @@ export default function PlayerTagGrid({
             {freeSubs ? 'BENCH' : `BENCH Q${viewedQuarter}`} · {benchPlayers.length}
           </div>
           {/* Spacer pushes bench tags to the bottom edge of the pane */}
-          {fillHeight && <div style={{ flex: 1, minHeight: 0 }} />}
+          {fillHeight && !benchFirst && <div style={{ flex: 1, minHeight: 0 }} />}
           {benchPlayers.length === 0 ? (
             <p style={{
               fontSize:  11,
@@ -320,7 +305,29 @@ export default function PlayerTagGrid({
             />
           )}
         </div>
+  )
 
+  return (
+    <div
+      data-drop="bench"
+      style={{
+        minWidth:      0,
+        display:       'flex',
+        flexDirection: 'column',
+        background:    benchIsOver
+          ? (freeSubs ? 'rgba(0,184,212,0.05)' : 'rgba(0,200,83,0.04)')
+          : (freeSubs ? theme.freePanelBg : '#0d1117'),
+        borderTop:     '1px solid rgba(255,255,255,0.06)',
+        transition:    'background 0.15s',
+        ...(fillHeight ? { flex: 1, minHeight: 0 } : {}),
+      }}
+    >
+      <div style={{
+        paddingBottom: 8,
+        ...(fillHeight ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } : {}),
+      }}>
+
+        {benchFirst ? <>{benchSection}{fieldSection}</> : <>{fieldSection}{benchSection}</>}
       </div>
     </div>
   )
