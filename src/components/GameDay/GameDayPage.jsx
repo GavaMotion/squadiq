@@ -2150,7 +2150,7 @@ export default function GameDayPage() {
           onClick={() => setShowAILineup(false)}
         >
           <div
-            style={{ background: '#1a1a2e', border: '1px solid rgba(123,63,168,0.3)',
+            style={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: '20px 20px 0 0', padding: 20, width: '100%', maxWidth: 480,
               display: 'flex', flexDirection: 'column', gap: 14,
               maxHeight: '90dvh', overflowY: 'auto' }}
@@ -2167,6 +2167,9 @@ export default function GameDayPage() {
                 ✕
               </button>
             </div>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 1.4, marginTop: -6, flexShrink: 0 }}>
+              Fills the lineup fairly. You can still move kids afterwards.
+            </div>
 
             {/* Quarter selector */}
             <div style={{ flexShrink: 0 }}>
@@ -2176,10 +2179,10 @@ export default function GameDayPage() {
               <div style={{ display: 'flex', gap: 6 }}>
                 {['All 4', 'Q1 only', 'Q2 only', 'Q3 only', 'Q4 only'].map(opt => (
                   <button key={opt} onClick={() => setAIQuarterMode(opt)} style={{
-                    flex: 1, padding: '7px 2px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                    border: `1px solid ${aiQuarterMode === opt ? 'rgba(123,63,168,0.7)' : 'rgba(255,255,255,0.1)'}`,
-                    background: aiQuarterMode === opt ? 'rgba(123,63,168,0.25)' : 'rgba(255,255,255,0.03)',
-                    color: aiQuarterMode === opt ? '#fff' : 'rgba(255,255,255,0.4)',
+                    flex: 1, minHeight: 36, padding: '6px 2px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    border: `1px solid ${aiQuarterMode === opt ? 'rgba(0,200,83,0.75)' : 'rgba(255,255,255,0.12)'}`,
+                    background: aiQuarterMode === opt ? 'rgba(0,200,83,0.18)' : 'rgba(255,255,255,0.03)',
+                    color: aiQuarterMode === opt ? '#fff' : 'rgba(255,255,255,0.6)',
                   }}>
                     {opt}
                   </button>
@@ -2190,7 +2193,12 @@ export default function GameDayPage() {
             {/* Player availability */}
             <div style={{ flexShrink: 0 }}>
               <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
-                Player Availability
+                Who's missing?
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 1.4, marginTop: -4, marginBottom: 8 }}>
+                {aiQuarterMode === 'All 4'
+                  ? <>Tap a quarter a kid will <b style={{ color: '#f87171' }}>miss</b>, or <b>Absent?</b> if they're not coming.</>
+                  : <>Tap <b>Absent?</b> for kids who aren't coming.</>}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {players.map(player => {
@@ -2201,7 +2209,7 @@ export default function GameDayPage() {
                       background: isAbsentAll ? 'rgba(220,50,50,0.08)' : 'rgba(255,255,255,0.03)',
                       border: `1px solid ${isAbsentAll ? 'rgba(220,50,50,0.25)' : 'rgba(255,255,255,0.07)'}`,
                       borderRadius: 10, padding: '8px 10px',
-                      display: 'flex', alignItems: 'center', gap: 8,
+                      display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
                     }}>
                       <div style={{
                         width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
@@ -2221,28 +2229,6 @@ export default function GameDayPage() {
                         </div>
                       </div>
 
-                      {/* Per-quarter absence buttons — All 4 mode only */}
-                      {!isAbsentAll && aiQuarterMode === 'All 4' && (
-                        <div style={{ display: 'flex', gap: 3 }}>
-                          {[1, 2, 3, 4].map(q => {
-                            const isOut = absentQs.includes(q)
-                            return (
-                              <button key={q} onClick={() => setAiAbsentQuarters(prev => {
-                                const cur = prev[player.id] || []
-                                return { ...prev, [player.id]: isOut ? cur.filter(x => x !== q) : [...cur, q] }
-                              })} style={{
-                                width: 26, height: 26, borderRadius: 4, fontSize: 10, fontWeight: 700, cursor: 'pointer',
-                                border: `1px solid ${isOut ? 'rgba(220,50,50,0.6)' : 'rgba(255,255,255,0.13)'}`,
-                                background: isOut ? 'rgba(220,50,50,0.2)' : 'transparent',
-                                color: isOut ? '#E24B4A' : 'rgba(255,255,255,0.35)',
-                              }}>
-                                Q{q}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      )}
-
                       {/* Out all toggle */}
                       <button onClick={() => {
                         setAiAbsentAll(prev => {
@@ -2258,12 +2244,40 @@ export default function GameDayPage() {
                       }} style={{
                         background: isAbsentAll ? 'rgba(220,50,50,0.25)' : 'rgba(255,255,255,0.05)',
                         border: `1px solid ${isAbsentAll ? 'rgba(220,50,50,0.45)' : 'rgba(255,255,255,0.1)'}`,
-                        borderRadius: 6, padding: '3px 7px', flexShrink: 0,
-                        color: isAbsentAll ? '#E24B4A' : 'rgba(255,255,255,0.35)',
-                        fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                        borderRadius: 8, padding: '0 12px', minHeight: 36, flexShrink: 0,
+                        color: isAbsentAll ? '#f87171' : 'rgba(255,255,255,0.75)',
+                        fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
                       }}>
                         {isAbsentAll ? 'Absent' : 'Absent?'}
                       </button>
+                      {/* Per-quarter "misses" buttons — All 4 mode only. On phones
+                          they get their own row so each is a real thumb target. */}
+                      {!isAbsentAll && aiQuarterMode === 'All 4' && (
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center',
+                          ...(viewW < 440 ? { flexBasis: '100%', paddingLeft: viewW < 360 ? 0 : 36 } : {}) }}>
+                          <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, marginRight: 2 }}>Misses</span>
+                          {[1, 2, 3, 4].map(q => {
+                            const isOut = absentQs.includes(q)
+                            return (
+                              <button key={q}
+                                aria-pressed={isOut}
+                                aria-label={`${player.name} misses quarter ${q}`}
+                                onClick={() => setAiAbsentQuarters(prev => {
+                                  const cur = prev[player.id] || []
+                                  return { ...prev, [player.id]: isOut ? cur.filter(x => x !== q) : [...cur, q] }
+                                })} style={{
+                                minWidth: viewW < 440 ? 0 : 44, height: 36, borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                flex: viewW < 440 ? 1 : '0 0 auto',
+                                border: `1px solid ${isOut ? 'rgba(239,68,68,0.75)' : 'rgba(255,255,255,0.18)'}`,
+                                background: isOut ? 'rgba(239,68,68,0.22)' : 'rgba(255,255,255,0.04)',
+                                color: isOut ? '#fca5a5' : 'rgba(255,255,255,0.75)',
+                              }}>
+                                {isOut ? `✕ Q${q}` : `Q${q}`}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -2280,14 +2294,19 @@ export default function GameDayPage() {
               </div>
             )}
 
-            {/* Generate button */}
-            <button onClick={handleGenerateAILineup} style={{
-              background: 'linear-gradient(135deg, #7b3fa8, #00c853)', border: 'none',
-              borderRadius: 12, padding: 14, color: '#fff', fontSize: 15, fontWeight: 700,
-              cursor: 'pointer', width: '100%', flexShrink: 0,
-            }}>
-              ✨ Generate Lineup
-            </button>
+            {/* Fill button sticks to the bottom so it's reachable without
+                scrolling past the whole roster */}
+            <div style={{ position: 'sticky', bottom: -20, margin: '0 -20px -20px',
+              padding: '12px 20px calc(16px + env(safe-area-inset-bottom))',
+              background: 'linear-gradient(to bottom, rgba(26,26,46,0.85), #1a1a2e 30%)', flexShrink: 0 }}>
+              <button onClick={handleGenerateAILineup} style={{
+                background: '#00c853', border: 'none',
+                borderRadius: 12, padding: 14, color: '#04210f', fontSize: 15, fontWeight: 700,
+                cursor: 'pointer', width: '100%',
+              }}>
+                ✨ Fill {aiQuarterMode === 'All 4' ? 'all 4 quarters' : aiQuarterMode.replace(' only', '')}
+              </button>
+            </div>
           </div>
         </div>
       )}
