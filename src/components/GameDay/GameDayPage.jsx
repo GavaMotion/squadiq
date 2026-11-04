@@ -26,7 +26,7 @@ import PlanBadge from '../UI/PlanBadge'
 import { LineupSkeleton } from '../UI/Skeleton'
 import ConfirmDialog from '../UI/ConfirmDialog'
 import { generateAILineup, isOutOfPosition } from '../../lib/aiLineup'
-import { targetQuarters } from '../../lib/playtime'
+import { targetQuarters, teamRule } from '../../lib/playtime'
 import {
   createFreeSubs, endGame, fmtMs, gameMs, isRunning, pauseAt, pauseClock,
   playedMsFor, reconcileStints, resetClock, resumeGame, startClock,
@@ -1055,12 +1055,27 @@ export default function GameDayPage() {
     return players.filter(p => outAllIds.has(p.id) || outQIds[q]?.has(p.id))
   }
 
+  // The team's playing-time rule ('half' or 'three'). 'three' never asks for
+  // more quarters than the roster can give every kid who is there.
+  const playRule = teamRule(team)
+  function rosterShare() {
+    const QS = [1, 2, 3, 4]
+    const present = players.filter(p => !outAllIds.has(p.id) && !QS.every(q => outQIds[q]?.has(p.id)))
+    const spots = QS.reduce((n, q) => n + (quarters?.[q]?.formation?.slots?.length || 0), 0)
+    return present.length ? Math.floor(spots / present.length) : 4
+  }
+  function ruleTargetFor(pid, share = rosterShare()) {
+    const outCount = [1, 2, 3, 4].filter(q => outQIds[q]?.has(pid)).length
+    return targetQuarters(outCount, playRule, share)
+  }
+
   function getAtRiskPlayers() {
     // Nothing is planned yet → nobody is at risk (a blank plan would
     // otherwise flag the whole roster).
     const anyPlanned = [1, 2, 3, 4].some(q =>
       Object.values(quarters?.[q]?.slots || {}).some(Boolean))
     if (!anyPlanned) return []
+    const share = rosterShare()
     return players.filter(p => {
       if (outAllIds.has(p.id)) return false
       // Out for every quarter individually = not playing today, not at risk.
@@ -1071,9 +1086,7 @@ export default function GameDayPage() {
         if (inField) played++
       }
       // A kid planned for zero quarters is the worst case, so include 0.
-      // A kid OUT for any quarter only needs half the game (two quarters).
-      const outCount = [1, 2, 3, 4].filter(q => outQIds[q]?.has(p.id)).length
-      return played < targetQuarters(outCount)
+      return played < ruleTargetFor(p.id, share)
     })
   }
 
@@ -1196,6 +1209,7 @@ export default function GameDayPage() {
       formationsByQuarter,
       quarters:        quartersToGenerate,
       priorCounts,
+      rule:            playRule,
     })
     markGoodMoment('ai-lineup')
 
@@ -1357,8 +1371,7 @@ export default function GameDayPage() {
     const share = present.length ? Math.floor(totalSpots / present.length) : 0
     let squeezed = 0
     present.forEach(p => {
-      const outCount = QS.filter(q => outQIds[q]?.has(p.id)).length
-      const target   = targetQuarters(outCount)
+      const target   = ruleTargetFor(p.id, share)
       const played   = QS.filter(q => filledIn(q).includes(p.id)).length
       if (played >= target) return
       if (played === 0 || played < Math.min(target, share)) {
@@ -1853,6 +1866,7 @@ export default function GameDayPage() {
                 shakingPlayerId={shakingPlayerId}
                 benchIsOver={hoverDrop === 'bench'}
                 freeSubs={freeSubsForTags}
+                targetFor={ruleTargetFor}
               />
             </div>
           </div>

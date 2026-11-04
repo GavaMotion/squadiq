@@ -72,6 +72,7 @@ export function generateAILineup({
   formationsByQuarter,   // optional per-quarter formation map: { 1: f, 2: f, ... }
   quarters            = [1, 2, 3, 4],
   priorCounts         = {},  // quarters each kid already has in the OTHER quarters of the plan
+  rule                = 'half',  // team playing-time rule: 'half' | 'three'
 }) {
   const allAvailable = players.filter(p => !absentPlayerIds.has(p.id))
 
@@ -113,7 +114,7 @@ export function generateAILineup({
   const fairTarget = {}
   allAvailable.forEach(p => {
     // OUT for any quarter of the game → half the game (2) is enough
-    const need = targetQuarters((absentQuarters[p.id] || []).length)
+    const need = targetQuarters((absentQuarters[p.id] || []).length, rule, share)
     fairTarget[p.id] = Math.min(need, chancesIn(p, quarters), share)
   })
   const lineup        = {}
@@ -272,7 +273,7 @@ export function generateAILineup({
     const missed = [], noRoom = []
     allAvailable.forEach(p => {
       const maxPossible = chancesIn(p, quarters)
-      if (quarterCount[p.id] >= Math.min(targetQuarters((absentQuarters[p.id] || []).length), maxPossible)) return
+      if (quarterCount[p.id] >= Math.min(targetQuarters((absentQuarters[p.id] || []).length, rule, share), maxPossible)) return
       if (quarterCount[p.id] < fairTarget[p.id]) missed.push(p)
       else noRoom.push(p)
     })

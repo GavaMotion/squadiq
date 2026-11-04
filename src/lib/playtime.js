@@ -1,19 +1,38 @@
-// Playing-time urgency, shared by every surface that colours a player by how
-// many quarters they are down for. AYSO's everybody-plays rule is three
-// quarters, so the scale is: under two → 'short', exactly two → 'near',
-// three or more → 'ok'. Each surface maps these to its own palette.
+// Playing-time rule, shared by every surface that colours a player by how
+// many quarters they are down for. The app enforces only the team's rule —
+// the coach is free to play strong players more. Colours describe the amount
+// played; only 'below' is a warning.
+//
+//   'half'  (default) AYSO national minimum: half the game, two quarters.
+//   'three' three quarters, but never more than the roster can give everyone.
 
-export const MIN_QUARTERS = 3
+export const PLAYTIME_RULES = ['half', 'three']
 
-// A kid who is OUT for any quarter (late, leaving early) only needs half the
-// game — two quarters — and never more quarters than they are actually there.
-export function targetQuarters(outCount = 0) {
-  if (outCount <= 0) return MIN_QUARTERS
-  return Math.max(0, Math.min(2, 4 - outCount))
+export function teamRule(team) {
+  return team?.playtime_rule === 'three' ? 'three' : 'half'
 }
 
-export function playtimeLevel(totalPlanned, target = MIN_QUARTERS) {
-  if (totalPlanned >= target)     return 'ok'
-  if (totalPlanned >= target - 1) return 'near'
-  return 'short'
+// How many quarters a kid must play. A kid OUT for any quarter (late, leaving
+// early) needs half the game and never more quarters than they are there.
+// roomShare = the most quarters every present kid can get from the roster
+// (field spots ÷ kids), so 'three' never asks for the impossible.
+export function targetQuarters(outCount = 0, rule = 'half', roomShare = 4) {
+  const half = Math.max(0, Math.min(2, 4 - outCount))
+  if (outCount > 0 || rule !== 'three') return half
+  return Math.max(half, Math.min(3, roomShare))
+}
+
+// 'below' = under the rule (red). Otherwise the amount: half / three / all.
+export function playtimeLevel(totalPlanned, target = 2) {
+  if (totalPlanned < target) return 'below'
+  if (totalPlanned >= 4) return 'all'
+  if (totalPlanned >= 3) return 'three'
+  return 'half'
+}
+
+export const PLAYTIME_COLORS = {
+  below: '#ef4444',
+  half:  '#60a5fa',
+  three: '#00c853',
+  all:   '#22d3ee',
 }

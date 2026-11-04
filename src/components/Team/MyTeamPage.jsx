@@ -11,6 +11,7 @@ import PlayerCard from './PlayerCard'
 import AddPlayerModal from './AddPlayerModal'
 import BrandingFields from './BrandingFields'
 import GameFormatField from './GameFormatField'
+import PlaytimeRuleField from './PlaytimeRuleField'
 import { getTeamFormat } from '../../lib/formations'
 import PrivacyPolicy from '../Legal/PrivacyPolicy'
 import TermsOfService from '../Legal/TermsOfService'
@@ -137,6 +138,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
   const [teamName,    setTeamName]    = useState('')
   const [division,    setDivision]    = useState('10U')
   const [format,      setFormat]      = useState(null)
+  const [playRule,    setPlayRule]    = useState('half')
   const [branding,    setBranding]    = useState({
     colorPrimary: null, colorSecondary: null, colorAccent: null,
   })
@@ -189,6 +191,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
     setTeamName(team?.name || '')
     setDivision(team?.division || '10U')
     setFormat(team?.format || null)
+    setPlayRule(team?.playtime_rule === 'three' ? 'three' : 'half')
     setBranding({
       colorPrimary:   team?.color_primary   || null,
       colorSecondary: team?.color_secondary || null,
@@ -216,6 +219,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
           name:            teamName.trim(),
           division,
           ...(format || team.format ? { format: division === 'Futsal' ? null : format } : {}),
+          ...(playRule !== (team.playtime_rule || 'half') ? { playtime_rule: playRule } : {}),
           color_primary:   branding.colorPrimary   || null,
           color_secondary: branding.colorSecondary || null,
           color_accent:    branding.colorAccent    || null,
@@ -229,6 +233,7 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
         name:            teamName.trim(),
         division,
         format:          division === 'Futsal' ? null : format,
+        playtime_rule:   playRule,
         color_primary:   branding.colorPrimary   || null,
         color_secondary: branding.colorSecondary || null,
         color_accent:    branding.colorAccent    || null,
@@ -548,6 +553,11 @@ export default function MyTeamPage({ onSignOut, onCreateTeam, onShowOnboarding, 
                     division={division}
                     value={format}
                     onChange={setFormat}
+                    labelClassName="block text-sm font-medium text-gray-300 mb-1"
+                  />
+                  <PlaytimeRuleField
+                    value={playRule}
+                    onChange={setPlayRule}
                     labelClassName="block text-sm font-medium text-gray-300 mb-1"
                   />
 

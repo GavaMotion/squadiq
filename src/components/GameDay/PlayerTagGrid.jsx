@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import theme from '../../theme'
-import { playtimeLevel, targetQuarters } from '../../lib/playtime'
+import { playtimeLevel, targetQuarters, PLAYTIME_COLORS } from '../../lib/playtime'
 import PlayTimeBar from './PlayTimeBar'
 import { fmtMs, isOnField, playedMsFor } from '../../lib/freeSubs'
 
@@ -46,7 +46,7 @@ function PlayerTag({ player, quarterStates, isOnFieldNow, totalPlanned, target, 
   // says whether this player is on the field right now.
   const borderColor = freeSubs
     ? (isOnFieldNow ? theme.freeAccent : 'rgba(255,255,255,0.14)')
-    : { ok: '#00c853', near: '#EF9F27', short: '#ef4444' }[playtimeLevel(totalPlanned, target)]
+    : PLAYTIME_COLORS[playtimeLevel(totalPlanned, target)]
 
   const w = isMobile ? 75 : 84
   const h = freeSubs ? (isMobile ? 74 : 82) : (isMobile ? 62 : 70)
@@ -170,6 +170,7 @@ export default function PlayerTagGrid({
   shakingPlayerId,
   benchIsOver,
   freeSubs,
+  targetFor,
 }) {
   function getQuarterStates(pid) {
     return [1, 2, 3, 4].map(q => {
@@ -180,6 +181,7 @@ export default function PlayerTagGrid({
   }
 
   function getTarget(pid) {
+    if (targetFor) return targetFor(pid)
     return targetQuarters([1, 2, 3, 4].filter(q => (outQIds?.[q] || new Set()).has(pid)).length)
   }
 
