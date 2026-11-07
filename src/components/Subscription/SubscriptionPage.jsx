@@ -5,6 +5,10 @@ import { useToast } from '../UI/Toast'
 import { supabase } from '../../lib/supabase'
 import { PRICE_IDS } from '../../lib/stripe'
 import { useApplePay } from '../../hooks/useApplePay'
+import {
+  savePendingReceipt, clearPendingReceipt, sendReceipt, markReceiptRefused,
+  retryPendingReceipts, hasPendingReceipts, hasRefusedReceipts,
+} from '../../lib/applePending'
 import { isAndroidTWA } from '../../lib/platform'
 import { PLANS } from '../../version'
 
@@ -86,12 +90,25 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
         return
       }
 
+      // Apple has taken the payment. Keep the receipt on the phone until our
+      // server confirms it, so a dropped connection can't lose it.
+      savePendingReceipt(user.id, result.jws, result.productId)
       addToast('Verifying purchase…', 'info', 2500)
-      const { data, error } = await supabase.functions.invoke('verify-apple-receipt', {
-        body: { jws: result.jws, productId: result.productId },
-      })
-      if (error) throw error
-      if (data?.subscription) setSubscription(data.subscription)
+      let sub
+      try {
+        sub = await sendReceipt(supabase, result.jws, result.productId)
+        clearPendingReceipt(result.jws)
+      } catch (err) {
+        console.error('Apple receipt verify failed:', err)
+        if (err.permanent) {
+          markReceiptRefused(result.jws)
+          throw new Error('Apple took the payment but we could not confirm it. Email support and we’ll sort it out.')
+        }
+        addToast('Payment received. Your plan switches on as soon as you have signal — no need to buy again.', 'info', 7000)
+        onClose?.()
+        return
+      }
+      if (sub) setSubscription(sub)
 
       addToast(
         `Welcome to SquadIQ ${planKey === 'premium' ? 'Premium' : 'Solo'} Coach! 🎉`,
@@ -175,6 +192,15 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
             ? 'Your teams, lineups and playing-time history are saved. Pick a plan to keep coaching with them.'
             : 'Every feature, every game day. Premium adds up to 4 teams.'}
         </div>
+
+        {useApple && hasPendingReceipts(user?.id) && (
+          <div style={{
+            background: 'rgba(0,200,83,0.1)', border: '1px solid rgba(0,200,83,0.35)',
+            borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 13, lineHeight: 1.5,
+          }}>
+            Your payment went through. We’re confirming it now — no need to buy again.
+          </div>
+        )}
 
         {androidTWA ? (
           <>
@@ -329,7 +355,15 @@ export default function SubscriptionPage({ isOpen, onClose, isTrialExpired = fal
             onClick={async () => {
               try {
                 await apple.restore()
-                addToast('Purchases restored', 'success', 3000)
+                // Restore only re-syncs with Apple. What reaches our server is
+                // any purchase this phone paid for but never got confirmed.
+                const sent = await retryPendingReceipts(supabase, user?.id)
+                const sub = await refreshSubscription()
+                const paid = sub?.plan === 'solo' || sub?.plan === 'premium'
+                if (sent || paid) addToast('Purchases restored', 'success', 3000)
+                else if (hasPendingReceipts(user?.id)) addToast('We couldn’t reach the server. Try again when you have signal.', 'error', 5000)
+                else if (hasRefusedReceipts(user?.id)) addToast('We couldn’t confirm your purchase. Email support and we’ll sort it out.', 'error', 6000)
+                else addToast('Nothing new to restore. If you paid and your plan isn’t on, email support.', 'info', 5000)
               } catch (err) {
                 addToast(err.message || 'Could not restore purchases', 'error', 4000)
               }

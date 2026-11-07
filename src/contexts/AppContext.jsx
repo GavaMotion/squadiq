@@ -5,6 +5,7 @@ import { createFreeSubs, parseFreeSubs, serializeFreeSubs } from '../lib/freeSub
 import { getContrastTextColor } from '../lib/utils'
 import { PLANS } from '../version'
 import { mergePlanRows, readPlanBase, writePlanBase } from '../lib/planMerge'
+import { hasPendingReceipts, retryPendingReceipts } from '../lib/applePending'
 import {
   isOffline, cacheData, getCachedData, getCachedAge, readCached,
   readPendingChanges, writePendingChanges, applyPendingChanges, isNetworkError,
@@ -322,6 +323,32 @@ export function AppProvider({ userId, children }) {
   }, [userId])
 
   useEffect(() => { refreshSubscription() }, [refreshSubscription])
+
+  // An Apple purchase paid on a weak signal may still be waiting for our
+  // server. Send it when the app opens and whenever the signal comes back.
+  useEffect(() => {
+    if (!userId) return
+    // Checked on each call, not once: a receipt saved after the app opened
+    // still needs the 'online' retry.
+    const retry = async () => {
+      if (!hasPendingReceipts(userId)) return
+      if (await retryPendingReceipts(supabase, userId)) refreshSubscription()
+    }
+    // A weak signal never flips navigator.onLine, so 'online' alone is not
+    // enough: also retry when the app comes back to the front, and on a timer.
+    const onVisible = () => { if (document.visibilityState === 'visible') retry() }
+    retry()
+    window.addEventListener('online', retry)
+    window.addEventListener('focus', retry)
+    document.addEventListener('visibilitychange', onVisible)
+    const timer = setInterval(retry, 2 * 60 * 1000)
+    return () => {
+      window.removeEventListener('online', retry)
+      window.removeEventListener('focus', retry)
+      document.removeEventListener('visibilitychange', onVisible)
+      clearInterval(timer)
+    }
+  }, [userId, refreshSubscription])
 
   const maxTeams = subscription?.plan_override === 'unlimited'
     ? 999
