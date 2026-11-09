@@ -103,14 +103,15 @@ function NewTeamModal({ onSave, onCancel }) {
     colorPrimary: '#1a5c2e', colorSecondary: null, colorAccent: null,
   })
 
-  // Escape closes the modal for keyboard users
+  // Escape closes the modal for keyboard users, but not mid-save (the team
+  // would still be created after the popup vanished)
   useEffect(() => {
     function onKey(e) {
-      if (e.key === 'Escape') onCancel()
+      if (e.key === 'Escape' && !saving) onCancel()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [onCancel])
+  }, [onCancel, saving])
 
   async function handleSubmit(e) {
     e.preventDefault()
