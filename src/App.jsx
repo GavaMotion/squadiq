@@ -103,6 +103,15 @@ function NewTeamModal({ onSave, onCancel }) {
     colorPrimary: '#1a5c2e', colorSecondary: null, colorAccent: null,
   })
 
+  // Escape closes the modal for keyboard users
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape') onCancel()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onCancel])
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (!name.trim()) return setError('Team name is required.')
